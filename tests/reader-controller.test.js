@@ -16,7 +16,8 @@ describe("createReaderController", () => {
 
     controller.start();
 
-    expect(document.querySelector(".comment").innerHTML).toBe("<p>**BOLD**</p>");
+    expect(document.querySelector(".comment").hidden).toBe(true);
+    expect(document.querySelector(".annotation-markdown-rendered").innerHTML).toBe("<p>**BOLD**</p>");
     controller.stop();
   });
 
@@ -164,6 +165,6 @@ describe("createReaderController", () => {
     controller.renderNow();
 
     expect(document.querySelectorAll(".comment")[0].textContent).toBe("bad");
-    expect(document.querySelectorAll(".comment")[1].innerHTML).toBe("<p>good</p>");
+    expect(document.querySelectorAll(".comment")[1].nextElementSibling.innerHTML).toBe("<p>good</p>");
   });
 });

@@ -70,7 +70,9 @@ describe("createAnnotationSidebarAdapter", () => {
 
     expect(adapter.isRendered(node)).toBe(true);
     expect(adapter.getSourceText(node)).toBe("**bold**");
-    expect(node.innerHTML).toBe("<p><strong>bold</strong></p>");
+    expect(node.hidden).toBe(true);
+    expect(node.nextElementSibling?.className).toBe("annotation-markdown-rendered");
+    expect(node.nextElementSibling?.innerHTML).toBe("<p><strong>bold</strong></p>");
   });
 
   test("does not overwrite original source text when rendering twice", () => {
@@ -82,6 +84,7 @@ describe("createAnnotationSidebarAdapter", () => {
     adapter.applyRenderedHtml(node, "<p><strong>changed</strong></p>");
 
     expect(adapter.getSourceText(node)).toBe("**bold**");
+    expect(node.nextElementSibling?.innerHTML).toBe("<p><strong>changed</strong></p>");
   });
 
   test("restores original source text", () => {
@@ -93,7 +96,9 @@ describe("createAnnotationSidebarAdapter", () => {
     adapter.restoreSourceText(node);
 
     expect(adapter.isRendered(node)).toBe(false);
+    expect(node.hidden).toBe(false);
     expect(node.textContent).toBe("**bold**");
+    expect(document.querySelector(".annotation-markdown-rendered")).toBeNull();
   });
 
   test("restores source and suppresses rerender when a rendered node is pressed for editing", () => {
@@ -102,9 +107,10 @@ describe("createAnnotationSidebarAdapter", () => {
     const adapter = createAnnotationSidebarAdapter({ document });
 
     adapter.applyRenderedHtml(node, "<p><strong>bold</strong></p>");
-    node.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    node.nextElementSibling.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
 
     expect(node.textContent).toBe("**bold**");
+    expect(node.hidden).toBe(false);
     expect(adapter.isRendered(node)).toBe(false);
     expect(adapter.findCommentNodes(document.body)).toHaveLength(0);
   });

@@ -9,6 +9,7 @@ const ANNOTATION_ROW_SELECTOR = "[data-annotation-id], .annotation, .annotation-
 const RENDERED_ATTRIBUTE = "data-annotation-markdown-rendered";
 const SOURCE_ATTRIBUTE = "data-annotation-markdown-source";
 const SUPPRESS_UNTIL_ATTRIBUTE = "data-annotation-markdown-suppress-until";
+const PREVIEW_ATTRIBUTE = "data-annotation-markdown-preview";
 
 export function createAnnotationSidebarAdapter({ document: documentRef = globalThis.document } = {}) {
   return {
@@ -52,14 +53,15 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.setAttribute(SOURCE_ATTRIBUTE, node.textContent ?? "");
       }
 
-      if (node.innerHTML === html) {
+      const preview = getPreviewNode(node) ?? createPreviewNode(node, this);
+
+      if (preview.innerHTML === html) {
         return;
       }
 
-      node.innerHTML = html;
-      node.classList?.add("annotation-markdown-rendered");
+      preview.innerHTML = html;
+      node.hidden = true;
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
-      attachEditRestoreHandler(node, this);
     },
 
     restoreSourceText(node) {
@@ -69,7 +71,8 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
 
       const source = this.getSourceText(node);
       node.textContent = source;
-      node.classList?.remove("annotation-markdown-rendered");
+      node.hidden = false;
+      getPreviewNode(node)?.remove();
       node.removeAttribute(RENDERED_ATTRIBUTE);
       node.removeAttribute(SOURCE_ATTRIBUTE);
     },
@@ -98,18 +101,19 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
   };
 }
 
-function attachEditRestoreHandler(node, adapter) {
-  if (node.__annotationMarkdownEditRestoreAttached) {
-    return;
-  }
-
-  node.__annotationMarkdownEditRestoreAttached = true;
-  node.addEventListener("mousedown", () => {
-    if (!adapter.isRendered(node)) {
-      return;
-    }
-
-    adapter.suppressRendering(node);
-    adapter.restoreSourceText(node);
+function createPreviewNode(sourceNode, adapter) {
+  const preview = sourceNode.ownerDocument.createElement("div");
+  preview.className = "annotation-markdown-rendered";
+  preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
+  preview.addEventListener("mousedown", () => {
+    adapter.suppressRendering(sourceNode);
+    adapter.restoreSourceText(sourceNode);
   }, { capture: true });
+  sourceNode.after(preview);
+  return preview;
+}
+
+function getPreviewNode(sourceNode) {
+  const next = sourceNode?.nextElementSibling;
+  return next?.getAttribute?.(PREVIEW_ATTRIBUTE) === "true" ? next : null;
 }
