@@ -4,7 +4,11 @@ import path from "node:path";
 
 import { BlobWriter, Uint8ArrayReader, ZipWriter } from "@zip.js/zip.js";
 
-import { createUpdateManifest, releaseAssetName } from "./release-config.mjs";
+import {
+  createUpdateManifest,
+  deterministicZipEntryOptions,
+  releaseAssetName
+} from "./release-config.mjs";
 
 const root = process.cwd();
 const addonDir = path.join(root, "dist", "addon");
@@ -15,7 +19,7 @@ const writer = new ZipWriter(new BlobWriter("application/zip"));
 for (const file of await listFiles(addonDir)) {
   const bytes = await readFile(file);
   const relativePath = path.relative(addonDir, file).replaceAll("\\", "/");
-  await writer.add(relativePath, new Uint8ArrayReader(bytes));
+  await writer.add(relativePath, new Uint8ArrayReader(bytes), deterministicZipEntryOptions);
 }
 
 const blob = await writer.close();
@@ -31,7 +35,7 @@ await writeFile(path.join(root, "updates.json"), updateManifest);
 await writeFile(path.join(root, "dist", "updates.json"), updateManifest);
 
 async function listFiles(directory) {
-  const entries = await readdir(directory);
+  const entries = (await readdir(directory)).sort();
   const files = [];
 
   for (const entry of entries) {

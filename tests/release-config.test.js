@@ -4,7 +4,12 @@ import path from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-import { createUpdateManifest, releaseAssetName, updateManifestUrl } from "../scripts/release-config.mjs";
+import {
+  createUpdateManifest,
+  deterministicZipEntryOptions,
+  releaseAssetName,
+  updateManifestUrl
+} from "../scripts/release-config.mjs";
 
 describe("release configuration", () => {
   test("uses the stable GitHub raw update manifest URL", () => {
@@ -39,6 +44,15 @@ describe("release configuration", () => {
           ]
         }
       }
+    });
+  });
+
+  test("uses deterministic zip entry timestamps for stable release hashes", () => {
+    expect(deterministicZipEntryOptions).toEqual({
+      lastModDate: new Date("2026-01-01T00:00:00.000Z"),
+      lastAccessDate: new Date("2026-01-01T00:00:00.000Z"),
+      creationDate: new Date("2026-01-01T00:00:00.000Z"),
+      extendedTimestamp: false
     });
   });
 });
