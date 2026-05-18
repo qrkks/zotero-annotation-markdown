@@ -1,5 +1,7 @@
 # Zotero Annotation Markdown
 
+English | [简体中文](README.zh-CN.md)
+
 Render Zotero reader sidebar annotation comments as Markdown while keeping Zotero's stored annotation text unchanged.
 
 ## Target
