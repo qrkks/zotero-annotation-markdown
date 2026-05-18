@@ -195,6 +195,8 @@ describe("createAnnotationSidebarAdapter", () => {
 
       expect(node.classList.contains("annotation-markdown-editing")).toBe(true);
       expect(document.activeElement).not.toBe(content);
+      expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(true);
+      expect(node.querySelector(".annotation-markdown-rendered")?.style.display).toBe("none");
       expect(callbacks).toHaveLength(1);
 
       callbacks[0]();
@@ -272,5 +274,7 @@ describe("createAnnotationSidebarAdapter", () => {
 
     expect(adapter.findCommentNodes(document.body)).toHaveLength(0);
     expect(node.classList.contains("annotation-markdown-editing")).toBe(true);
+    expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(true);
+    expect(node.querySelector(".annotation-markdown-rendered")?.style.display).toBe("none");
   });
 });

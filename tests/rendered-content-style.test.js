@@ -18,6 +18,8 @@ describe("rendered annotation styles", () => {
       expect(css).toContain(".annotation-row.selected .annotation-markdown-rendered");
       expect(css).toContain("-webkit-line-clamp: unset");
       expect(css).toContain(".annotation-popup .annotation-markdown-rendered");
+      expect(css).toContain(".annotation-markdown-editing .annotation-markdown-rendered");
+      expect(css).toContain("display: none !important");
     }
   });
 });

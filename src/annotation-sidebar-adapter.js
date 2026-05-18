@@ -10,6 +10,7 @@ const RENDERED_ATTRIBUTE = "data-annotation-markdown-rendered";
 const SOURCE_ATTRIBUTE = "data-annotation-markdown-source";
 const SUPPRESS_UNTIL_ATTRIBUTE = "data-annotation-markdown-suppress-until";
 const PREVIEW_ATTRIBUTE = "data-annotation-markdown-preview";
+const PREVIEW_HIDDEN_ATTRIBUTE = "data-annotation-markdown-preview-hidden";
 const SOURCE_WRAPPER_ATTRIBUTE = "data-annotation-markdown-source-node";
 const SOURCE_HIDDEN_ATTRIBUTE = "data-annotation-markdown-source-hidden";
 const EDITING_CLASS = "annotation-markdown-editing";
@@ -68,13 +69,13 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
 
       if (preview.innerHTML === html) {
         hideSourceNode(node);
-        preview.hidden = false;
+        showPreviewNode(preview);
         return;
       }
 
       preview.innerHTML = html;
       hideSourceNode(node);
-      preview.hidden = false;
+      showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
     },
 
@@ -130,7 +131,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       showSourceNode(sourceNode);
 
       if (preview) {
-        preview.hidden = true;
+        hidePreviewNode(preview);
       }
 
       node.classList?.add(EDITING_CLASS);
@@ -188,6 +189,28 @@ function getPreviewNode(sourceNode) {
 
   return Array.from(sourceNode?.children ?? [])
     .find((child) => child.getAttribute?.(PREVIEW_ATTRIBUTE) === "true") ?? null;
+}
+
+function hidePreviewNode(preview) {
+  if (!preview) {
+    return;
+  }
+
+  preview.hidden = true;
+  preview.style.display = "none";
+  preview.setAttribute(PREVIEW_HIDDEN_ATTRIBUTE, "true");
+}
+
+function showPreviewNode(preview) {
+  if (!preview) {
+    return;
+  }
+
+  preview.hidden = false;
+  if (preview.getAttribute?.(PREVIEW_HIDDEN_ATTRIBUTE) === "true") {
+    preview.style.display = "";
+    preview.removeAttribute(PREVIEW_HIDDEN_ATTRIBUTE);
+  }
 }
 
 function getSourceNode(node) {

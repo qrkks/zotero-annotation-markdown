@@ -24,6 +24,10 @@ export const RENDERED_CONTENT_STYLE = `
   overflow: visible;
 }
 
+.annotation-markdown-editing .annotation-markdown-rendered {
+  display: none !important;
+}
+
 .annotation-markdown-rendered p {
   margin: 0 0 0.45em;
 }

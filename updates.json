@@ -5,7 +5,7 @@
         {
           "version": "0.1.7",
           "update_link": "https://github.com/qrkks/zotero-annotation-markdown-plugins/releases/download/v0.1.7/zotero-annotation-markdown.xpi",
-          "update_hash": "sha256:cd5465f095c6288b5bf0558724e9cfb18c5c0e339d97fcc9f222336d412543f4",
+          "update_hash": "sha256:a9ee1c34dcbfc6e754df48b913182ca28c73a70b2c9497a3682b86def18d2ab0",
           "applications": {
             "zotero": {
               "strict_min_version": "9.0",
