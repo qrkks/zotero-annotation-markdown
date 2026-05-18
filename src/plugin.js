@@ -50,21 +50,21 @@ export function createPlugin({
       const openReaders = collectOpenReaders(Zotero);
       diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
 
-      for (const reader of openReaders) {
-        registry.register(reader);
-      }
+      const registrations = openReaders.map((reader) => registry.register(reader));
 
       if (Zotero?.Reader?.registerEventListener) {
         readerEventHandler = (event) => {
           const reader = event?.reader ?? event;
           diagnosticsLogger.log(`[annotation-markdown] reader event fired: ${READER_EVENT}`);
-          registry?.register(reader);
+          return registry?.register(reader);
         };
         Zotero.Reader.registerEventListener(READER_EVENT, readerEventHandler, PLUGIN_ID);
         diagnosticsLogger.log(`[annotation-markdown] registered reader event: ${READER_EVENT}`);
       } else {
         diagnosticsLogger.log("[annotation-markdown] Zotero.Reader.registerEventListener unavailable");
       }
+
+      return Promise.all(registrations);
     },
 
     shutdown() {

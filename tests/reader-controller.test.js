@@ -16,9 +16,59 @@ describe("createReaderController", () => {
 
     controller.start();
 
-    expect(document.querySelector(".comment").hidden).toBe(true);
-    expect(document.querySelector(".annotation-markdown-rendered").innerHTML).toBe("<p>**BOLD**</p>");
+    const comment = document.querySelector(".comment");
+    expect(comment.hidden).toBe(false);
+    expect(comment.querySelector("[data-annotation-markdown-source-node]")?.hidden).toBe(true);
+    expect(comment.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>**BOLD**</p>");
     controller.stop();
+  });
+
+  test("waits for Zotero reader readiness before the first render pass", async () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    let resolveReady;
+    const controller = createReaderController({
+      reader: {
+        document,
+        _waitForReader: () => new Promise((resolve) => { resolveReady = resolve; })
+      },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: undefined
+    });
+
+    const startPromise = controller.start();
+    expect(render).not.toHaveBeenCalled();
+    resolveReady();
+    await startPromise;
+
+    expect(render).toHaveBeenCalledWith("**bold**");
+  });
+
+  test("runs a synchronous scan when annotation comment nodes are added", async () => {
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `<div id="root"></div>`;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    const added = document.createElement("div");
+    added.innerHTML = `<div data-annotation-id="a1"><div class="comment">**new**</div></div>`;
+    document.querySelector("#root").append(added);
+    callbacks[0]([{ addedNodes: [added], target: document.querySelector("#root") }]);
+
+    expect(render).toHaveBeenCalledWith("**new**");
   });
 
   test("logs render pass diagnostics", () => {
@@ -101,6 +151,43 @@ describe("createReaderController", () => {
     expect(adapter.isRendered(node)).toBe(false);
   });
 
+  test("rerenders edited source text after editing loses focus", () => {
+    const requestAnimationFrame = globalThis.requestAnimationFrame;
+    const callbacks = [];
+    globalThis.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+
+    try {
+      document.body.innerHTML = `<div data-annotation-id="a1" class="annotation selected"><div class="comment"><div class="content" tabindex="0">**bold**</div></div></div>`;
+      const adapter = createAnnotationSidebarAdapter({ document });
+      const controller = createReaderController({
+        reader: { document },
+        adapter,
+        renderer: { render: (source) => `<p>${source.toUpperCase()}</p>` },
+        settings: { isEnabled: () => true },
+        MutationObserver: undefined
+      });
+
+      controller.renderNow();
+      const comment = document.querySelector(".comment");
+      const content = comment.querySelector(".content");
+      comment.querySelector(".annotation-markdown-rendered").dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      callbacks[0]();
+
+      content.textContent = "**changed**";
+      content.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      controller.renderNow();
+
+      expect(content.hidden).toBe(true);
+      expect(comment.querySelector(".annotation-markdown-rendered")?.hidden).toBe(false);
+      expect(comment.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>**CHANGED**</p>");
+    } finally {
+      globalThis.requestAnimationFrame = requestAnimationFrame;
+    }
+  });
+
   test("disconnects the mutation observer on stop", () => {
     const disconnect = vi.fn();
     const observe = vi.fn();
@@ -142,6 +229,26 @@ describe("createReaderController", () => {
     expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
   });
 
+  test("clears stale adapter state before rendering on start", async () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
+    const clearRenderedState = vi.fn();
+    const adapter = {
+      ...createAnnotationSidebarAdapter({ document }),
+      clearRenderedState
+    };
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: undefined
+    });
+
+    await controller.start();
+
+    expect(clearRenderedState).toHaveBeenCalledWith(document.body);
+  });
+
   test("one broken annotation does not stop other annotations from rendering", () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1"><div class="comment">bad</div></div>
@@ -165,6 +272,6 @@ describe("createReaderController", () => {
     controller.renderNow();
 
     expect(document.querySelectorAll(".comment")[0].textContent).toBe("bad");
-    expect(document.querySelectorAll(".comment")[1].nextElementSibling.innerHTML).toBe("<p>good</p>");
+    expect(document.querySelectorAll(".comment")[1].querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>good</p>");
   });
 });

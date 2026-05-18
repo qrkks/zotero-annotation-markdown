@@ -9,8 +9,10 @@ export function createReaderController({
 }) {
   let observer;
   let styleElement;
+  let safetyTimer;
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
+  const windowRef = documentRef?.defaultView ?? globalThis.window;
 
   function renderNode(node) {
     try {
@@ -37,17 +39,15 @@ export function createReaderController({
 
   return {
     start() {
-      injectStyles();
-      this.renderNow();
-
-      if (root && MutationObserverRef && !observer) {
-        observer = new MutationObserverRef(() => this.renderNow());
-        observer.observe(root, {
-          childList: true,
-          subtree: true,
-          characterData: true
+      const readyPromise = getReaderReadyPromise();
+      if (readyPromise) {
+        return readyPromise.then(() => {
+          startNow(() => this.renderNow());
         });
       }
+
+      startNow(() => this.renderNow());
+      return Promise.resolve();
     },
 
     renderNow() {
@@ -68,6 +68,10 @@ export function createReaderController({
     stop() {
       observer?.disconnect();
       observer = undefined;
+      if (safetyTimer && windowRef?.clearTimeout) {
+        windowRef.clearTimeout(safetyTimer);
+      }
+      safetyTimer = undefined;
       styleElement?.remove();
       styleElement = undefined;
     }
@@ -83,6 +87,69 @@ export function createReaderController({
     styleElement.textContent = styleText;
     documentRef.head.append(styleElement);
   }
+
+  function startNow(renderNow) {
+    injectStyles();
+    adapter.clearRenderedState?.(root);
+    renderNow();
+
+    if (root && MutationObserverRef && !observer) {
+      observer = new MutationObserverRef((mutations) => {
+        if (mutationNeedsSyncScan(mutations)) {
+          renderNow();
+        }
+        scheduleSafetyScan(80);
+      });
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+  }
+
+  function getReaderReadyPromise() {
+    if (typeof reader?._waitForReader === "function") {
+      return reader._waitForReader();
+    }
+
+    if (reader?._initPromise) {
+      return reader._initPromise;
+    }
+
+    return null;
+  }
+
+  function scheduleSafetyScan(delay) {
+    if (!windowRef?.setTimeout) {
+      renderNowInternal();
+      return;
+    }
+
+    if (safetyTimer) {
+      windowRef.clearTimeout(safetyTimer);
+    }
+
+    safetyTimer = windowRef.setTimeout(() => {
+      safetyTimer = undefined;
+      renderNowInternal();
+    }, delay);
+  }
+
+  function renderNowInternal() {
+    const nodes = adapter.findCommentNodes(root);
+    for (const node of nodes) {
+      renderNode(node);
+    }
+  }
+}
+
+function mutationNeedsSyncScan(mutations = []) {
+  return mutations.some((mutation) => Array.from(mutation.addedNodes ?? []).some((node) => (
+    node.nodeType === 1 &&
+    (node.matches?.(".annotation-row, .annotation, .comment") ||
+      node.querySelector?.(".annotation-row .comment, .annotation .comment, [data-annotation-id] .comment"))
+  )));
 }
 
 function getReaderRoot(reader) {

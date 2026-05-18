@@ -95,6 +95,53 @@ describe("createPlugin", () => {
     expect(register).toHaveBeenCalledWith({ id: "reader-1" });
   });
 
+  test("startup tolerates async registry registration for open readers and reader events", async () => {
+    const register = vi.fn(() => Promise.resolve());
+    const shutdown = vi.fn();
+    const listeners = {};
+    const openReader = { id: "open" };
+    const eventReader = { id: "event" };
+    const Zotero = {
+      Reader: {
+        _readers: [openReader],
+        registerEventListener: vi.fn((name, handler) => { listeners[name] = handler; }),
+        unregisterEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ register, shutdown }),
+      logger: { log: vi.fn(), warn: vi.fn() }
+    });
+
+    await plugin.startup();
+    await listeners.renderSidebarAnnotationHeader({ reader: eventReader });
+
+    expect(register).toHaveBeenCalledWith(openReader);
+    expect(register).toHaveBeenCalledWith(eventReader);
+  });
+
+  test("reader event handler returns the registry registration promise", () => {
+    const registration = Promise.resolve();
+    const register = vi.fn(() => registration);
+    const Zotero = {
+      Reader: {
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ register, shutdown: vi.fn() })
+    });
+
+    plugin.startup();
+    const handler = Zotero.Reader.registerEventListener.mock.calls[0][1];
+
+    expect(handler({ reader: { id: "reader-1" } })).toBe(registration);
+  });
+
   test("startup tolerates missing Zotero reader APIs", () => {
     const plugin = createPlugin({ Zotero: {}, registryFactory: () => ({ register: vi.fn(), shutdown: vi.fn() }) });
 
