@@ -12,11 +12,12 @@ export function createPlugin({
   Zotero = globalThis.Zotero,
   window: windowRef = globalThis.window,
   registryFactory,
-  logger = globalThis.console
+  logger = globalThis.console,
+  diagnostics = globalThis.ZoteroAnnotationMarkdownDiagnostics
 } = {}) {
   let registry;
   let readerEventHandler;
-  const diagnostics = createLogger(Zotero, logger);
+  const diagnosticsLogger = createLogger(Zotero, logger, diagnostics);
 
   function makeRegistry() {
     if (registryFactory) {
@@ -35,7 +36,7 @@ export function createPlugin({
           settings,
           MutationObserver: readerWindow?.MutationObserver,
           styleText: RENDERED_CONTENT_STYLE,
-          logger: diagnostics
+          logger: diagnosticsLogger
         });
       }
     });
@@ -43,11 +44,11 @@ export function createPlugin({
 
   return {
     startup() {
-      diagnostics.log("[annotation-markdown] startup");
+      diagnosticsLogger.log("[annotation-markdown] startup");
       registry = makeRegistry();
 
       const openReaders = collectOpenReaders(Zotero);
-      diagnostics.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
+      diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
 
       for (const reader of openReaders) {
         registry.register(reader);
@@ -56,13 +57,13 @@ export function createPlugin({
       if (Zotero?.Reader?.registerEventListener) {
         readerEventHandler = (event) => {
           const reader = event?.reader ?? event;
-          diagnostics.log(`[annotation-markdown] reader event fired: ${READER_EVENT}`);
+          diagnosticsLogger.log(`[annotation-markdown] reader event fired: ${READER_EVENT}`);
           registry?.register(reader);
         };
         Zotero.Reader.registerEventListener(READER_EVENT, readerEventHandler, PLUGIN_ID);
-        diagnostics.log(`[annotation-markdown] registered reader event: ${READER_EVENT}`);
+        diagnosticsLogger.log(`[annotation-markdown] registered reader event: ${READER_EVENT}`);
       } else {
-        diagnostics.log("[annotation-markdown] Zotero.Reader.registerEventListener unavailable");
+        diagnosticsLogger.log("[annotation-markdown] Zotero.Reader.registerEventListener unavailable");
       }
     },
 
@@ -72,7 +73,7 @@ export function createPlugin({
           Zotero.Reader.unregisterEventListener(READER_EVENT, readerEventHandler);
         }
       } catch (error) {
-        logger?.warn?.("Could not unregister Zotero Annotation Markdown reader listener", error);
+        diagnosticsLogger.warn("Could not unregister Zotero Annotation Markdown reader listener", error);
       } finally {
         readerEventHandler = undefined;
         registry?.shutdown();
@@ -82,9 +83,10 @@ export function createPlugin({
   };
 }
 
-function createLogger(Zotero, logger) {
+function createLogger(Zotero, logger, diagnostics) {
   return {
     log(message) {
+      appendDiagnostic(diagnostics, message);
       if (Zotero?.debug) {
         Zotero.debug(message);
       } else {
@@ -93,6 +95,7 @@ function createLogger(Zotero, logger) {
     },
 
     warn(message, error) {
+      appendDiagnostic(diagnostics, `${message}: ${error?.message ?? error ?? ""}`);
       if (Zotero?.debug) {
         Zotero.debug(`${message}: ${error?.message ?? error ?? ""}`);
       } else {
@@ -100,6 +103,14 @@ function createLogger(Zotero, logger) {
       }
     }
   };
+}
+
+function appendDiagnostic(diagnostics, message) {
+  try {
+    diagnostics?.append?.(message);
+  } catch {
+    // Diagnostics must never break plugin behavior.
+  }
 }
 
 function createPrefsAdapter(Zotero) {

@@ -54,6 +54,27 @@ describe("createPlugin", () => {
     expect(log).toHaveBeenCalledWith("[annotation-markdown] registered reader event: renderSidebarAnnotationHeader");
   });
 
+  test("startup mirrors diagnostics to a file logger when available", () => {
+    const append = vi.fn();
+    const Zotero = {
+      Reader: {
+        _readers: [],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {},
+      debug: vi.fn()
+    };
+    const plugin = createPlugin({
+      Zotero,
+      diagnostics: { append },
+      registryFactory: () => ({ register: vi.fn(), shutdown: vi.fn() })
+    });
+
+    plugin.startup();
+
+    expect(append).toHaveBeenCalledWith("[annotation-markdown] startup");
+  });
+
   test("reader events register their reader with the registry", () => {
     const register = vi.fn();
     const Zotero = {

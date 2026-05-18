@@ -54,6 +54,10 @@ export function createReaderController({
       const nodes = adapter.findCommentNodes(root);
       logger?.log?.(`[annotation-markdown] render pass nodes: ${nodes.length}`);
 
+      if (nodes.length === 0) {
+        logger?.log?.(`[annotation-markdown] zero-node DOM summary: ${summarizeDom(root)}`);
+      }
+
       for (const node of nodes) {
         renderNode(node);
       }
@@ -87,4 +91,28 @@ function getReaderRoot(reader) {
     reader?._iframeWindow?.document?.body ??
     null
   );
+}
+
+function summarizeDom(root) {
+  if (!root?.querySelectorAll) {
+    return "no root";
+  }
+
+  return Array.from(root.querySelectorAll("[class], [data-annotation-id], [data-id], [data-key]"))
+    .slice(0, 80)
+    .map((node) => {
+      const tag = node.tagName?.toLowerCase?.() ?? "node";
+      const className = node.getAttribute?.("class");
+      const dataAnnotationId = node.getAttribute?.("data-annotation-id");
+      const dataId = node.getAttribute?.("data-id");
+      const dataKey = node.getAttribute?.("data-key");
+      return [
+        tag,
+        className ? `.${String(className).trim().replace(/\s+/g, ".")}` : "",
+        dataAnnotationId ? `[data-annotation-id=${dataAnnotationId}]` : "",
+        dataId ? `[data-id=${dataId}]` : "",
+        dataKey ? `[data-key=${dataKey}]` : ""
+      ].join("");
+    })
+    .join(" ");
 }
