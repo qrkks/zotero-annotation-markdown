@@ -13,7 +13,7 @@ describe("addon manifest", () => {
     expect(manifest.applications.zotero.strict_min_version).toBe("9.0");
     expect(manifest.applications.zotero.strict_max_version).toBe("9.0.*");
     expect(manifest.applications.zotero.update_url).toBe(
-      "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json"
+      "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json"
     );
   });
 });

@@ -23,7 +23,7 @@ Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器�
 从最新 GitHub Release 下载 `zotero-annotation-markdown.xpi`：
 
 ```text
-https://github.com/qrkks/zotero-annotation-markdown-plugins/releases/latest
+https://github.com/qrkks/zotero-annotation-markdown/releases/latest
 ```
 
 在 Zotero 中打开 `工具 -> 插件`，然后把 `.xpi` 文件拖入插件窗口安装。
@@ -53,7 +53,7 @@ dist/zotero-annotation-markdown.xpi
 插件更新清单地址：
 
 ```text
-https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json
+https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json
 ```
 
 ## 当前限制

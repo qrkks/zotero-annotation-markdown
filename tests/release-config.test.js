@@ -14,7 +14,7 @@ import {
 describe("release configuration", () => {
   test("uses the stable GitHub raw update manifest URL", () => {
     expect(updateManifestUrl).toBe(
-      "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json"
+      "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json"
     );
   });
 
@@ -32,7 +32,7 @@ describe("release configuration", () => {
           updates: [
             {
               version: packageJson.version,
-              update_link: `https://github.com/qrkks/zotero-annotation-markdown-plugins/releases/download/v${packageJson.version}/${releaseAssetName}`,
+              update_link: `https://github.com/qrkks/zotero-annotation-markdown/releases/download/v${packageJson.version}/${releaseAssetName}`,
               update_hash: `sha256:${xpiHash}`,
               applications: {
                 zotero: {

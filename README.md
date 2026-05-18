@@ -49,7 +49,7 @@ Download `zotero-annotation-markdown.xpi` from the latest GitHub release. In Zot
 The add-on update manifest is served from:
 
 ```text
-https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json
+https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json
 ```
 
 ## Current Limitations
