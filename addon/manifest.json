@@ -1,0 +1,13 @@
+{
+  "manifest_version": 2,
+  "name": "Zotero Annotation Markdown",
+  "version": "0.1.0",
+  "description": "Render Zotero reader annotation comments as Markdown.",
+  "applications": {
+    "zotero": {
+      "id": "annotation-markdown@local",
+      "strict_min_version": "9.0",
+      "strict_max_version": "9.*"
+    }
+  }
+}

@@ -50,6 +50,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       }
 
       node.innerHTML = html;
+      node.classList?.add("annotation-markdown-rendered");
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
     },
 
@@ -60,6 +61,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
 
       const source = this.getSourceText(node);
       node.textContent = source;
+      node.classList?.remove("annotation-markdown-rendered");
       node.removeAttribute(RENDERED_ATTRIBUTE);
       node.removeAttribute(SOURCE_ATTRIBUTE);
     },
