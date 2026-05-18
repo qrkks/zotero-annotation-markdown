@@ -95,4 +95,17 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(adapter.isRendered(node)).toBe(false);
     expect(node.textContent).toBe("**bold**");
   });
+
+  test("restores source and suppresses rerender when a rendered node is pressed for editing", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
+    const node = document.querySelector(".comment");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<p><strong>bold</strong></p>");
+    node.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    expect(node.textContent).toBe("**bold**");
+    expect(adapter.isRendered(node)).toBe(false);
+    expect(adapter.findCommentNodes(document.body)).toHaveLength(0);
+  });
 });
