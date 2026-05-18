@@ -60,6 +60,26 @@ describe("createReaderController", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
+  test("injects and removes reader styles", () => {
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: window.MutationObserver,
+      styleText: ".annotation-markdown-rendered { line-height: inherit; }"
+    });
+
+    controller.start();
+
+    const style = document.querySelector("style[data-annotation-markdown-style='true']");
+    expect(style?.textContent).toContain("annotation-markdown-rendered");
+
+    controller.stop();
+
+    expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
+  });
+
   test("one broken annotation does not stop other annotations from rendering", () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1"><div class="comment">bad</div></div>

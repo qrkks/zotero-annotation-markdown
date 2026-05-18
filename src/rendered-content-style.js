@@ -1,0 +1,32 @@
+export const RENDERED_CONTENT_STYLE = `
+.annotation-markdown-rendered {
+  line-height: inherit;
+}
+
+.annotation-markdown-rendered p {
+  margin: 0 0 0.45em;
+}
+
+.annotation-markdown-rendered p:last-child {
+  margin-bottom: 0;
+}
+
+.annotation-markdown-rendered ul,
+.annotation-markdown-rendered ol {
+  margin: 0.2em 0 0.45em 1.4em;
+  padding: 0;
+}
+
+.annotation-markdown-rendered blockquote {
+  border-inline-start: 2px solid currentColor;
+  margin: 0.2em 0 0.45em;
+  opacity: 0.85;
+  padding-inline-start: 0.6em;
+}
+
+.annotation-markdown-rendered code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+}
+`;
+

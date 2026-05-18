@@ -3,10 +3,13 @@ export function createReaderController({
   adapter,
   renderer,
   settings,
-  MutationObserver: MutationObserverRef = globalThis.MutationObserver
+  MutationObserver: MutationObserverRef = globalThis.MutationObserver,
+  styleText = ""
 }) {
   let observer;
+  let styleElement;
   const root = getReaderRoot(reader);
+  const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
 
   function renderNode(node) {
     try {
@@ -33,6 +36,7 @@ export function createReaderController({
 
   return {
     start() {
+      injectStyles();
       this.renderNow();
 
       if (root && MutationObserverRef && !observer) {
@@ -54,8 +58,21 @@ export function createReaderController({
     stop() {
       observer?.disconnect();
       observer = undefined;
+      styleElement?.remove();
+      styleElement = undefined;
     }
   };
+
+  function injectStyles() {
+    if (!styleText || styleElement || !documentRef?.head) {
+      return;
+    }
+
+    styleElement = documentRef.createElement("style");
+    styleElement.setAttribute("data-annotation-markdown-style", "true");
+    styleElement.textContent = styleText;
+    documentRef.head.append(styleElement);
+  }
 }
 
 function getReaderRoot(reader) {
@@ -67,4 +84,3 @@ function getReaderRoot(reader) {
     null
   );
 }
-

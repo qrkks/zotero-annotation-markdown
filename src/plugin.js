@@ -2,6 +2,7 @@ import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js"
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
+import { RENDERED_CONTENT_STYLE } from "./rendered-content-style.js";
 import { createSettings } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
@@ -31,7 +32,8 @@ export function createPlugin({
           adapter: createAnnotationSidebarAdapter({ document: readerDocument }),
           renderer: createMarkdownRenderer({ windowRef: readerWindow }),
           settings,
-          MutationObserver: readerWindow?.MutationObserver
+          MutationObserver: readerWindow?.MutationObserver,
+          styleText: RENDERED_CONTENT_STYLE
         });
       }
     });
@@ -125,4 +127,3 @@ function getReaderDocument(reader) {
     null
   );
 }
-

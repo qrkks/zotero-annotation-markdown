@@ -49,6 +49,10 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.setAttribute(SOURCE_ATTRIBUTE, node.textContent ?? "");
       }
 
+      if (node.innerHTML === html) {
+        return;
+      }
+
       node.innerHTML = html;
       node.classList?.add("annotation-markdown-rendered");
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
