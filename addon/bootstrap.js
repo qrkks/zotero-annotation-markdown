@@ -8,13 +8,13 @@ function startup(data) {
     Services.scriptloader.loadSubScript(`${data.rootURI}plugin.js`, globalThis);
     ZoteroAnnotationMarkdownInstance = ZoteroAnnotationMarkdown.createPlugin({
       Zotero,
-      window,
+      window: globalThis.window,
       diagnostics: globalThis.ZoteroAnnotationMarkdownDiagnostics
     });
     ZoteroAnnotationMarkdownInstance.startup();
   } catch (error) {
     globalThis.ZoteroAnnotationMarkdownDiagnostics.append(
-      `[annotation-markdown] startup failed: ${error?.stack || error}`
+      `[annotation-markdown] startup failed: ${error?.message || error}\n${error?.stack || ""}`
     );
     throw error;
   }
