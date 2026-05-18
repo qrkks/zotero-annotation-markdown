@@ -20,6 +20,36 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(nodes.map((node) => node.textContent)).toEqual(["**bold**", "plain", "third"]);
   });
 
+  test("finds Zotero 9 reader annotation renderer nodes", () => {
+    document.body.innerHTML = `
+      <div class="annotations">
+        <div class="annotation">
+          <div class="preview expanded0">
+            <div class="text">
+              <div class="blockquote-border"></div>
+              <div class="expandable-editor">
+                <div class="editor-view">
+                  <div class="editor read-only">
+                    <div class="content">
+                      <div class="renderer">**bold**</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    const nodes = adapter.findCommentNodes(document.body);
+
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].className).toBe("renderer");
+    expect(nodes[0].textContent).toBe("**bold**");
+  });
+
   test("skips editable nodes and nodes inside active editors", () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1"><textarea class="comment">editing</textarea></div>

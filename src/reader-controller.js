@@ -56,6 +56,8 @@ export function createReaderController({
 
       if (nodes.length === 0) {
         logger?.log?.(`[annotation-markdown] zero-node DOM summary: ${summarizeDom(root)}`);
+      } else {
+        logger?.log?.(`[annotation-markdown] matched nodes: ${summarizeNodes(adapter, nodes)}`);
       }
 
       for (const node of nodes) {
@@ -115,4 +117,16 @@ function summarizeDom(root) {
       ].join("");
     })
     .join(" ");
+}
+
+function summarizeNodes(adapter, nodes) {
+  return nodes
+    .slice(0, 12)
+    .map((node) => {
+      const tag = node.tagName?.toLowerCase?.() ?? "node";
+      const className = node.getAttribute?.("class");
+      const source = adapter.getSourceText(node).replace(/\s+/g, " ").slice(0, 80);
+      return `${tag}${className ? `.${String(className).trim().replace(/\s+/g, ".")}` : ""}="${source}"`;
+    })
+    .join(" | ");
 }

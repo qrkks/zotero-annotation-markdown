@@ -37,6 +37,26 @@ describe("createReaderController", () => {
     expect(log).toHaveBeenCalledWith("[annotation-markdown] render pass nodes: 1");
   });
 
+  test("logs matched node previews when nodes are found", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
+    const log = vi.fn();
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: window.MutationObserver,
+      logger: { log }
+    });
+
+    controller.renderNow();
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("[annotation-markdown] matched nodes:")
+    );
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("**bold**"));
+  });
+
   test("logs a DOM summary when no comment nodes are found", () => {
     document.body.innerHTML = `
       <div class="sidebar annotations-pane">

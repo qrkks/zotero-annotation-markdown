@@ -1,4 +1,5 @@
 const COMMENT_SELECTORS = [
+  ".annotations .annotation .text .editor.read-only .content .renderer",
   "[data-annotation-comment]",
   ".annotation-comment",
   ".comment"
