@@ -6,6 +6,7 @@
   "applications": {
     "zotero": {
       "id": "annotation-markdown@local",
+      "update_url": "https://example.com/zotero-annotation-markdown/updates.json",
       "strict_min_version": "9.0",
       "strict_max_version": "9.99.99"
     }

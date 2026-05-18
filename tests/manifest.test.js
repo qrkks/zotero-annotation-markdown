@@ -10,5 +10,8 @@ describe("addon manifest", () => {
 
     expect(manifest.applications.zotero.strict_min_version).toBe("9.0");
     expect(manifest.applications.zotero.strict_max_version).toBe("9.99.99");
+    expect(manifest.applications.zotero.update_url).toBe(
+      "https://example.com/zotero-annotation-markdown/updates.json"
+    );
   });
 });
