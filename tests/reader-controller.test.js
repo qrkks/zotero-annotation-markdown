@@ -20,6 +20,23 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("logs render pass diagnostics", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
+    const log = vi.fn();
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: window.MutationObserver,
+      logger: { log }
+    });
+
+    controller.renderNow();
+
+    expect(log).toHaveBeenCalledWith("[annotation-markdown] render pass nodes: 1");
+  });
+
   test("disabled settings restore rendered source text and skip rendering", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const adapter = createAnnotationSidebarAdapter({ document });

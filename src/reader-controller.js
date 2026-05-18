@@ -4,7 +4,8 @@ export function createReaderController({
   renderer,
   settings,
   MutationObserver: MutationObserverRef = globalThis.MutationObserver,
-  styleText = ""
+  styleText = "",
+  logger
 }) {
   let observer;
   let styleElement;
@@ -50,7 +51,10 @@ export function createReaderController({
     },
 
     renderNow() {
-      for (const node of adapter.findCommentNodes(root)) {
+      const nodes = adapter.findCommentNodes(root);
+      logger?.log?.(`[annotation-markdown] render pass nodes: ${nodes.length}`);
+
+      for (const node of nodes) {
         renderNode(node);
       }
     },

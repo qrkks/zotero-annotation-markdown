@@ -16,6 +16,7 @@ export function createPlugin({
 } = {}) {
   let registry;
   let readerEventHandler;
+  const diagnostics = createLogger(Zotero, logger);
 
   function makeRegistry() {
     if (registryFactory) {
@@ -33,7 +34,8 @@ export function createPlugin({
           renderer: createMarkdownRenderer({ windowRef: readerWindow }),
           settings,
           MutationObserver: readerWindow?.MutationObserver,
-          styleText: RENDERED_CONTENT_STYLE
+          styleText: RENDERED_CONTENT_STYLE,
+          logger: diagnostics
         });
       }
     });
@@ -41,18 +43,26 @@ export function createPlugin({
 
   return {
     startup() {
+      diagnostics.log("[annotation-markdown] startup");
       registry = makeRegistry();
 
-      for (const reader of collectOpenReaders(Zotero)) {
+      const openReaders = collectOpenReaders(Zotero);
+      diagnostics.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
+
+      for (const reader of openReaders) {
         registry.register(reader);
       }
 
       if (Zotero?.Reader?.registerEventListener) {
         readerEventHandler = (event) => {
           const reader = event?.reader ?? event;
+          diagnostics.log(`[annotation-markdown] reader event fired: ${READER_EVENT}`);
           registry?.register(reader);
         };
         Zotero.Reader.registerEventListener(READER_EVENT, readerEventHandler, PLUGIN_ID);
+        diagnostics.log(`[annotation-markdown] registered reader event: ${READER_EVENT}`);
+      } else {
+        diagnostics.log("[annotation-markdown] Zotero.Reader.registerEventListener unavailable");
       }
     },
 
@@ -67,6 +77,26 @@ export function createPlugin({
         readerEventHandler = undefined;
         registry?.shutdown();
         registry = undefined;
+      }
+    }
+  };
+}
+
+function createLogger(Zotero, logger) {
+  return {
+    log(message) {
+      if (Zotero?.debug) {
+        Zotero.debug(message);
+      } else {
+        logger?.log?.(message);
+      }
+    },
+
+    warn(message, error) {
+      if (Zotero?.debug) {
+        Zotero.debug(`${message}: ${error?.message ?? error ?? ""}`);
+      } else {
+        logger?.warn?.(message, error);
       }
     }
   };

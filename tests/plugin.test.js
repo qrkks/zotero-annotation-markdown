@@ -32,6 +32,28 @@ describe("createPlugin", () => {
     );
   });
 
+  test("startup logs reader integration diagnostics", () => {
+    const log = vi.fn();
+    const Zotero = {
+      Reader: {
+        _readers: [{}],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {},
+      debug: log
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ register: vi.fn(), shutdown: vi.fn() })
+    });
+
+    plugin.startup();
+
+    expect(log).toHaveBeenCalledWith("[annotation-markdown] startup");
+    expect(log).toHaveBeenCalledWith("[annotation-markdown] found open readers: 1");
+    expect(log).toHaveBeenCalledWith("[annotation-markdown] registered reader event: renderSidebarAnnotationHeader");
+  });
+
   test("reader events register their reader with the registry", () => {
     const register = vi.fn();
     const Zotero = {
