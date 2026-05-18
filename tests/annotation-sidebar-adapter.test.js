@@ -74,6 +74,46 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(node.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p><strong>bold</strong></p>");
   });
 
+  test("reads source from nested content without Zotero editor toolbar text", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1">
+        <div class="comment">
+          <div class="editor-shell">
+            <div class="toolbar"><button>B</button><button>I</button><button>X2</button><button>X2</button><button>Tx</button></div>
+            <div class="content"># 你好呀<br>## 为什么呢?</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const node = document.querySelector(".comment");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    expect(adapter.getSourceText(node)).toBe("# 你好呀\n## 为什么呢?");
+  });
+
+  test("hides nested source content when rendered preview is shown", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1">
+        <div class="comment">
+          <div class="editor-shell">
+            <div class="toolbar"><button>B</button><button>I</button><button>X2</button><button>X2</button><button>Tx</button></div>
+            <div class="content"># 你好呀<br>## 为什么呢?</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const node = document.querySelector(".comment");
+    const content = document.querySelector(".content");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<h1>你好呀</h1><h2>为什么呢?</h2>");
+
+    expect(content.hidden).toBe(true);
+    expect(content.style.display).toBe("none");
+    expect(content.nextElementSibling?.className).toBe("annotation-markdown-rendered");
+    expect(node.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<h1>你好呀</h1><h2>为什么呢?</h2>");
+  });
+
   test("does not overwrite original source text when rendering twice", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment"><div class="content">**bold**</div></div></div>`;
     const node = document.querySelector(".comment");

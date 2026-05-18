@@ -11,6 +11,7 @@ const SOURCE_ATTRIBUTE = "data-annotation-markdown-source";
 const SUPPRESS_UNTIL_ATTRIBUTE = "data-annotation-markdown-suppress-until";
 const PREVIEW_ATTRIBUTE = "data-annotation-markdown-preview";
 const SOURCE_WRAPPER_ATTRIBUTE = "data-annotation-markdown-source-node";
+const SOURCE_HIDDEN_ATTRIBUTE = "data-annotation-markdown-source-hidden";
 const EDITING_CLASS = "annotation-markdown-editing";
 
 export function createAnnotationSidebarAdapter({ document: documentRef = globalThis.document } = {}) {
@@ -51,7 +52,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
     },
 
     getSourceText(node) {
-      return node?.getAttribute?.(SOURCE_ATTRIBUTE) ?? getSourceNode(node)?.textContent ?? "";
+      return node?.getAttribute?.(SOURCE_ATTRIBUTE) ?? readSourceText(getSourceNode(node));
     },
 
     applyRenderedHtml(node, html) {
@@ -60,7 +61,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       }
 
       if (!this.isRendered(node)) {
-        node.setAttribute(SOURCE_ATTRIBUTE, getSourceNode(node)?.textContent ?? "");
+        node.setAttribute(SOURCE_ATTRIBUTE, readSourceText(getSourceNode(node)));
       }
 
       const preview = getPreviewNode(node) ?? createPreviewNode(node, this);
@@ -88,7 +89,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.textContent = source;
       } else if (sourceNode) {
         sourceNode.textContent = source;
-        sourceNode.hidden = false;
+        showSourceNode(sourceNode);
       }
       getPreviewNode(node)?.remove();
       unwrapSourceNode(node);
@@ -113,10 +114,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.removeAttribute(SOURCE_ATTRIBUTE);
         node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
 
-        const sourceNode = getSourceNode(node);
-        if (sourceNode && sourceNode !== node) {
-          sourceNode.hidden = false;
-        }
+        showSourceNode(getSourceNode(node));
         unwrapSourceNode(node);
       }
     },
@@ -129,9 +127,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       const sourceNode = getSourceNode(node);
       const preview = getPreviewNode(node);
 
-      if (sourceNode) {
-        sourceNode.hidden = false;
-      }
+      showSourceNode(sourceNode);
 
       if (preview) {
         preview.hidden = true;
@@ -179,11 +175,17 @@ function createPreviewNode(sourceNode, adapter) {
   preview.addEventListener("mousedown", () => {
     adapter.showSourceForEditing(sourceNode);
   }, { capture: true });
-  sourceNode.append(preview);
+  ensureSourceNode(sourceNode)?.after(preview);
   return preview;
 }
 
 function getPreviewNode(sourceNode) {
+  const sourceContent = getSourceNode(sourceNode);
+  const siblingPreview = sourceContent?.nextElementSibling;
+  if (siblingPreview?.getAttribute?.(PREVIEW_ATTRIBUTE) === "true") {
+    return siblingPreview;
+  }
+
   return Array.from(sourceNode?.children ?? [])
     .find((child) => child.getAttribute?.(PREVIEW_ATTRIBUTE) === "true") ?? null;
 }
@@ -205,6 +207,11 @@ function getSourceNode(node) {
     return directContent;
   }
 
+  const nestedContent = node.querySelector?.(".content");
+  if (nestedContent) {
+    return nestedContent;
+  }
+
   return node;
 }
 
@@ -212,6 +219,20 @@ function hideSourceNode(node) {
   const sourceNode = ensureSourceNode(node);
   if (sourceNode !== node) {
     sourceNode.hidden = true;
+    sourceNode.style.display = "none";
+    sourceNode.setAttribute(SOURCE_HIDDEN_ATTRIBUTE, "true");
+  }
+}
+
+function showSourceNode(sourceNode) {
+  if (!sourceNode) {
+    return;
+  }
+
+  sourceNode.hidden = false;
+  if (sourceNode.getAttribute?.(SOURCE_HIDDEN_ATTRIBUTE) === "true") {
+    sourceNode.style.display = "";
+    sourceNode.removeAttribute(SOURCE_HIDDEN_ATTRIBUTE);
   }
 }
 
@@ -299,9 +320,56 @@ function placeCaretAtEnd(node) {
 }
 
 function finishEditing(node) {
-  node?.setAttribute?.(SOURCE_ATTRIBUTE, getSourceNode(node)?.textContent ?? "");
+  node?.setAttribute?.(SOURCE_ATTRIBUTE, readSourceText(getSourceNode(node)));
   node?.classList?.remove(EDITING_CLASS);
   node?.removeAttribute?.(SUPPRESS_UNTIL_ATTRIBUTE);
+}
+
+function readSourceText(node) {
+  if (!node) {
+    return "";
+  }
+
+  const output = [];
+  const walk = (current) => {
+    if (!current) {
+      return;
+    }
+
+    if (current.nodeType === 3) {
+      output.push(current.nodeValue ?? "");
+      return;
+    }
+
+    if (current.nodeType !== 1) {
+      return;
+    }
+
+    const tag = current.tagName?.toUpperCase?.() ?? "";
+    if (tag === "BR") {
+      output.push("\n");
+      return;
+    }
+
+    const isBlock = tag === "DIV" || tag === "P";
+    if (isBlock && output.length && !output[output.length - 1].endsWith("\n")) {
+      output.push("\n");
+    }
+
+    for (const child of current.childNodes) {
+      walk(child);
+    }
+
+    if (isBlock && output.length && !output[output.length - 1].endsWith("\n")) {
+      output.push("\n");
+    }
+  };
+
+  for (const child of node.childNodes) {
+    walk(child);
+  }
+
+  return output.join("").trim();
 }
 
 function hasFocusInside(node) {

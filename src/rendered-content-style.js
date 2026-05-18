@@ -1,6 +1,27 @@
 export const RENDERED_CONTENT_STYLE = `
 .annotation-markdown-rendered {
+  color: inherit;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
   line-height: inherit;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.annotation.selected .annotation-markdown-rendered,
+.annotation-row.selected .annotation-markdown-rendered {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
+.annotation-popup .annotation-markdown-rendered {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
 }
 
 .annotation-markdown-rendered p {
@@ -29,4 +50,3 @@ export const RENDERED_CONTENT_STYLE = `
   font-size: 0.92em;
 }
 `;
-
