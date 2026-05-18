@@ -1,0 +1,23 @@
+{
+  "name": "zotero-annotation-markdown",
+  "version": "0.1.0",
+  "description": "Render Zotero reader annotation comments as Markdown.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "package": "npm run build && node scripts/package.mjs",
+    "verify": "npm test && npm run build && npm run package"
+  },
+  "dependencies": {
+    "dompurify": "^3.3.1",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "@zip.js/zip.js": "^2.8.11",
+    "esbuild": "^0.27.1",
+    "jsdom": "^27.2.0",
+    "vitest": "^4.0.15"
+  }
+}
