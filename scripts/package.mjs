@@ -1,11 +1,14 @@
+import { createHash } from "node:crypto";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { BlobWriter, Uint8ArrayReader, ZipWriter } from "@zip.js/zip.js";
 
+import { createUpdateManifest, releaseAssetName } from "./release-config.mjs";
+
 const root = process.cwd();
 const addonDir = path.join(root, "dist", "addon");
-const outFile = path.join(root, "dist", "zotero-annotation-markdown.xpi");
+const outFile = path.join(root, "dist", releaseAssetName);
 
 const writer = new ZipWriter(new BlobWriter("application/zip"));
 
@@ -16,7 +19,16 @@ for (const file of await listFiles(addonDir)) {
 }
 
 const blob = await writer.close();
-await writeFile(outFile, new Uint8Array(await blob.arrayBuffer()));
+const xpiBytes = new Uint8Array(await blob.arrayBuffer());
+await writeFile(outFile, xpiBytes);
+
+const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+const manifest = JSON.parse(await readFile(path.join(root, "addon", "manifest.json"), "utf8"));
+const xpiHash = createHash("sha256").update(xpiBytes).digest("hex");
+const updateManifest = `${JSON.stringify(createUpdateManifest({ packageJson, manifest, xpiHash }), null, 2)}\n`;
+
+await writeFile(path.join(root, "updates.json"), updateManifest);
+await writeFile(path.join(root, "dist", "updates.json"), updateManifest);
 
 async function listFiles(directory) {
   const entries = await readdir(directory);

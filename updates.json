@@ -1,0 +1,19 @@
+{
+  "addons": {
+    "zotero-annotation-markdown@34028312.qq.com": {
+      "updates": [
+        {
+          "version": "0.1.7",
+          "update_link": "https://github.com/qrkks/zotero-annotation-markdown-plugins/releases/download/v0.1.7/zotero-annotation-markdown.xpi",
+          "update_hash": "sha256:cd5465f095c6288b5bf0558724e9cfb18c5c0e339d97fcc9f222336d412543f4",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "9.0",
+              "strict_max_version": "9.0.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

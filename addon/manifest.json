@@ -3,12 +3,13 @@
   "name": "Zotero Annotation Markdown",
   "version": "0.1.7",
   "description": "Render Zotero reader annotation comments as Markdown.",
+  "author": "qrkks <34028312@qq.com>",
   "applications": {
     "zotero": {
-      "id": "annotation-markdown@local",
-      "update_url": "https://example.com/zotero-annotation-markdown/updates.json",
+      "id": "zotero-annotation-markdown@34028312.qq.com",
+      "update_url": "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json",
       "strict_min_version": "9.0",
-      "strict_max_version": "9.99.99"
+      "strict_max_version": "9.0.*"
     }
   }
 }

@@ -33,6 +33,23 @@ dist/zotero-annotation-markdown.xpi
 
 Install it through Zotero's add-on manager.
 
+## Installation
+
+Download `zotero-annotation-markdown.xpi` from the latest GitHub release. In Zotero, open `Tools -> Plugins`, then drag the `.xpi` file into the Plugins window.
+
+## Release
+
+1. Update the version in `package.json`, `package-lock.json`, and `addon/manifest.json`.
+2. Run `npm run verify`.
+3. Upload `dist/zotero-annotation-markdown.xpi` to a GitHub release named `v<version>`.
+4. Commit and push the generated `updates.json` so Zotero can discover the new release.
+
+The add-on update manifest is served from:
+
+```text
+https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json
+```
+
 ## Current Limitations
 
 The core renderer, settings, DOM adapter, reader lifecycle, and packaging are covered by local tests. The Zotero 9.0.3 reader sidebar selectors still need live validation inside Zotero, because Zotero's reader DOM is not a fully stable public API.

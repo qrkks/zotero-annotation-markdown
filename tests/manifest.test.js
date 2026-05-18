@@ -8,10 +8,12 @@ describe("addon manifest", () => {
     const manifestPath = path.join(process.cwd(), "addon", "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 
+    expect(manifest.author).toBe("qrkks <34028312@qq.com>");
+    expect(manifest.applications.zotero.id).toBe("zotero-annotation-markdown@34028312.qq.com");
     expect(manifest.applications.zotero.strict_min_version).toBe("9.0");
-    expect(manifest.applications.zotero.strict_max_version).toBe("9.99.99");
+    expect(manifest.applications.zotero.strict_max_version).toBe("9.0.*");
     expect(manifest.applications.zotero.update_url).toBe(
-      "https://example.com/zotero-annotation-markdown/updates.json"
+      "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown-plugins/main/updates.json"
     );
   });
 });
