@@ -2,7 +2,6 @@ import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js"
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
-import { RENDERED_CONTENT_STYLE } from "./rendered-content-style.js";
 import { createSettings } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
@@ -12,6 +11,7 @@ export function createPlugin({
   Zotero = globalThis.Zotero,
   window: windowRef = globalThis.window,
   registryFactory,
+  styleText = "",
   logger = globalThis.console,
   diagnostics = globalThis.ZoteroAnnotationMarkdownDiagnostics
 } = {}) {
@@ -35,7 +35,7 @@ export function createPlugin({
           renderer: createMarkdownRenderer({ windowRef: readerWindow }),
           settings,
           MutationObserver: readerWindow?.MutationObserver,
-          styleText: RENDERED_CONTENT_STYLE,
+          styleText,
           logger: diagnosticsLogger
         });
       }

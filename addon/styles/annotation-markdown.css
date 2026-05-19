@@ -1,54 +1,73 @@
 .annotation-markdown-rendered {
-  color: inherit;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
-  line-height: inherit;
-  overflow: hidden;
-  overflow-wrap: break-word;
-  white-space: normal;
-  word-wrap: break-word;
+    color: inherit;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
+    line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
+    line-height: inherit;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 .annotation.selected .annotation-markdown-rendered,
 .annotation-row.selected .annotation-markdown-rendered {
-  -webkit-line-clamp: unset;
-  display: block;
-  overflow: visible;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    display: block;
+    overflow: visible;
 }
 
 .annotation-popup .annotation-markdown-rendered {
-  -webkit-line-clamp: unset;
-  display: block;
-  overflow: visible;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    display: block;
+    overflow: visible;
 }
 
 .annotation-markdown-editing .annotation-markdown-rendered {
-  display: none !important;
+    display: none !important;
 }
 
 .annotation-markdown-rendered p {
-  margin: 0 0 0.45em;
+    margin: 0 0 0.45em;
 }
 
 .annotation-markdown-rendered p:last-child {
-  margin-bottom: 0;
+    margin-bottom: 0;
+}
+
+.annotation-markdown-rendered h1,
+.annotation-markdown-rendered h2 {
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 0.35em 0 0.3em;
+}
+
+.annotation-markdown-rendered h1 {
+    font-size: 1.4em;
+}
+
+.annotation-markdown-rendered h2 {
+    font-size: 1.22em;
 }
 
 .annotation-markdown-rendered ul,
 .annotation-markdown-rendered ol {
-  margin: 0.2em 0 0.45em 1.4em;
-  padding: 0;
+    margin: 0.2em 0 0.45em 1.4em;
+    padding: 0;
 }
 
 .annotation-markdown-rendered blockquote {
-  border-inline-start: 2px solid currentColor;
-  margin: 0.2em 0 0.45em;
-  opacity: 0.85;
-  padding-inline-start: 0.6em;
+    border-inline-start: 2px solid currentColor;
+    margin: 0.2em 0 0.45em;
+    opacity: 0.85;
+    padding-inline-start: 0.6em;
 }
 
 .annotation-markdown-rendered code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 0.92em;
+    font-family:
+        ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: 0.92em;
 }

@@ -209,7 +209,7 @@ describe("createReaderController", () => {
     expect(disconnect).toHaveBeenCalled();
   });
 
-  test("injects and removes reader styles", () => {
+  test("injects and removes reader styles from provided css text", () => {
     const controller = createReaderController({
       reader: { document },
       adapter: createAnnotationSidebarAdapter({ document }),

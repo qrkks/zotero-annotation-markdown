@@ -75,6 +75,29 @@ describe("createPlugin", () => {
     expect(append).toHaveBeenCalledWith("[annotation-markdown] startup");
   });
 
+  test("injects bundled stylesheet text into open reader documents", async () => {
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      styleText: ".annotation-markdown-rendered { line-height: inherit; }"
+    });
+
+    await plugin.startup();
+
+    const style = document.querySelector("style[data-annotation-markdown-style='true']");
+    expect(style?.textContent).toContain("annotation-markdown-rendered");
+
+    plugin.shutdown();
+    expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
+  });
+
   test("reader events register their reader with the registry", () => {
     const register = vi.fn();
     const Zotero = {

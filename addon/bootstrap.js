@@ -9,6 +9,7 @@ function startup(data) {
     ZoteroAnnotationMarkdownInstance = ZoteroAnnotationMarkdown.createPlugin({
       Zotero,
       window: globalThis.window,
+      styleText: readTextFromURI(`${data.rootURI}styles/annotation-markdown.css`),
       diagnostics: globalThis.ZoteroAnnotationMarkdownDiagnostics
     });
     ZoteroAnnotationMarkdownInstance.startup();
@@ -29,6 +30,19 @@ function shutdown() {
 function install() {}
 
 function uninstall() {}
+
+function readTextFromURI(uri) {
+  const request = new XMLHttpRequest();
+  request.open("GET", uri, false);
+  request.overrideMimeType?.("text/plain");
+  request.send(null);
+
+  if (request.status && request.status >= 400) {
+    throw new Error(`Could not load ${uri}: ${request.status}`);
+  }
+
+  return request.responseText;
+}
 
 function createDiagnostics() {
   return {
