@@ -21,6 +21,7 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain(".annotation-popup .annotation-markdown-rendered");
     expect(addonCss).toContain(".annotation-markdown-editing .annotation-markdown-rendered");
     expect(addonCss).toContain("display: none !important");
+    expect(addonCss).toContain("font-size: var(--annotation-markdown-font-scale, 1em)");
   });
 
   test("keeps markdown headings compact inside annotation previews", async () => {

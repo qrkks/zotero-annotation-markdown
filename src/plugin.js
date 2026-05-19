@@ -2,7 +2,7 @@ import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js"
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
-import { createSettings } from "./settings.js";
+import { createSettings, ENABLED_PREF_KEY, FONT_SCALE_PERCENT_PREF_KEY } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
 const READER_EVENT = "renderSidebarAnnotationHeader";
@@ -17,6 +17,7 @@ export function createPlugin({
 } = {}) {
   let registry;
   let readerEventHandler;
+  let preferenceObserverIds = [];
   const diagnosticsLogger = createLogger(Zotero, logger, diagnostics);
 
   function makeRegistry() {
@@ -46,6 +47,7 @@ export function createPlugin({
     startup() {
       diagnosticsLogger.log("[annotation-markdown] startup");
       registry = makeRegistry();
+      preferenceObserverIds = registerPreferenceObservers(Zotero, () => registry?.refresh?.());
 
       const openReaders = collectOpenReaders(Zotero);
       diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
@@ -75,12 +77,34 @@ export function createPlugin({
       } catch (error) {
         diagnosticsLogger.warn("Could not unregister Zotero Annotation Markdown reader listener", error);
       } finally {
+        unregisterPreferenceObservers(Zotero, preferenceObserverIds);
+        preferenceObserverIds = [];
         readerEventHandler = undefined;
         registry?.shutdown();
         registry = undefined;
       }
     }
   };
+}
+
+function registerPreferenceObservers(Zotero, refresh) {
+  if (!Zotero?.Prefs?.registerObserver) {
+    return [];
+  }
+
+  return [ENABLED_PREF_KEY, FONT_SCALE_PERCENT_PREF_KEY]
+    .map((key) => Zotero.Prefs.registerObserver(key, refresh, true))
+    .filter(Boolean);
+}
+
+function unregisterPreferenceObservers(Zotero, observerIds) {
+  if (!Zotero?.Prefs?.unregisterObserver) {
+    return;
+  }
+
+  for (const observerId of observerIds) {
+    Zotero.Prefs.unregisterObserver(observerId);
+  }
 }
 
 function createLogger(Zotero, logger, diagnostics) {
@@ -120,12 +144,12 @@ function createPrefsAdapter(Zotero) {
 
   return {
     get(key, defaultValue) {
-      const value = Zotero.Prefs.get?.(key);
-      return typeof value === "boolean" ? value : defaultValue;
+      const value = Zotero.Prefs.get?.(key, true);
+      return typeof value === typeof defaultValue ? value : defaultValue;
     },
 
     set(key, value) {
-      Zotero.Prefs.set?.(key, value);
+      Zotero.Prefs.set?.(key, value, true);
     }
   };
 }

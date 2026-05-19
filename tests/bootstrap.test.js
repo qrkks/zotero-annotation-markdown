@@ -10,4 +10,14 @@ describe("bootstrap", () => {
     expect(source).not.toContain("\n      window,");
     expect(source).toContain("window: globalThis.window");
   });
+
+  test("registers a Zotero preference pane", async () => {
+    const source = await readFile(path.join(process.cwd(), "addon", "bootstrap.js"), "utf8");
+
+    expect(source).toContain("Zotero.PreferencePanes.register");
+    expect(source).toContain("preferences.xhtml");
+    expect(source).toContain("icons/annotation-markdown.svg");
+    expect(source).toContain("preferences.js");
+    expect(source).toContain("preferences.css");
+  });
 });

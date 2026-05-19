@@ -229,6 +229,51 @@ describe("createReaderController", () => {
     expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
   });
 
+  test("injects markdown preview font scale as a css variable", () => {
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: {
+        isEnabled: () => true,
+        getFontScale: () => 1.2
+      },
+      MutationObserver: window.MutationObserver,
+      styleText: ".annotation-markdown-rendered { line-height: inherit; }"
+    });
+
+    controller.start();
+
+    const style = document.querySelector("style[data-annotation-markdown-style='true']");
+    expect(style?.textContent).toContain("--annotation-markdown-font-scale: 1.2em");
+
+    controller.stop();
+  });
+
+  test("refresh updates injected styles with current font scale", () => {
+    let fontScale = 1;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: {
+        isEnabled: () => true,
+        getFontScale: () => fontScale
+      },
+      MutationObserver: window.MutationObserver,
+      styleText: ".annotation-markdown-rendered { font-size: var(--annotation-markdown-font-scale, 1em); }"
+    });
+
+    controller.start();
+    fontScale = 1.2;
+    controller.refresh();
+
+    const style = document.querySelector("style[data-annotation-markdown-style='true']");
+    expect(style?.textContent).toContain("--annotation-markdown-font-scale: 1.2em");
+
+    controller.stop();
+  });
+
   test("clears stale adapter state before rendering on start", async () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const clearRenderedState = vi.fn();

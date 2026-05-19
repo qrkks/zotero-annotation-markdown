@@ -65,6 +65,11 @@ export function createReaderController({
       }
     },
 
+    refresh() {
+      injectStyles();
+      this.renderNow();
+    },
+
     stop() {
       observer?.disconnect();
       observer = undefined;
@@ -78,14 +83,17 @@ export function createReaderController({
   };
 
   function injectStyles() {
-    if (!styleText || styleElement || !documentRef?.head) {
+    if (!styleText || !documentRef?.head) {
       return;
     }
 
-    styleElement = documentRef.createElement("style");
-    styleElement.setAttribute("data-annotation-markdown-style", "true");
-    styleElement.textContent = styleText;
-    documentRef.head.append(styleElement);
+    if (!styleElement) {
+      styleElement = documentRef.createElement("style");
+      styleElement.setAttribute("data-annotation-markdown-style", "true");
+      documentRef.head.append(styleElement);
+    }
+
+    styleElement.textContent = `${styleText}\n${createFontScaleStyle(settings.getFontScale?.() ?? 1)}`;
   }
 
   function startNow(renderNow) {
@@ -142,6 +150,10 @@ export function createReaderController({
       renderNode(node);
     }
   }
+}
+
+function createFontScaleStyle(fontScale) {
+  return `.annotation-markdown-rendered { --annotation-markdown-font-scale: ${fontScale}em; }`;
 }
 
 function mutationNeedsSyncScan(mutations = []) {

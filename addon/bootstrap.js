@@ -1,4 +1,5 @@
 var ZoteroAnnotationMarkdownInstance;
+var ZoteroAnnotationMarkdownPreferencePaneID;
 
 function startup(data) {
   globalThis.ZoteroAnnotationMarkdownDiagnostics = createDiagnostics();
@@ -13,6 +14,7 @@ function startup(data) {
       diagnostics: globalThis.ZoteroAnnotationMarkdownDiagnostics
     });
     ZoteroAnnotationMarkdownInstance.startup();
+    registerPreferencePane(data);
   } catch (error) {
     globalThis.ZoteroAnnotationMarkdownDiagnostics.append(
       `[annotation-markdown] startup failed: ${error?.message || error}\n${error?.stack || ""}`
@@ -23,6 +25,7 @@ function startup(data) {
 
 function shutdown() {
   globalThis.ZoteroAnnotationMarkdownDiagnostics?.append("[annotation-markdown] bootstrap shutdown");
+  unregisterPreferencePane();
   ZoteroAnnotationMarkdownInstance?.shutdown();
   ZoteroAnnotationMarkdownInstance = undefined;
 }
@@ -30,6 +33,29 @@ function shutdown() {
 function install() {}
 
 function uninstall() {}
+
+function registerPreferencePane(data) {
+  if (!Zotero?.PreferencePanes?.register) {
+    return;
+  }
+
+  ZoteroAnnotationMarkdownPreferencePaneID = Zotero.PreferencePanes.register({
+    pluginID: data.id,
+    src: `${data.rootURI}preferences.xhtml`,
+    image: `${data.rootURI}icons/annotation-markdown.svg`,
+    scripts: [`${data.rootURI}preferences.js`],
+    stylesheets: [`${data.rootURI}preferences.css`]
+  });
+}
+
+function unregisterPreferencePane() {
+  if (!ZoteroAnnotationMarkdownPreferencePaneID || !Zotero?.PreferencePanes?.unregister) {
+    return;
+  }
+
+  Zotero.PreferencePanes.unregister(ZoteroAnnotationMarkdownPreferencePaneID);
+  ZoteroAnnotationMarkdownPreferencePaneID = undefined;
+}
 
 function readTextFromURI(uri) {
   const request = new XMLHttpRequest();

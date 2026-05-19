@@ -35,6 +35,10 @@ dist/zotero-annotation-markdown.xpi
 
 Install it through Zotero's add-on manager.
 
+## Settings
+
+Open Zotero Settings and select the Annotation Markdown pane to enable or disable Markdown rendering and adjust the reader preview font size from 80% to 150%.
+
 ## Installation
 
 Download `zotero-annotation-markdown.xpi` from the latest GitHub release. In Zotero, open `Tools -> Plugins`, then drag the `.xpi` file into the Plugins window.

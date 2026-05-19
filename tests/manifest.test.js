@@ -16,4 +16,13 @@ describe("addon manifest", () => {
       "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json"
     );
   });
+
+  test("declares an add-on manager icon", async () => {
+    const manifestPath = path.join(process.cwd(), "addon", "manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+
+    expect(manifest.icons["16"]).toBe("icons/annotation-markdown.svg");
+    expect(manifest.icons["32"]).toBe("icons/annotation-markdown.svg");
+    expect(manifest.icons["48"]).toBe("icons/annotation-markdown.svg");
+  });
 });

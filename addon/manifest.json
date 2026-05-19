@@ -4,6 +4,11 @@
   "version": "0.1.7",
   "description": "Render Zotero reader annotation comments as Markdown.",
   "author": "qrkks <34028312@qq.com>",
+  "icons": {
+    "16": "icons/annotation-markdown.svg",
+    "32": "icons/annotation-markdown.svg",
+    "48": "icons/annotation-markdown.svg"
+  },
   "applications": {
     "zotero": {
       "id": "zotero-annotation-markdown@34028312.qq.com",

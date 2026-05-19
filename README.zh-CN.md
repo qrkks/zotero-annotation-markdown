@@ -28,6 +28,10 @@ https://github.com/qrkks/zotero-annotation-markdown/releases/latest
 
 在 Zotero 中打开 `工具 -> 插件`，然后把 `.xpi` 文件拖入插件窗口安装。
 
+## 设置
+
+打开 Zotero 设置，选择 Annotation Markdown 面板，可以启用或关闭 Markdown 渲染，并把阅读器预览字号调整为 80% 到 150%。
+
 ## 开发
 
 ```powershell

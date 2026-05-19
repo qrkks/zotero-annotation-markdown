@@ -37,4 +37,41 @@ describe("createSettings", () => {
 
     expect(settings.isEnabled()).toBe(false);
   });
+
+  test("defaults markdown preview font scale to 1", () => {
+    const settings = createSettings();
+
+    expect(settings.getFontScale()).toBe(1);
+  });
+
+  test("reads a stored integer markdown preview font scale percentage", () => {
+    const prefs = {
+      get: vi.fn(() => 120)
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.getFontScale()).toBe(1.2);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 100);
+  });
+
+  test("writes markdown preview font scale as an integer percentage", () => {
+    const prefs = {
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    settings.setFontScale(1.1);
+
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 110);
+  });
+
+  test("keeps font scale within a sidebar-friendly range", () => {
+    const settings = createSettings();
+
+    settings.setFontScale(10);
+    expect(settings.getFontScale()).toBe(1.5);
+
+    settings.setFontScale(0.1);
+    expect(settings.getFontScale()).toBe(0.8);
+  });
 });

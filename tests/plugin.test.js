@@ -98,6 +98,70 @@ describe("createPlugin", () => {
     expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
   });
 
+  test("passes numeric font scale preferences into reader styles", async () => {
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {
+        get: vi.fn((key, global) => (
+          key === "extensions.annotationMarkdown.fontScalePercent" && global ? 120 : undefined
+        ))
+      }
+    };
+    const plugin = createPlugin({
+      Zotero,
+      styleText: ".annotation-markdown-rendered { font-size: var(--annotation-markdown-font-scale, 1em); }"
+    });
+
+    await plugin.startup();
+
+    const style = document.querySelector("style[data-annotation-markdown-style='true']");
+    expect(style?.textContent).toContain("--annotation-markdown-font-scale: 1.2em");
+
+    plugin.shutdown();
+  });
+
+  test("refreshes open reader styles when font scale preference changes", async () => {
+    let fontScalePercent = 100;
+    const observers = new Map();
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {
+        get: vi.fn((key, global) => (
+          key === "extensions.annotationMarkdown.fontScalePercent" && global ? fontScalePercent : undefined
+        )),
+        registerObserver: vi.fn((key, handler) => {
+          observers.set(key, handler);
+          return `observer:${key}`;
+        }),
+        unregisterObserver: vi.fn()
+      }
+    };
+    const plugin = createPlugin({
+      Zotero,
+      styleText: ".annotation-markdown-rendered { font-size: var(--annotation-markdown-font-scale, 1em); }"
+    });
+
+    await plugin.startup();
+    fontScalePercent = 120;
+    observers.get("extensions.annotationMarkdown.fontScalePercent")();
+
+    const style = document.querySelector("style[data-annotation-markdown-style='true']");
+    expect(style?.textContent).toContain("--annotation-markdown-font-scale: 1.2em");
+
+    plugin.shutdown();
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.fontScalePercent"
+    );
+  });
+
   test("reader events register their reader with the registry", () => {
     const register = vi.fn();
     const Zotero = {

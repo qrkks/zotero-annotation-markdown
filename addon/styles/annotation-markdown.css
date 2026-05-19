@@ -4,6 +4,7 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
     line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
+    font-size: var(--annotation-markdown-font-scale, 1em);
     line-height: inherit;
     overflow: hidden;
     overflow-wrap: break-word;

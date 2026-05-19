@@ -77,4 +77,23 @@ describe("createReaderRegistry", () => {
     expect(stops[0]).toHaveBeenCalledTimes(1);
     expect(stops[1]).toHaveBeenCalledTimes(1);
   });
+
+  test("refresh updates all active controllers", () => {
+    const refreshes = [vi.fn(), vi.fn()];
+    let index = 0;
+    const registry = createReaderRegistry({
+      controllerFactory: () => ({
+        start: vi.fn(),
+        refresh: refreshes[index++],
+        stop: vi.fn()
+      })
+    });
+
+    registry.register({});
+    registry.register({});
+    registry.refresh();
+
+    expect(refreshes[0]).toHaveBeenCalledTimes(1);
+    expect(refreshes[1]).toHaveBeenCalledTimes(1);
+  });
 });

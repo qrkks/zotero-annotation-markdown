@@ -56,6 +56,14 @@ export function createReaderRegistry({ controllerFactory }) {
         entry.stopRequested = true;
         stopIfRequested(reader, entry);
       }
+    },
+
+    refresh() {
+      for (const entry of entries.values()) {
+        if (entry.started && !entry.stopRequested && !entry.stopCalled) {
+          entry.controller.refresh?.();
+        }
+      }
     }
   };
 

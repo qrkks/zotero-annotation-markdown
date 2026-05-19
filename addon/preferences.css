@@ -1,0 +1,10 @@
+.annotation-markdown-preference-field {
+  align-items: center;
+  display: flex;
+  gap: 0.6em;
+}
+
+.annotation-markdown-preference-field {
+  justify-content: space-between;
+  max-width: 24em;
+}

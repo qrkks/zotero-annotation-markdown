@@ -1,7 +1,17 @@
-const DEFAULT_KEY = "extensions.annotationMarkdown.enabled";
+export const ENABLED_PREF_KEY = "extensions.annotationMarkdown.enabled";
+export const FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.fontScalePercent";
+const DEFAULT_FONT_SCALE = 1;
+const DEFAULT_FONT_SCALE_PERCENT = 100;
+const MIN_FONT_SCALE = 0.8;
+const MAX_FONT_SCALE = 1.5;
 
-export function createSettings({ prefs, key = DEFAULT_KEY } = {}) {
-  let memoryValue = true;
+export function createSettings({
+  prefs,
+  key = ENABLED_PREF_KEY,
+  fontScalePercentKey = FONT_SCALE_PERCENT_PREF_KEY
+} = {}) {
+  let memoryEnabled = true;
+  let memoryFontScale = DEFAULT_FONT_SCALE;
 
   return {
     isEnabled() {
@@ -9,7 +19,7 @@ export function createSettings({ prefs, key = DEFAULT_KEY } = {}) {
         return Boolean(prefs.get(key, true));
       }
 
-      return memoryValue;
+      return memoryEnabled;
     },
 
     setEnabled(enabled) {
@@ -19,8 +29,43 @@ export function createSettings({ prefs, key = DEFAULT_KEY } = {}) {
         prefs.set(key, value);
       }
 
-      memoryValue = value;
+      memoryEnabled = value;
+    },
+
+    getFontScale() {
+      if (prefs?.get) {
+        return normalizeFontScalePercent(prefs.get(fontScalePercentKey, DEFAULT_FONT_SCALE_PERCENT));
+      }
+
+      return memoryFontScale;
+    },
+
+    setFontScale(fontScale) {
+      const value = normalizeFontScale(fontScale);
+
+      if (prefs?.set) {
+        prefs.set(fontScalePercentKey, Math.round(value * 100));
+      }
+
+      memoryFontScale = value;
     }
   };
 }
 
+function normalizeFontScalePercent(value) {
+  const number = Number.parseInt(value, 10);
+  if (!Number.isFinite(number)) {
+    return DEFAULT_FONT_SCALE;
+  }
+
+  return normalizeFontScale(number / 100);
+}
+
+function normalizeFontScale(value) {
+  const number = Number.parseFloat(value);
+  if (!Number.isFinite(number)) {
+    return DEFAULT_FONT_SCALE;
+  }
+
+  return Math.min(MAX_FONT_SCALE, Math.max(MIN_FONT_SCALE, number));
+}
