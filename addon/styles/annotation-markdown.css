@@ -67,8 +67,27 @@
     padding-inline-start: 0.6em;
 }
 
+.annotation-markdown-rendered pre {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 4px;
+    margin: 0.25em 0 0.5em;
+    overflow-x: auto;
+    padding: 0.45em 0.55em;
+}
+
 .annotation-markdown-rendered code {
     font-family:
         ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
     font-size: 0.92em;
+}
+
+.annotation-markdown-rendered :not(pre) > code {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 3px;
+    padding: 0.08em 0.25em;
+}
+
+.annotation-markdown-rendered pre code {
+    font-size: 0.9em;
+    white-space: pre;
 }

@@ -35,4 +35,22 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toMatch(/\.annotation-markdown-rendered h2\s*\{[^}]*font-size:\s*[^;]+;/);
     expect(addonCss).toContain("line-height: 1.25");
   });
+
+  test("keeps fenced code blocks readable in narrow previews", async () => {
+    const addonCss = await readAddonCss();
+
+    expect(addonCss).toContain(".annotation-markdown-rendered pre");
+    expect(addonCss).toContain("overflow-x: auto");
+    expect(addonCss).toContain("white-space: pre");
+    expect(addonCss).toContain(".annotation-markdown-rendered pre code");
+  });
+
+  test("gives inline code a subtle background without styling fenced code wrappers", async () => {
+    const addonCss = await readAddonCss();
+
+    expect(addonCss).toContain(".annotation-markdown-rendered :not(pre) > code");
+    expect(addonCss).toContain("background: rgba(0, 0, 0, 0.06)");
+    expect(addonCss).toContain("border-radius: 3px");
+    expect(addonCss).toContain("padding: 0.08em 0.25em");
+  });
 });
