@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Annotation Markdown",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Render Zotero reader annotation comments as Markdown.",
   "author": "qrkks <34028312@qq.com>",
   "icons": {
