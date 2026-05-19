@@ -274,6 +274,67 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("pastes plain text only inside annotation comment editors", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1">
+        <div class="comment"><div class="content" contenteditable="true"></div></div>
+      </div>
+      <input id="outside">
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: {
+        isEnabled: () => true,
+        isPlainTextPasteEnabled: () => true
+      },
+      MutationObserver: undefined
+    });
+
+    await controller.start();
+
+    const content = document.querySelector(".content");
+    const annotationPaste = createPasteEvent("line 1\nline 2");
+    content.dispatchEvent(annotationPaste);
+
+    const outsidePaste = createPasteEvent("outside");
+    document.querySelector("#outside").dispatchEvent(outsidePaste);
+
+    expect(annotationPaste.defaultPrevented).toBe(true);
+    expect(content.textContent).toBe("line 1\nline 2");
+    expect(outsidePaste.defaultPrevented).toBe(false);
+
+    controller.stop();
+  });
+
+  test("does not intercept annotation paste when plain text paste is disabled", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1">
+        <div class="comment"><div class="content" contenteditable="true"></div></div>
+      </div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: {
+        isEnabled: () => true,
+        isPlainTextPasteEnabled: () => false
+      },
+      MutationObserver: undefined
+    });
+
+    await controller.start();
+
+    const paste = createPasteEvent("line 1\nline 2");
+    document.querySelector(".content").dispatchEvent(paste);
+
+    expect(paste.defaultPrevented).toBe(false);
+
+    controller.stop();
+  });
+
   test("clears stale adapter state before rendering on start", async () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const clearRenderedState = vi.fn();
@@ -320,3 +381,13 @@ describe("createReaderController", () => {
     expect(document.querySelectorAll(".comment")[1].querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>good</p>");
   });
 });
+
+function createPasteEvent(text) {
+  const event = new Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: {
+      getData: vi.fn((type) => (type === "text/plain" ? text : ""))
+    }
+  });
+  return event;
+}

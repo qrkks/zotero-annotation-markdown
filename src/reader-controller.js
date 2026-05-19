@@ -10,6 +10,7 @@ export function createReaderController({
   let observer;
   let styleElement;
   let safetyTimer;
+  let pasteHandler;
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
   const windowRef = documentRef?.defaultView ?? globalThis.window;
@@ -77,6 +78,10 @@ export function createReaderController({
         windowRef.clearTimeout(safetyTimer);
       }
       safetyTimer = undefined;
+      if (pasteHandler && root?.removeEventListener) {
+        root.removeEventListener("paste", pasteHandler, true);
+      }
+      pasteHandler = undefined;
       styleElement?.remove();
       styleElement = undefined;
     }
@@ -98,6 +103,7 @@ export function createReaderController({
 
   function startNow(renderNow) {
     injectStyles();
+    registerPasteHandler();
     adapter.clearRenderedState?.(root);
     renderNow();
 
@@ -150,10 +156,110 @@ export function createReaderController({
       renderNode(node);
     }
   }
+
+  function registerPasteHandler() {
+    if (!root?.addEventListener || pasteHandler) {
+      return;
+    }
+
+    pasteHandler = (event) => {
+      handlePlainTextPaste(event, adapter, settings, documentRef);
+    };
+    root.addEventListener("paste", pasteHandler, true);
+  }
 }
 
 function createFontScaleStyle(fontScale) {
   return `.annotation-markdown-rendered { --annotation-markdown-font-scale: ${fontScale}em; }`;
+}
+
+function handlePlainTextPaste(event, adapter, settings, documentRef) {
+  if (!settings.isPlainTextPasteEnabled?.()) {
+    return;
+  }
+
+  if (!adapter.isCommentEditorTarget?.(event.target)) {
+    return;
+  }
+
+  const text = event.clipboardData?.getData?.("text/plain");
+  if (typeof text !== "string" || text.length === 0) {
+    return;
+  }
+
+  if (insertPlainText(event.target, text, documentRef)) {
+    event.preventDefault?.();
+  }
+}
+
+function insertPlainText(target, text, documentRef) {
+  const targetElement = getElementTarget(target);
+  const editor = targetElement?.closest?.("textarea,input,[contenteditable='true'],[tabindex]");
+  if (!editor) {
+    return false;
+  }
+
+  if (editor.matches?.("textarea,input")) {
+    insertIntoTextControl(editor, text, documentRef);
+    return true;
+  }
+
+  insertIntoEditableElement(editor, text, documentRef);
+  return true;
+}
+
+function insertIntoTextControl(control, text, documentRef) {
+  const start = Number.isInteger(control.selectionStart) ? control.selectionStart : String(control.value ?? "").length;
+  const end = Number.isInteger(control.selectionEnd) ? control.selectionEnd : start;
+
+  if (typeof control.setRangeText === "function") {
+    control.setRangeText(text, start, end, "end");
+  } else {
+    const value = String(control.value ?? "");
+    control.value = `${value.slice(0, start)}${text}${value.slice(end)}`;
+  }
+
+  dispatchInputEvent(control, text, documentRef);
+}
+
+function insertIntoEditableElement(editor, text, documentRef) {
+  const doc = editor.ownerDocument ?? documentRef;
+  if (typeof doc?.execCommand === "function" && doc.execCommand("insertText", false, text)) {
+    dispatchInputEvent(editor, text, doc);
+    return;
+  }
+
+  const selection = doc?.defaultView?.getSelection?.();
+  const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+
+  if (range && editor.contains(range.commonAncestorContainer)) {
+    range.deleteContents();
+    range.insertNode(doc.createTextNode(text));
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  } else {
+    editor.append(doc.createTextNode(text));
+  }
+
+  dispatchInputEvent(editor, text, doc);
+}
+
+function dispatchInputEvent(target, text, documentRef) {
+  const InputEventRef = documentRef?.defaultView?.InputEvent ?? globalThis.InputEvent;
+  const EventRef = documentRef?.defaultView?.Event ?? globalThis.Event;
+  const event = typeof InputEventRef === "function"
+    ? new InputEventRef("input", { bubbles: true, inputType: "insertFromPaste", data: text })
+    : new EventRef("input", { bubbles: true });
+  target.dispatchEvent?.(event);
+}
+
+function getElementTarget(target) {
+  if (!target) {
+    return null;
+  }
+
+  return target.nodeType === 1 ? target : target.parentElement;
 }
 
 function mutationNeedsSyncScan(mutations = []) {

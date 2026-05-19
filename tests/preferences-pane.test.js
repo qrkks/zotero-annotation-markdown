@@ -10,6 +10,7 @@ describe("preferences pane", () => {
 
     expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
     expect(source).toContain("<menulist id=\"annotation-markdown-font-scale\"");
     expect(source).toContain("<menuitem label=\"80%\" value=\"80\"/>");
     expect(source).toContain("<menuitem label=\"100%\" value=\"100\"/>");
@@ -21,11 +22,13 @@ describe("preferences pane", () => {
     const preferences = await loadPreferencesScript();
     const enabledInput = createInput();
     const fontScaleSelect = createInput();
+    const pasteAsPlainTextInput = createInput();
     const documentRef = {
       getElementById(id) {
         return {
           "annotation-markdown-enabled": enabledInput,
-          "annotation-markdown-font-scale": fontScaleSelect
+          "annotation-markdown-font-scale": fontScaleSelect,
+          "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput
         }[id] ?? null;
       }
     };
@@ -34,25 +37,36 @@ describe("preferences pane", () => {
 
     expect(enabledInput.checked).toBe(true);
     expect(fontScaleSelect.value).toBe("100");
+    expect(pasteAsPlainTextInput.checked).toBe(true);
   });
 
   test("writes preference changes from controls", async () => {
     const set = vi.fn();
     const preferences = await loadPreferencesScript({
       Prefs: {
-        get: vi.fn((key, global) => (
-          global && key === "extensions.annotationMarkdown.enabled" ? true : 100
-        )),
+        get: vi.fn((key, global) => {
+          if (!global) {
+            return undefined;
+          }
+
+          return {
+            "extensions.annotationMarkdown.enabled": true,
+            "extensions.annotationMarkdown.fontScalePercent": 100,
+            "extensions.annotationMarkdown.pasteAsPlainText": true
+          }[key];
+        }),
         set
       }
     });
     const enabledInput = createInput();
     const fontScaleSelect = createInput();
+    const pasteAsPlainTextInput = createInput();
     const documentRef = {
       getElementById(id) {
         return {
           "annotation-markdown-enabled": enabledInput,
-          "annotation-markdown-font-scale": fontScaleSelect
+          "annotation-markdown-font-scale": fontScaleSelect,
+          "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput
         }[id] ?? null;
       }
     };
@@ -62,9 +76,12 @@ describe("preferences pane", () => {
     enabledInput.dispatch("command");
     fontScaleSelect.value = "120";
     fontScaleSelect.dispatch("command");
+    pasteAsPlainTextInput.checked = false;
+    pasteAsPlainTextInput.dispatch("command");
 
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 120, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
   });
 });
 

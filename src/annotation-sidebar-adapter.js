@@ -165,6 +165,17 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
 
     isRendered(node) {
       return node?.getAttribute?.(RENDERED_ATTRIBUTE) === "true";
+    },
+
+    isCommentEditorTarget(target) {
+      const element = getElementTarget(target);
+      const editor = element?.closest?.("textarea,input,[contenteditable='true'],[tabindex]");
+      if (!editor) {
+        return false;
+      }
+
+      const comment = editor.closest?.(COMMENT_SELECTORS.join(","));
+      return Boolean(comment?.closest?.(ANNOTATION_ROW_SELECTOR));
     }
   };
 }
@@ -402,4 +413,12 @@ function hasFocusInside(node) {
 
 function hasEditorControl(node) {
   return Boolean(node?.querySelector?.("textarea,input,select,[contenteditable='true']"));
+}
+
+function getElementTarget(target) {
+  if (!target) {
+    return null;
+  }
+
+  return target.nodeType === 1 ? target : target.parentElement;
 }

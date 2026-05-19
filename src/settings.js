@@ -1,5 +1,6 @@
 export const ENABLED_PREF_KEY = "extensions.annotationMarkdown.enabled";
 export const FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.fontScalePercent";
+export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.pasteAsPlainText";
 const DEFAULT_FONT_SCALE = 1;
 const DEFAULT_FONT_SCALE_PERCENT = 100;
 const MIN_FONT_SCALE = 0.8;
@@ -8,10 +9,12 @@ const MAX_FONT_SCALE = 1.5;
 export function createSettings({
   prefs,
   key = ENABLED_PREF_KEY,
-  fontScalePercentKey = FONT_SCALE_PERCENT_PREF_KEY
+  fontScalePercentKey = FONT_SCALE_PERCENT_PREF_KEY,
+  pasteAsPlainTextKey = PASTE_AS_PLAIN_TEXT_PREF_KEY
 } = {}) {
   let memoryEnabled = true;
   let memoryFontScale = DEFAULT_FONT_SCALE;
+  let memoryPlainTextPaste = true;
 
   return {
     isEnabled() {
@@ -48,6 +51,24 @@ export function createSettings({
       }
 
       memoryFontScale = value;
+    },
+
+    isPlainTextPasteEnabled() {
+      if (prefs?.get) {
+        return Boolean(prefs.get(pasteAsPlainTextKey, true));
+      }
+
+      return memoryPlainTextPaste;
+    },
+
+    setPlainTextPasteEnabled(enabled) {
+      const value = Boolean(enabled);
+
+      if (prefs?.set) {
+        prefs.set(pasteAsPlainTextKey, value);
+      }
+
+      memoryPlainTextPaste = value;
     }
   };
 }

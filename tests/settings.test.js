@@ -74,4 +74,25 @@ describe("createSettings", () => {
     settings.setFontScale(0.1);
     expect(settings.getFontScale()).toBe(0.8);
   });
+
+  test("defaults annotation paste handling to plain text", () => {
+    const settings = createSettings();
+
+    expect(settings.isPlainTextPasteEnabled()).toBe(true);
+  });
+
+  test("reads and writes annotation plain text paste preference", () => {
+    const prefs = {
+      get: vi.fn(() => false),
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.isPlainTextPasteEnabled()).toBe(false);
+
+    settings.setPlainTextPasteEnabled(true);
+
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", true);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", true);
+  });
 });
