@@ -1,5 +1,9 @@
 # Zotero Annotation Markdown
 
+<p align="center">
+  <img src="addon/icons/annotation-markdown.svg" width="64" height="64" alt="Zotero Annotation Markdown icon">
+</p>
+
 English | [简体中文](README.zh-CN.md)
 
 Render Zotero reader sidebar annotation comments as Markdown while keeping Zotero's stored annotation text unchanged.

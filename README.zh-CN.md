@@ -1,5 +1,9 @@
 # Zotero Annotation Markdown
 
+<p align="center">
+  <img src="addon/icons/annotation-markdown.svg" width="64" height="64" alt="Zotero Annotation Markdown icon">
+</p>
+
 [English](README.md) | 简体中文
 
 Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器侧栏里的批注评论渲染为 Markdown，同时不改变 Zotero 实际保存的批注原文。
