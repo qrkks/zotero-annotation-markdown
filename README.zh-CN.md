@@ -24,7 +24,9 @@ Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器�
 
 ## 安装
 
-从最新 GitHub Release 下载 `zotero-annotation-markdown.xpi`：
+推荐在 Zotero 插件市场中搜索 `Zotero Annotation Markdown` 并安装。
+
+也可以从最新 GitHub Release 手动下载 `zotero-annotation-markdown.xpi`：
 
 ```text
 https://github.com/qrkks/zotero-annotation-markdown/releases/latest

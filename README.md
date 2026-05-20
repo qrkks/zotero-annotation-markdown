@@ -45,7 +45,9 @@ Open Zotero Settings and select the Annotation Markdown pane to enable or disabl
 
 ## Installation
 
-Download `zotero-annotation-markdown.xpi` from the latest GitHub release. In Zotero, open `Tools -> Plugins`, then drag the `.xpi` file into the Plugins window.
+Install from the Zotero Add-ons marketplace by searching for `Zotero Annotation Markdown`.
+
+For manual installation, download `zotero-annotation-markdown.xpi` from the latest GitHub release. In Zotero, open `Tools -> Plugins`, then drag the `.xpi` file into the Plugins window.
 
 ## Release
 
