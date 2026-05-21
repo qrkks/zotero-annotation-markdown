@@ -8,6 +8,12 @@
 
 Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器侧栏里的批注评论渲染为 Markdown，同时不改变 Zotero 实际保存的批注原文。
 
+## 功能预览
+
+<p align="center">
+  <img src="docs/images/overview.webp" alt="Zotero Annotation Markdown 功能总览" width="760">
+</p>
+
 ## 适用版本
 
 - 优先支持 Zotero Desktop 9.0.3。
@@ -34,9 +40,42 @@ https://github.com/qrkks/zotero-annotation-markdown/releases/latest
 
 在 Zotero 中打开 `工具 -> 插件`，然后把 `.xpi` 文件拖入插件窗口安装。
 
+<p align="center">
+  <img src="docs/images/install-guide.webp" alt="Zotero Annotation Markdown 安装指南" width="760">
+</p>
+
 ## 设置
 
 打开 Zotero 设置，选择 Annotation Markdown 面板，可以启用或关闭 Markdown 渲染，并把阅读器预览字号调整为 80% 到 150%。
+
+<p align="center">
+  <img src="docs/images/settings-guide.webp" alt="Zotero Annotation Markdown 设置选项指南" width="720">
+</p>
+
+## 使用状态
+
+<details>
+<summary>查看渲染、编辑和折叠状态截图</summary>
+
+### 聚焦状态（渲染）
+
+<p align="center">
+  <img src="docs/images/rendered-state.webp" alt="Zotero Annotation Markdown 渲染状态" width="720">
+</p>
+
+### 编辑状态（源码）
+
+<p align="center">
+  <img src="docs/images/editing-state.webp" alt="Zotero Annotation Markdown 编辑状态" width="720">
+</p>
+
+### 失焦状态（折叠）
+
+<p align="center">
+  <img src="docs/images/collapsed-state.webp" alt="Zotero Annotation Markdown 折叠状态" width="720">
+</p>
+
+</details>
 
 ## 开发
 
