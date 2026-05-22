@@ -22,6 +22,8 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain(".annotation-markdown-editing .annotation-markdown-rendered");
     expect(addonCss).toContain("display: none !important");
     expect(addonCss).toContain("font-size: var(--annotation-markdown-font-scale, 1em)");
+    expect(addonCss).toContain("max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em)");
+    expect(addonCss).toContain("max-height: none");
   });
 
   test("keeps markdown headings compact inside annotation previews", async () => {
@@ -40,9 +42,12 @@ describe("rendered annotation styles", () => {
     const addonCss = await readAddonCss();
 
     expect(addonCss).toContain(".annotation-markdown-rendered pre");
-    expect(addonCss).toContain("overflow-x: auto");
-    expect(addonCss).toContain("white-space: pre");
+    expect(addonCss).toContain("overflow: hidden");
+    expect(addonCss).toContain("white-space: pre-wrap");
+    expect(addonCss).toContain("overflow-wrap: anywhere");
     expect(addonCss).toContain(".annotation-markdown-rendered pre code");
+    expect(addonCss).not.toContain("overflow-x: auto");
+    expect(addonCss).not.toContain("white-space: pre;");
   });
 
   test("gives inline code a subtle background without styling fenced code wrappers", async () => {

@@ -6,6 +6,7 @@
     line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
     font-size: var(--annotation-markdown-font-scale, 1em);
     line-height: inherit;
+    max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em);
     overflow: hidden;
     overflow-wrap: break-word;
     white-space: normal;
@@ -17,6 +18,7 @@
     -webkit-line-clamp: unset;
     line-clamp: unset;
     display: block;
+    max-height: none;
     overflow: visible;
 }
 
@@ -24,6 +26,7 @@
     -webkit-line-clamp: unset;
     line-clamp: unset;
     display: block;
+    max-height: none;
     overflow: visible;
 }
 
@@ -71,8 +74,9 @@
     background: rgba(0, 0, 0, 0.06);
     border-radius: 4px;
     margin: 0.25em 0 0.5em;
-    overflow-x: auto;
+    overflow: hidden;
     padding: 0.45em 0.55em;
+    white-space: pre-wrap;
 }
 
 .annotation-markdown-rendered code {
@@ -89,5 +93,6 @@
 
 .annotation-markdown-rendered pre code {
     font-size: 0.9em;
-    white-space: pre;
+    overflow-wrap: anywhere;
+    white-space: inherit;
 }
