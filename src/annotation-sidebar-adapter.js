@@ -1,5 +1,4 @@
 const COMMENT_SELECTORS = [
-  ".annotations .annotation .text .editor.read-only .content .renderer",
   "[data-annotation-comment]",
   ".annotation-comment",
   ".comment"
@@ -90,6 +89,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.textContent = source;
       } else if (sourceNode) {
         sourceNode.textContent = source;
+        showSourceNode(getSourceContainer(node, sourceNode));
         showSourceNode(sourceNode);
       }
       getPreviewNode(node)?.remove();
@@ -115,8 +115,13 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.removeAttribute(SOURCE_ATTRIBUTE);
         node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
 
+        showSourceNode(getSourceContainer(node));
         showSourceNode(getSourceNode(node));
         unwrapSourceNode(node);
+      }
+
+      for (const node of root.querySelectorAll(`[${SOURCE_HIDDEN_ATTRIBUTE}='true']`)) {
+        showSourceNode(node);
       }
     },
 
@@ -126,8 +131,10 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       }
 
       const sourceNode = getSourceNode(node);
+      const sourceContainer = getSourceContainer(node, sourceNode);
       const preview = getPreviewNode(node);
 
+      showSourceNode(sourceContainer);
       showSourceNode(sourceNode);
 
       if (preview) {
@@ -187,13 +194,13 @@ function createPreviewNode(sourceNode, adapter) {
   preview.addEventListener("mousedown", () => {
     adapter.showSourceForEditing(sourceNode);
   }, { capture: true });
-  ensureSourceNode(sourceNode)?.after(preview);
+  getPreviewAnchor(sourceNode)?.after(preview);
   return preview;
 }
 
 function getPreviewNode(sourceNode) {
   const sourceContent = getSourceNode(sourceNode);
-  const siblingPreview = sourceContent?.nextElementSibling;
+  const siblingPreview = getSourceContainer(sourceNode, sourceContent)?.nextElementSibling;
   if (siblingPreview?.getAttribute?.(PREVIEW_ATTRIBUTE) === "true") {
     return siblingPreview;
   }
@@ -251,10 +258,11 @@ function getSourceNode(node) {
 
 function hideSourceNode(node) {
   const sourceNode = ensureSourceNode(node);
-  if (sourceNode !== node) {
-    sourceNode.hidden = true;
-    sourceNode.style.display = "none";
-    sourceNode.setAttribute(SOURCE_HIDDEN_ATTRIBUTE, "true");
+  const sourceContainer = getSourceContainer(node, sourceNode);
+  if (sourceContainer !== node) {
+    sourceContainer.hidden = true;
+    sourceContainer.style.display = "none";
+    sourceContainer.setAttribute(SOURCE_HIDDEN_ATTRIBUTE, "true");
   }
 }
 
@@ -289,6 +297,24 @@ function ensureSourceNode(node) {
 
   node.prepend(wrapper);
   return wrapper;
+}
+
+function getPreviewAnchor(node) {
+  const sourceNode = ensureSourceNode(node);
+  return getSourceContainer(node, sourceNode);
+}
+
+function getSourceContainer(node, sourceNode = getSourceNode(node)) {
+  if (!sourceNode) {
+    return null;
+  }
+
+  const expandableEditor = sourceNode.closest?.(".expandable-editor");
+  if (expandableEditor && node?.contains?.(expandableEditor)) {
+    return expandableEditor;
+  }
+
+  return sourceNode;
 }
 
 function unwrapSourceNode(node) {

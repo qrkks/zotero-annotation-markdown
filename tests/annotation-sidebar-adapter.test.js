@@ -20,19 +20,17 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(nodes.map((node) => node.textContent)).toEqual(["**bold**", "plain", "third"]);
   });
 
-  test("finds Zotero 9 reader annotation renderer nodes", () => {
+  test("finds Zotero 9 reader annotation comment nodes without matching internal renderers", () => {
     document.body.innerHTML = `
       <div class="annotations">
         <div class="annotation">
           <div class="preview expanded0">
-            <div class="text">
-              <div class="blockquote-border"></div>
+            <div class="comment">
               <div class="expandable-editor">
                 <div class="editor-view">
                   <div class="editor read-only">
-                    <div class="content">
-                      <div class="renderer">**bold**</div>
-                    </div>
+                    <div class="content">**bold**</div>
+                    <div class="renderer"></div>
                   </div>
                 </div>
               </div>
@@ -46,8 +44,8 @@ describe("createAnnotationSidebarAdapter", () => {
     const nodes = adapter.findCommentNodes(document.body);
 
     expect(nodes).toHaveLength(1);
-    expect(nodes[0].className).toBe("renderer");
-    expect(nodes[0].textContent).toBe("**bold**");
+    expect(nodes[0].className).toBe("comment");
+    expect(adapter.getSourceText(nodes[0])).toBe("**bold**");
   });
 
   test("skips editable nodes and nodes inside active editors", () => {
@@ -112,6 +110,41 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(content.style.display).toBe("none");
     expect(content.nextElementSibling?.className).toBe("annotation-markdown-rendered");
     expect(node.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<h1>你好呀</h1><h2>为什么呢?</h2>");
+  });
+
+  test("hides the Zotero reader editor shell when rendered preview is shown", () => {
+    document.body.innerHTML = `
+      <div class="annotations">
+        <div class="annotation">
+          <div class="preview expanded0">
+            <div class="comment">
+              <div class="expandable-editor">
+                <div class="editor-view">
+                  <div class="editor read-only">
+                    <div class="content"># 不断收缩的领域<br>先给结论：**拓扑相似**。</div>
+                    <div class="renderer"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const node = document.querySelector(".comment");
+    const sourceShell = document.querySelector(".expandable-editor");
+    const content = document.querySelector(".content");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<h1>不断收缩的领域</h1><p>先给结论：<strong>拓扑相似</strong>。</p>");
+
+    expect(adapter.getSourceText(node)).toBe("# 不断收缩的领域\n先给结论：**拓扑相似**。");
+    expect(sourceShell.hidden).toBe(true);
+    expect(sourceShell.style.display).toBe("none");
+    expect(content.hidden).toBe(false);
+    expect(sourceShell.nextElementSibling?.className).toBe("annotation-markdown-rendered");
+    expect(node.querySelector(".annotation-markdown-rendered")?.innerHTML)
+      .toBe("<h1>不断收缩的领域</h1><p>先给结论：<strong>拓扑相似</strong>。</p>");
   });
 
   test("does not overwrite original source text when rendering twice", () => {
@@ -197,6 +230,53 @@ describe("createAnnotationSidebarAdapter", () => {
       expect(document.activeElement).not.toBe(content);
       expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(true);
       expect(node.querySelector(".annotation-markdown-rendered")?.style.display).toBe("none");
+      expect(callbacks).toHaveLength(1);
+
+      callbacks[0]();
+
+      expect(document.activeElement).toBe(content);
+    } finally {
+      globalThis.requestAnimationFrame = requestAnimationFrame;
+    }
+  });
+
+  test("preview click on a selected Zotero reader comment restores the editor shell", () => {
+    const requestAnimationFrame = globalThis.requestAnimationFrame;
+    const callbacks = [];
+    globalThis.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+
+    try {
+      document.body.innerHTML = `
+        <div class="annotation selected">
+          <div class="preview expanded1">
+            <div class="comment">
+              <div class="expandable-editor">
+                <div class="editor-view">
+                  <div class="editor read-only">
+                    <div class="content" tabindex="0">**bold**</div>
+                    <div class="renderer"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      const node = document.querySelector(".comment");
+      const sourceShell = document.querySelector(".expandable-editor");
+      const content = document.querySelector(".content");
+      const adapter = createAnnotationSidebarAdapter({ document });
+
+      adapter.applyRenderedHtml(node, "<p><strong>bold</strong></p>");
+      node.querySelector(".annotation-markdown-rendered").dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+      expect(node.classList.contains("annotation-markdown-editing")).toBe(true);
+      expect(sourceShell.hidden).toBe(false);
+      expect(sourceShell.style.display).toBe("");
+      expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(true);
       expect(callbacks).toHaveLength(1);
 
       callbacks[0]();
