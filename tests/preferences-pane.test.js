@@ -11,6 +11,7 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
+    expect(source).toContain("label=\"Paste clipboard content into annotation comments as plain text\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
     expect(source).toContain("<menulist id=\"annotation-markdown-font-scale\"");
     expect(source).toContain("<menuitem label=\"80%\" value=\"80\"/>");
