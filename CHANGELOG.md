@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 - 2026-06-08
+
+### Fixed
+
+- Reduced PDF scrolling stutter when LaTeX math rendering is enabled by ignoring unrelated Reader mutations.
+- Avoided rerendering unchanged annotation comments during repeated Reader scans.
+
 ## 0.3.0 - 2026-06-08
 
 ### Added

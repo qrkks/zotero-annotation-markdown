@@ -11,6 +11,7 @@ export function createReaderController({
   let styleElement;
   let safetyTimer;
   let pasteHandler;
+  const renderCache = new WeakMap();
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
   const windowRef = documentRef?.defaultView ?? globalThis.window;
@@ -21,6 +22,7 @@ export function createReaderController({
         if (adapter.isRendered(node)) {
           adapter.restoreSourceText(node);
         }
+        renderCache.delete(node);
         return;
       }
 
@@ -29,12 +31,21 @@ export function createReaderController({
       }
 
       const source = adapter.getSourceText(node);
+      const mathEnabled = Boolean(settings.isMathEnabled?.() ?? true);
+      const cached = renderCache.get(node);
+      if (cached?.source === source && cached?.mathEnabled === mathEnabled) {
+        adapter.applyRenderedHtml(node, cached.html);
+        return;
+      }
+
       const html = renderer.render(source);
+      renderCache.set(node, { source, mathEnabled, html });
       adapter.applyRenderedHtml(node, html);
     } catch {
       if (adapter.isRendered(node)) {
         adapter.restoreSourceText(node);
       }
+      renderCache.delete(node);
     }
   }
 
@@ -112,7 +123,9 @@ export function createReaderController({
         if (mutationNeedsSyncScan(mutations)) {
           renderNow();
         }
-        scheduleSafetyScan(80);
+        if (mutationNeedsSafetyScan(mutations)) {
+          scheduleSafetyScan(80);
+        }
       });
       observer.observe(root, {
         childList: true,
@@ -268,6 +281,19 @@ function mutationNeedsSyncScan(mutations = []) {
     (node.matches?.(".annotation-row, .annotation, .comment") ||
       node.querySelector?.(".annotation-row .comment, .annotation .comment, [data-annotation-id] .comment"))
   )));
+}
+
+function mutationNeedsSafetyScan(mutations = []) {
+  return mutations.some((mutation) => (
+    isAnnotationMutationTarget(mutation.target) ||
+    Array.from(mutation.addedNodes ?? []).some(isAnnotationMutationTarget) ||
+    Array.from(mutation.removedNodes ?? []).some(isAnnotationMutationTarget)
+  ));
+}
+
+function isAnnotationMutationTarget(node) {
+  const element = getElementTarget(node);
+  return Boolean(element?.closest?.("[data-annotation-id], .annotation, .annotation-row, .comment"));
 }
 
 function getReaderRoot(reader) {

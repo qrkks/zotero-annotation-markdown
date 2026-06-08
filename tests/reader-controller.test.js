@@ -71,6 +71,61 @@ describe("createReaderController", () => {
     expect(render).toHaveBeenCalledWith("**new**");
   });
 
+  test("ignores unrelated reader mutations while scrolling PDF pages", async () => {
+    vi.useFakeTimers();
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <div id="root">
+        <div data-annotation-id="a1"><div class="comment">$a^2$</div></div>
+        <div class="pdf-pages"></div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    const page = document.createElement("div");
+    page.className = "page";
+    document.querySelector(".pdf-pages").append(page);
+    callbacks[0]([{ type: "childList", addedNodes: [page], target: document.querySelector(".pdf-pages") }]);
+    vi.runAllTimers();
+
+    expect(render).toHaveBeenCalledTimes(1);
+
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("does not rerender unchanged comments during repeated scans", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">$a^2$</div></div>`;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: {
+        isEnabled: () => true,
+        isMathEnabled: () => true
+      },
+      MutationObserver: undefined
+    });
+
+    controller.renderNow();
+    controller.renderNow();
+
+    expect(render).toHaveBeenCalledTimes(1);
+  });
+
   test("logs render pass diagnostics", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const log = vi.fn();
