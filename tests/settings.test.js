@@ -95,4 +95,25 @@ describe("createSettings", () => {
     expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", true);
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", true);
   });
+
+  test("defaults LaTeX math rendering to enabled", () => {
+    const settings = createSettings();
+
+    expect(settings.isMathEnabled()).toBe(true);
+  });
+
+  test("reads and writes LaTeX math rendering preference", () => {
+    const prefs = {
+      get: vi.fn(() => false),
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.isMathEnabled()).toBe(false);
+
+    settings.setMathEnabled(true);
+
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", true);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", true);
+  });
 });

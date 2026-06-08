@@ -10,7 +10,7 @@ function startup(data) {
     ZoteroAnnotationMarkdownInstance = ZoteroAnnotationMarkdown.createPlugin({
       Zotero,
       window: globalThis.window,
-      styleText: readTextFromURI(`${data.rootURI}styles/annotation-markdown.css`),
+      styleText: readStyleTextFromURI(`${data.rootURI}styles/annotation-markdown.css`, data.rootURI),
       diagnostics: globalThis.ZoteroAnnotationMarkdownDiagnostics
     });
     ZoteroAnnotationMarkdownInstance.startup();
@@ -68,6 +68,14 @@ function readTextFromURI(uri) {
   }
 
   return request.responseText;
+}
+
+function readStyleTextFromURI(uri, rootURI) {
+  return rewriteRelativeFontUrls(readTextFromURI(uri), rootURI);
+}
+
+function rewriteRelativeFontUrls(css, rootURI) {
+  return String(css).replaceAll("url(fonts/", `url(${rootURI}styles/fonts/`);
 }
 
 function createDiagnostics() {

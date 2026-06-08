@@ -2,7 +2,12 @@ import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js"
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
-import { createSettings, ENABLED_PREF_KEY, FONT_SCALE_PERCENT_PREF_KEY } from "./settings.js";
+import {
+  createSettings,
+  ENABLED_PREF_KEY,
+  FONT_SCALE_PERCENT_PREF_KEY,
+  MATH_ENABLED_PREF_KEY
+} from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
 const READER_EVENT = "renderSidebarAnnotationHeader";
@@ -33,7 +38,10 @@ export function createPlugin({
         return createReaderController({
           reader,
           adapter: createAnnotationSidebarAdapter({ document: readerDocument }),
-          renderer: createMarkdownRenderer({ windowRef: readerWindow }),
+          renderer: createMarkdownRenderer({
+            isMathEnabled: () => settings.isMathEnabled(),
+            windowRef: readerWindow
+          }),
           settings,
           MutationObserver: readerWindow?.MutationObserver,
           styleText,
@@ -92,7 +100,7 @@ function registerPreferenceObservers(Zotero, refresh) {
     return [];
   }
 
-  return [ENABLED_PREF_KEY, FONT_SCALE_PERCENT_PREF_KEY]
+  return [ENABLED_PREF_KEY, FONT_SCALE_PERCENT_PREF_KEY, MATH_ENABLED_PREF_KEY]
     .map((key) => Zotero.Prefs.registerObserver(key, refresh, true))
     .filter(Boolean);
 }

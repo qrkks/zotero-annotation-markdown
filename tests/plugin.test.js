@@ -162,6 +162,37 @@ describe("createPlugin", () => {
     );
   });
 
+  test("refreshes open readers when the math rendering preference changes", async () => {
+    const observers = new Map();
+    const refresh = vi.fn();
+    const Zotero = {
+      Reader: {
+        registerEventListener: vi.fn()
+      },
+      Prefs: {
+        registerObserver: vi.fn((key, handler) => {
+          observers.set(key, handler);
+          return `observer:${key}`;
+        }),
+        unregisterObserver: vi.fn()
+      }
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ refresh, shutdown: vi.fn() })
+    });
+
+    await plugin.startup();
+    observers.get("extensions.annotationMarkdown.mathEnabled")();
+
+    expect(refresh).toHaveBeenCalled();
+
+    plugin.shutdown();
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.mathEnabled"
+    );
+  });
+
   test("reader events register their reader with the registry", () => {
     const register = vi.fn();
     const Zotero = {

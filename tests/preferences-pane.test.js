@@ -11,6 +11,7 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
     expect(source).toContain("<menulist id=\"annotation-markdown-font-scale\"");
     expect(source).toContain("<menuitem label=\"80%\" value=\"80\"/>");
     expect(source).toContain("<menuitem label=\"100%\" value=\"100\"/>");
@@ -23,12 +24,14 @@ describe("preferences pane", () => {
     const enabledInput = createInput();
     const fontScaleSelect = createInput();
     const pasteAsPlainTextInput = createInput();
+    const mathInput = createInput();
     const documentRef = {
       getElementById(id) {
         return {
           "annotation-markdown-enabled": enabledInput,
           "annotation-markdown-font-scale": fontScaleSelect,
-          "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput
+          "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
+          "annotation-markdown-math-enabled": mathInput
         }[id] ?? null;
       }
     };
@@ -38,6 +41,7 @@ describe("preferences pane", () => {
     expect(enabledInput.checked).toBe(true);
     expect(fontScaleSelect.value).toBe("100");
     expect(pasteAsPlainTextInput.checked).toBe(true);
+    expect(mathInput.checked).toBe(true);
   });
 
   test("writes preference changes from controls", async () => {
@@ -52,7 +56,8 @@ describe("preferences pane", () => {
           return {
             "extensions.annotationMarkdown.enabled": true,
             "extensions.annotationMarkdown.fontScalePercent": 100,
-            "extensions.annotationMarkdown.pasteAsPlainText": true
+            "extensions.annotationMarkdown.pasteAsPlainText": true,
+            "extensions.annotationMarkdown.mathEnabled": true
           }[key];
         }),
         set
@@ -61,12 +66,14 @@ describe("preferences pane", () => {
     const enabledInput = createInput();
     const fontScaleSelect = createInput();
     const pasteAsPlainTextInput = createInput();
+    const mathInput = createInput();
     const documentRef = {
       getElementById(id) {
         return {
           "annotation-markdown-enabled": enabledInput,
           "annotation-markdown-font-scale": fontScaleSelect,
-          "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput
+          "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
+          "annotation-markdown-math-enabled": mathInput
         }[id] ?? null;
       }
     };
@@ -78,10 +85,13 @@ describe("preferences pane", () => {
     fontScaleSelect.dispatch("command");
     pasteAsPlainTextInput.checked = false;
     pasteAsPlainTextInput.dispatch("command");
+    mathInput.checked = false;
+    mathInput.dispatch("command");
 
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 120, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
   });
 });
 

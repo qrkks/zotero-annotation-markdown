@@ -1,5 +1,6 @@
 import createDOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
+import markdownItTexmath from "markdown-it-texmath";
 
 const DEFAULT_MARKDOWN_OPTIONS = {
   html: false,
@@ -9,23 +10,54 @@ const DEFAULT_MARKDOWN_OPTIONS = {
 };
 
 export function createMarkdownRenderer({
-  markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS),
+  markdown,
+  mathMarkdown,
+  mathPlugin = markdownItTexmath,
+  mathPluginOptions = { delimiters: ["dollars", "brackets"] },
+  isMathEnabled = () => true,
   windowRef = globalThis.window
 } = {}) {
+  const plainMarkdown = markdown ?? new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
+  const mathCapableMarkdown = mathMarkdown ?? (markdown ? plainMarkdown : new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS));
   const purifier = windowRef?.document ? createDOMPurify(windowRef) : null;
+  let mathPluginLoaded = false;
 
   return {
     render(source) {
       const text = String(source ?? "");
 
       try {
-        const html = markdown.render(text);
+        const html = getMarkdownForSource(text).render(text);
         return purifier ? purifier.sanitize(html) : html;
       } catch {
         return escapePlainText(text);
       }
     }
   };
+
+  function getMarkdownForSource(text) {
+    if (!mathPlugin || !isMathEnabled() || !hasMathSyntax(text)) {
+      return plainMarkdown;
+    }
+
+    if (!mathPluginLoaded) {
+      if (mathPluginOptions === undefined) {
+        mathCapableMarkdown.use(mathPlugin);
+      } else {
+        mathCapableMarkdown.use(mathPlugin, mathPluginOptions);
+      }
+      mathPluginLoaded = true;
+    }
+
+    return mathCapableMarkdown;
+  }
+}
+
+function hasMathSyntax(text) {
+  return /(?:^|[^\\])\$\$[\s\S]+?\$\$/.test(text) ||
+    /(?:^|[^\\])\$[^$\n]+?\$/.test(text) ||
+    /\\\([\s\S]+?\\\)/.test(text) ||
+    /\\\[[\s\S]+?\\\]/.test(text);
 }
 
 function escapePlainText(text) {
@@ -39,4 +71,3 @@ function escapePlainText(text) {
     .replaceAll("\r", "\n")
     .replaceAll("\n", "<br>");
 }
-

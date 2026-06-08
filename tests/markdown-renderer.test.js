@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { createMarkdownRenderer } from "../src/markdown-renderer.js";
 
@@ -46,5 +46,95 @@ describe("createMarkdownRenderer", () => {
     const html = renderer.render("<b>x</b>\ny");
 
     expect(html).toBe("&lt;b&gt;x&lt;/b&gt;<br>y");
+  });
+
+  test("loads the math plugin only after math syntax appears", () => {
+    const markdown = {
+      render: vi.fn((source) => `<p>${source}</p>`),
+      use: vi.fn()
+    };
+    const mathPlugin = vi.fn();
+    const renderer = createMarkdownRenderer({
+      markdown,
+      mathPlugin,
+      isMathEnabled: () => true
+    });
+
+    renderer.render("plain markdown only");
+    renderer.render("area is $a^2$");
+    renderer.render("another $b^2$");
+
+    expect(markdown.use).toHaveBeenCalledTimes(1);
+    expect(markdown.use).toHaveBeenCalledWith(
+      mathPlugin,
+      expect.objectContaining({ delimiters: ["dollars", "brackets"] })
+    );
+  });
+
+  test("does not load the math plugin when math rendering is disabled", () => {
+    const markdown = {
+      render: vi.fn((source) => `<p>${source}</p>`),
+      use: vi.fn()
+    };
+    const renderer = createMarkdownRenderer({
+      markdown,
+      mathPlugin: vi.fn(),
+      mathPluginOptions: undefined,
+      isMathEnabled: () => false
+    });
+
+    renderer.render("area is $a^2$");
+
+    expect(markdown.use).not.toHaveBeenCalled();
+  });
+
+  test("renders math as plain markdown again after math rendering is disabled", () => {
+    let mathEnabled = true;
+    const renderer = createMarkdownRenderer({
+      isMathEnabled: () => mathEnabled
+    });
+
+    expect(renderer.render("area is $a^2$")).toContain("katex");
+
+    mathEnabled = false;
+
+    expect(renderer.render("area is $a^2$")).toContain("$a^2$");
+    expect(renderer.render("area is $a^2$")).not.toContain("katex");
+  });
+
+  test("renders inline LaTeX math with the default renderer", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("area is $a^2$");
+
+    expect(html).toContain("katex");
+    expect(html).toContain("a");
+  });
+
+  test("renders display LaTeX math with the default renderer", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("$$a^2$$");
+
+    expect(html).toContain("katex-display");
+    expect(html).toContain("a");
+  });
+
+  test("renders bracket-delimited inline LaTeX math with the default renderer", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("area is \\(a^2\\)");
+
+    expect(html).toContain("katex");
+    expect(html).toContain("a");
+  });
+
+  test("renders bracket-delimited display LaTeX math with the default renderer", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("\\[a^2\\]");
+
+    expect(html).toContain("katex-display");
+    expect(html).toContain("a");
   });
 });

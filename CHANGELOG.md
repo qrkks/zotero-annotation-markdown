@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 - 2026-06-08
+
+### Added
+
+- Added LaTeX math rendering for annotation Markdown previews.
+- Added support for `$...$`, `$$...$$`, `\(...\)`, and `\[...\]` math delimiters.
+- Added a preference to enable or disable LaTeX math rendering.
+
+### Changed
+
+- Embedded KaTeX woff2 fonts in the generated preview CSS so math symbols render reliably in Zotero Reader.
+
 ## 0.2.0 - 2026-05-19
 
 ### Added
