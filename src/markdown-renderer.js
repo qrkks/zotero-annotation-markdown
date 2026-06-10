@@ -61,7 +61,14 @@ function hasMathSyntax(text) {
 }
 
 function normalizeMathDelimiters(text) {
-  const normalizedDelimiters = text
+  const normalizedLineEndings = text
+    .replaceAll("\r\n", "\n")
+    .replaceAll("\r", "\n");
+
+  const normalizedWhitespace = normalizedLineEndings
+    .replace(/[\u00a0\u202f]/g, " ");
+
+  const normalizedDelimiters = normalizedWhitespace
     .replace(/(^|\n)([ \t]*)\\\\\[[ \t]*(?=\n|$)/g, "$1$2\\[")
     .replace(/(^|\n)([ \t]*)\\\\\][ \t]*(?=\n|$)/g, "$1$2\\]");
 

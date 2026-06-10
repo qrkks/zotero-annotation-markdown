@@ -164,4 +164,43 @@ a^2 + b^2 = c^2
     expect(html).toContain("katex-display");
     expect(html).toContain("c");
   });
+
+  test("renders copied bracket display math in list items with CRLF line endings", () => {
+    const renderer = createMarkdownRenderer();
+    const source = String.raw`### 2. 导数（dy/dx）是什么？
+- 导数的原始定义是极限：
+  \[
+  f'(x) = \lim_{\Delta x \to 0} \frac{\Delta y}{\Delta x}
+  \]
+- 有了微分的定义之后，因为 \(dy = f'(x)dx\)，我们就可以把导数写成：
+  \[
+  f'(x) = \frac{dy}{dx}
+  \]`.replaceAll("\n", "\r\n");
+
+    const html = renderer.render(source);
+
+    expect(html.match(/katex-display/g)).toHaveLength(2);
+    expect(html).not.toContain("[<br>");
+  });
+
+  test("renders copied bracket display math in list items with non-breaking space indentation", () => {
+    const renderer = createMarkdownRenderer();
+    const indent = "\u00a0\u00a0";
+    const source = [
+      "### 2. 导数（dy/dx）是什么？",
+      "- 导数的原始定义是极限：",
+      `${indent}\\[`,
+      `${indent}f'(x) = \\lim_{\\Delta x \\to 0} \\frac{\\Delta y}{\\Delta x}`,
+      `${indent}\\]`,
+      "- 有了微分的定义之后，因为 \\(dy = f'(x)dx\\)，我们就可以把导数写成：",
+      `${indent}\\[`,
+      `${indent}f'(x) = \\frac{dy}{dx}`,
+      `${indent}\\]`
+    ].join("\r\n");
+
+    const html = renderer.render(source);
+
+    expect(html.match(/katex-display/g)).toHaveLength(2);
+    expect(html).not.toContain("[<br>");
+  });
 });
