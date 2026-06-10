@@ -24,7 +24,7 @@ export function createMarkdownRenderer({
 
   return {
     render(source) {
-      const text = String(source ?? "");
+      const text = normalizeMathDelimiters(String(source ?? ""));
 
       try {
         const html = getMarkdownForSource(text).render(text);
@@ -58,6 +58,42 @@ function hasMathSyntax(text) {
     /(?:^|[^\\])\$[^$\n]+?\$/.test(text) ||
     /\\\([\s\S]+?\\\)/.test(text) ||
     /\\\[[\s\S]+?\\\]/.test(text);
+}
+
+function normalizeMathDelimiters(text) {
+  const normalizedDelimiters = text
+    .replace(/(^|\n)([ \t]*)\\\\\[[ \t]*(?=\n|$)/g, "$1$2\\[")
+    .replace(/(^|\n)([ \t]*)\\\\\][ \t]*(?=\n|$)/g, "$1$2\\]");
+
+  return isolateBracketDisplayMath(normalizedDelimiters);
+}
+
+function isolateBracketDisplayMath(text) {
+  const lines = text.split("\n");
+  const output = [];
+
+  lines.forEach((line, index) => {
+    if (isBracketMathOpeningLine(line) && output.length > 0 && output[output.length - 1].trim() !== "") {
+      output.push("");
+    }
+
+    output.push(line);
+
+    const nextLine = lines[index + 1];
+    if (isBracketMathClosingLine(line) && nextLine !== undefined && nextLine.trim() !== "") {
+      output.push("");
+    }
+  });
+
+  return output.join("\n");
+}
+
+function isBracketMathOpeningLine(line) {
+  return /^[ \t]*\\\[[ \t]*$/.test(line);
+}
+
+function isBracketMathClosingLine(line) {
+  return /^[ \t]*\\\][ \t]*$/.test(line);
 }
 
 function escapePlainText(text) {

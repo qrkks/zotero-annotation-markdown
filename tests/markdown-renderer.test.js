@@ -137,4 +137,31 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("katex-display");
     expect(html).toContain("a");
   });
+
+  test("renders copied bracket display math without surrounding blank lines", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render(String.raw`怎么定义“贴近”？我们用**误差平方和**：
+\[
+S(a,b) = \sum_{i=1}^n (y_i - \hat{y}_i)^2 = \sum_{i=1}^n (y_i - a - bx_i)^2
+\]
+我们的目标是：找到参数 \(a,b\)，让 \(S(a,b)\) 取到**最小值**。`);
+
+    expect(html).toContain("katex-display");
+    expect(html).toContain("S");
+    expect(html).toContain("katex");
+  });
+
+  test("renders copied double-escaped bracket display math without surrounding blank lines", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render(String.raw`定义：
+\\[
+a^2 + b^2 = c^2
+\\]
+结论。`);
+
+    expect(html).toContain("katex-display");
+    expect(html).toContain("c");
+  });
 });

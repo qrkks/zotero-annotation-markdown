@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.2 - 2026-06-10
+
+### Changed
+
+- Clarified the annotation paste preference label to distinguish annotation comments from other paste targets.
+
+### Fixed
+
+- Fixed copied LaTeX `\[...\]` display formulas failing to render when pasted without surrounding blank lines.
+- Fixed double-escaped copied `\\[...\\]` display formula delimiters in the same adjacent-to-text case.
+
 ## 0.3.1 - 2026-06-08
 
 ### Fixed
