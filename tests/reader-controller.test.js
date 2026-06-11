@@ -106,6 +106,53 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
+  test("does not schedule safety scans for character changes inside a focused annotation editor", async () => {
+    vi.useFakeTimers();
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <div id="root">
+        <div data-annotation-id="a1" class="annotation selected">
+          <div class="comment annotation-markdown-editing">
+            <div class="content" tabindex="0">**editing**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const baseAdapter = createAnnotationSidebarAdapter({ document });
+    const adapter = {
+      ...baseAdapter,
+      findCommentNodes: vi.fn((root) => baseAdapter.findCommentNodes(root))
+    };
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    const comment = document.querySelector(".comment");
+    const content = document.querySelector(".content");
+    comment.classList.add("annotation-markdown-editing");
+    content.hidden = false;
+    content.style.display = "";
+    content.focus();
+    adapter.findCommentNodes.mockClear();
+    content.firstChild.nodeValue = "**editing more**";
+    callbacks[0]([{ type: "characterData", target: content.firstChild, addedNodes: [], removedNodes: [] }]);
+    vi.runAllTimers();
+
+    expect(adapter.findCommentNodes).not.toHaveBeenCalled();
+
+    controller.stop();
+    vi.useRealTimers();
+  });
+
   test("does not rerender unchanged comments during repeated scans", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">$a^2$</div></div>`;
     const render = vi.fn((source) => `<p>${source}</p>`);

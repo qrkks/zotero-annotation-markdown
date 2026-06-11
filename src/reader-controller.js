@@ -123,7 +123,7 @@ export function createReaderController({
         if (mutationNeedsSyncScan(mutations)) {
           renderNow();
         }
-        if (mutationNeedsSafetyScan(mutations)) {
+        if (mutationNeedsSafetyScan(mutations, documentRef)) {
           scheduleSafetyScan(80);
         }
       });
@@ -283,17 +283,32 @@ function mutationNeedsSyncScan(mutations = []) {
   )));
 }
 
-function mutationNeedsSafetyScan(mutations = []) {
+function mutationNeedsSafetyScan(mutations = [], documentRef = globalThis.document) {
   return mutations.some((mutation) => (
-    isAnnotationMutationTarget(mutation.target) ||
-    Array.from(mutation.addedNodes ?? []).some(isAnnotationMutationTarget) ||
-    Array.from(mutation.removedNodes ?? []).some(isAnnotationMutationTarget)
+    !isMutationInsideActiveCommentEditor(mutation, documentRef) && (
+      isAnnotationMutationTarget(mutation.target) ||
+      Array.from(mutation.addedNodes ?? []).some(isAnnotationMutationTarget) ||
+      Array.from(mutation.removedNodes ?? []).some(isAnnotationMutationTarget)
+    )
   ));
 }
 
 function isAnnotationMutationTarget(node) {
   const element = getElementTarget(node);
   return Boolean(element?.closest?.("[data-annotation-id], .annotation, .annotation-row, .comment"));
+}
+
+function isMutationInsideActiveCommentEditor(mutation, documentRef) {
+  const element = getElementTarget(mutation.target);
+  const comment = element?.closest?.(".comment, .annotation-comment, [data-annotation-comment]");
+  if (!comment) {
+    return false;
+  }
+
+  const activeElement = documentRef?.activeElement;
+  const hasFocusInside = Boolean(activeElement && activeElement !== documentRef.body && comment.contains(activeElement));
+  const isEditing = comment.classList?.contains("annotation-markdown-editing");
+  return hasFocusInside || isEditing;
 }
 
 function getReaderRoot(reader) {
