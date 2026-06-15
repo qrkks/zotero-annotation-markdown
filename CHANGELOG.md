@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.3 - 2026-06-15
+
+### Changed
+
+- Reduced Reader sidebar work for large annotation sets by lazily rendering annotation Markdown previews near the viewport.
+- Paused annotation Markdown rendering while editing and resumed only the edited annotation after focus leaves.
+
+### Fixed
+
+- Avoided observing character data changes inside active annotation editors.
+- Avoided treating Zotero native note editor DOM as reader annotation comments.
+- Reduced repeated full-sidebar scans from annotation mutation events.
+
 ## 0.3.2 - 2026-06-10
 
 ### Changed
