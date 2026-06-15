@@ -6,7 +6,9 @@ import {
   createSettings,
   ENABLED_PREF_KEY,
   FONT_SCALE_PERCENT_PREF_KEY,
-  MATH_ENABLED_PREF_KEY
+  LIGHTWEIGHT_MODE_PREF_KEY,
+  MATH_ENABLED_PREF_KEY,
+  PERFORMANCE_DIAGNOSTICS_PREF_KEY
 } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
@@ -65,7 +67,6 @@ export function createPlugin({
       if (Zotero?.Reader?.registerEventListener) {
         readerEventHandler = (event) => {
           const reader = event?.reader ?? event;
-          diagnosticsLogger.log(`[annotation-markdown] reader event fired: ${READER_EVENT}`);
           return registry?.register(reader);
         };
         Zotero.Reader.registerEventListener(READER_EVENT, readerEventHandler, PLUGIN_ID);
@@ -100,7 +101,13 @@ function registerPreferenceObservers(Zotero, refresh) {
     return [];
   }
 
-  return [ENABLED_PREF_KEY, FONT_SCALE_PERCENT_PREF_KEY, MATH_ENABLED_PREF_KEY]
+  return [
+    ENABLED_PREF_KEY,
+    FONT_SCALE_PERCENT_PREF_KEY,
+    MATH_ENABLED_PREF_KEY,
+    LIGHTWEIGHT_MODE_PREF_KEY,
+    PERFORMANCE_DIAGNOSTICS_PREF_KEY
+  ]
     .map((key) => Zotero.Prefs.registerObserver(key, refresh, true))
     .filter(Boolean);
 }

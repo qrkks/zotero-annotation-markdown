@@ -219,6 +219,30 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(document.querySelector(".annotation-markdown-rendered")).toBeNull();
   });
 
+  test("preserves native source DOM structure when restoring editing", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1">
+        <div class="comment">
+          <div class="content" tabindex="0"># Title<br>line 2<br><br>- item</div>
+        </div>
+      </div>
+    `;
+    const node = document.querySelector(".comment");
+    const content = document.querySelector(".content");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<h1>Title</h1><p>line 2</p><ul><li>item</li></ul>");
+    adapter.restoreSourceDomForEditing(node);
+
+    expect(adapter.isRendered(node)).toBe(false);
+    expect(node.hasAttribute("data-annotation-markdown-source")).toBe(false);
+    expect(node.querySelector(".annotation-markdown-rendered")).toBeNull();
+    expect(content.hidden).toBe(false);
+    expect(content.textContent).toBe("# Titleline 2- item");
+    expect(content.innerHTML).toBe("# Title<br>line 2<br><br>- item");
+    expect(content.style.whiteSpace).toBe("");
+  });
+
   test("clears stale preview markers left by a previous plugin instance", () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1">

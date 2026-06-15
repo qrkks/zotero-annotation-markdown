@@ -1,6 +1,6 @@
 {
   "name": "zotero-annotation-markdown",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Render Zotero reader annotation comments as Markdown.",
   "type": "module",
   "private": true,

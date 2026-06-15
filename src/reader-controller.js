@@ -17,7 +17,11 @@ export function createReaderController({
   let focusOutHandler;
   let editingResumeTimer;
   let pausedComment;
-  const observedComments = new WeakSet();
+  let renderNowCallback;
+  let editPauseStartedAt = 0;
+  let pausedMutationDiagnosticsTimer;
+  let pausedMutationDiagnostics;
+  let observedComments = new WeakSet();
   const renderCache = new WeakMap();
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
@@ -72,28 +76,41 @@ export function createReaderController({
 
     renderNow() {
       if (isRenderingPaused()) {
+        logEditLifecycle("renderNow skipped while paused");
         return;
       }
 
+      const diagnosticsEnabled = isPerformanceDiagnosticsEnabled();
+      const startedAt = diagnosticsEnabled ? now() : 0;
       const nodes = adapter.findCommentNodes(root);
-      logger?.log?.(`[annotation-markdown] render pass nodes: ${nodes.length}`);
-      const nativeNoteEditorComments = adapter.countNativeNoteEditorComments?.(root) ?? 0;
-      if (nativeNoteEditorComments > 0) {
-        logger?.log?.(`[annotation-markdown] skipped native note editor comments: ${nativeNoteEditorComments}`);
-      }
+      const nativeNoteEditorComments = diagnosticsEnabled
+        ? adapter.countNativeNoteEditorComments?.(root) ?? 0
+        : 0;
+      const result = handleCommentNodes(nodes);
 
-      if (nodes.length === 0) {
-        logger?.log?.(`[annotation-markdown] zero-node DOM summary: ${summarizeDom(root)}`);
-      } else {
-        logger?.log?.(`[annotation-markdown] matched nodes: ${summarizeNodes(adapter, nodes)}`);
-      }
+      if (diagnosticsEnabled) {
+        logRenderDiagnostics("renderNow", nodes, result, startedAt, nativeNoteEditorComments);
 
-      handleCommentNodes(nodes);
+        if (nativeNoteEditorComments > 0) {
+          logger?.log?.(`[annotation-markdown] skipped native note editor comments: ${nativeNoteEditorComments}`);
+        }
+
+        if (nodes.length === 0) {
+          logger?.log?.(`[annotation-markdown] zero-node DOM summary: ${summarizeDom(root)}`);
+        } else {
+          logger?.log?.(`[annotation-markdown] matched nodes: ${summarizeNodes(adapter, nodes)}`);
+        }
+      }
     },
 
     refresh() {
       injectStyles();
+      if (observer) {
+        observer.disconnect();
+        observer = undefined;
+      }
       this.renderNow();
+      registerMutationObserver(() => this.renderNow());
     },
 
     stop() {
@@ -121,6 +138,11 @@ export function createReaderController({
         windowRef.clearTimeout(editingResumeTimer);
       }
       editingResumeTimer = undefined;
+      if (pausedMutationDiagnosticsTimer && windowRef?.clearTimeout) {
+        windowRef.clearTimeout(pausedMutationDiagnosticsTimer);
+      }
+      pausedMutationDiagnosticsTimer = undefined;
+      pausedMutationDiagnostics = undefined;
       pausedComment = undefined;
       styleElement?.remove();
       styleElement = undefined;
@@ -142,15 +164,24 @@ export function createReaderController({
   }
 
   function startNow(renderNow) {
+    renderNowCallback = renderNow;
     injectStyles();
     registerPasteHandler();
     registerEditingPauseHandlers();
     adapter.clearRenderedState?.(root);
     renderNow();
+    registerMutationObserver(renderNow);
+  }
+
+  function registerMutationObserver(renderNow) {
+    if (isRenderingPaused()) {
+      return;
+    }
 
     if (root && MutationObserverRef && !observer) {
       observer = new MutationObserverRef((mutations) => {
         if (isRenderingPaused()) {
+          recordPausedMutations(mutations);
           return;
         }
 
@@ -171,7 +202,8 @@ export function createReaderController({
       observer.observe(root, {
         childList: true,
         subtree: true,
-        characterData: false
+        characterData: false,
+        ...getLightweightMutationObserverOptions()
       });
     }
   }
@@ -219,17 +251,28 @@ export function createReaderController({
 
   function handleCommentNodes(nodes, { force = false } = {}) {
     if (force || !canLazyRender()) {
-      renderNodes(nodes);
-      return;
+      const targetNodes = filterLightweightNodes(nodes, { force });
+      return {
+        mode: "sync",
+        handled: renderNodes(targetNodes),
+        filtered: nodes.length - targetNodes.length
+      };
     }
 
-    observeCommentNodes(nodes);
+    return {
+      mode: "lazy",
+      handled: observeCommentNodes(nodes),
+      filtered: 0
+    };
   }
 
   function renderNodes(nodes) {
+    let handled = 0;
     for (const node of nodes) {
       renderNode(node);
+      handled += 1;
     }
+    return handled;
   }
 
   function canLazyRender() {
@@ -239,16 +282,18 @@ export function createReaderController({
   function observeCommentNodes(nodes) {
     const visibilityObserverRef = getVisibilityObserver();
     if (!visibilityObserverRef) {
-      renderNodes(nodes);
-      return;
+      return renderNodes(nodes);
     }
 
+    let handled = 0;
     for (const node of nodes) {
       if (!observedComments.has(node)) {
         observedComments.add(node);
         visibilityObserverRef.observe(node);
+        handled += 1;
       }
     }
+    return handled;
   }
 
   function getVisibilityObserver() {
@@ -259,6 +304,11 @@ export function createReaderController({
     visibilityObserver = new IntersectionObserverCtor((entries) => {
       for (const entry of entries ?? []) {
         if (!entry?.isIntersecting) {
+          continue;
+        }
+
+        if (isRenderingPaused()) {
+          logEditLifecycle("lazy render skipped while paused");
           continue;
         }
 
@@ -309,13 +359,18 @@ export function createReaderController({
     root.addEventListener("focusout", focusOutHandler, true);
 
     const activeComment = adapter.getCommentNodeForTarget?.(documentRef?.activeElement);
-    if (activeComment && adapter.isCommentEditorTarget?.(documentRef.activeElement)) {
+    if (activeComment && root?.contains?.(activeComment) && adapter.isCommentEditorTarget?.(documentRef.activeElement)) {
       pauseRenderingForEditing(activeComment);
     }
   }
 
   function pauseRenderingForEditing(comment) {
+    if (pausedComment === comment) {
+      return;
+    }
+
     pausedComment = comment;
+    editPauseStartedAt = now();
 
     if (safetyTimer && windowRef?.clearTimeout) {
       windowRef.clearTimeout(safetyTimer);
@@ -326,6 +381,15 @@ export function createReaderController({
       windowRef.clearTimeout(editingResumeTimer);
       editingResumeTimer = undefined;
     }
+
+    disconnectMutationObserverForEditing();
+    disconnectVisibilityObserverForEditing();
+    if (adapter.restoreSourceDomForEditing) {
+      adapter.restoreSourceDomForEditing(comment);
+    } else {
+      adapter.restoreSourceText?.(comment);
+    }
+    logEditLifecycle("pause");
   }
 
   function scheduleEditingResume(comment) {
@@ -355,13 +419,199 @@ export function createReaderController({
       return;
     }
 
+    flushPausedMutationDiagnostics();
+    const pausedForMs = Math.max(0, now() - editPauseStartedAt).toFixed(1);
     pausedComment = undefined;
     adapter.finishEditing?.(comment);
-    handleCommentNodes([comment], { force: true });
+    const startedAt = isPerformanceDiagnosticsEnabled() ? now() : 0;
+    const result = handleCommentNodes([comment], { force: true });
+    if (isPerformanceDiagnosticsEnabled()) {
+      logger?.log?.(
+        `[annotation-markdown] edit resume pausedForMs=${pausedForMs} ` +
+        `handled=${result?.handled ?? 0} durationMs=${Math.max(0, now() - startedAt).toFixed(1)}`
+      );
+    }
+    restoreLazyObservationAfterEditing();
+    registerMutationObserver(renderNowCallback);
   }
 
   function isRenderingPaused() {
     return Boolean(pausedComment);
+  }
+
+  function filterLightweightNodes(nodes, { force = false } = {}) {
+    if (force || !isLightweightModeEnabled()) {
+      return nodes;
+    }
+
+    const targetNodes = nodes.filter((node) => isLightweightRenderTarget(node, documentRef));
+    const targetSet = new Set(targetNodes);
+    for (const node of nodes) {
+      if (!targetSet.has(node) && adapter.isRendered(node)) {
+        adapter.restoreSourceText(node);
+        renderCache.delete(node);
+      }
+    }
+
+    return targetNodes;
+  }
+
+  function isPerformanceDiagnosticsEnabled() {
+    return Boolean(settings.isPerformanceDiagnosticsEnabled?.());
+  }
+
+  function isLightweightModeEnabled() {
+    return Boolean(settings.isLightweightModeEnabled?.());
+  }
+
+  function getLightweightMutationObserverOptions() {
+    if (!isLightweightModeEnabled()) {
+      return {};
+    }
+
+    return {
+      attributes: true,
+      attributeFilter: ["class", "aria-selected"]
+    };
+  }
+
+  function logRenderDiagnostics(label, nodes, result, startedAt, nativeNoteEditorComments) {
+    const durationMs = Math.max(0, now() - startedAt).toFixed(1);
+    logger?.log?.(
+      `[annotation-markdown] perf ${label} nodes=${nodes.length} handled=${result?.handled ?? 0} ` +
+      `mode=${result?.mode ?? "unknown"} filtered=${result?.filtered ?? 0} ` +
+      `nativeNoteEditorComments=${nativeNoteEditorComments} durationMs=${durationMs}`
+    );
+  }
+
+  function disconnectMutationObserverForEditing() {
+    if (!observer) {
+      return;
+    }
+
+    observer.disconnect();
+    observer = undefined;
+  }
+
+  function disconnectVisibilityObserverForEditing() {
+    if (!visibilityObserver) {
+      return;
+    }
+
+    visibilityObserver.disconnect?.();
+    visibilityObserver = undefined;
+    observedComments = new WeakSet();
+  }
+
+  function restoreLazyObservationAfterEditing() {
+    if (!canLazyRender()) {
+      return;
+    }
+
+    observeCommentNodes(adapter.findCommentNodes(root));
+  }
+
+  function logEditLifecycle(action) {
+    if (!isPerformanceDiagnosticsEnabled()) {
+      return;
+    }
+
+    logger?.log?.(
+      `[annotation-markdown] edit ${action} ` +
+      `commentNodes=${countCommentNodesForDiagnostics()} ` +
+      `renderedPreviews=${countNodes("[data-annotation-markdown-preview='true']")} ` +
+      `sourceNodes=${countNodes("[data-annotation-markdown-source-node='true']")}`
+    );
+  }
+
+  function recordPausedMutations(mutations = []) {
+    if (!isPerformanceDiagnosticsEnabled()) {
+      return;
+    }
+
+    if (!pausedMutationDiagnostics) {
+      pausedMutationDiagnostics = {
+        batches: 0,
+        mutations: 0,
+        childList: 0,
+        attributes: 0,
+        characterData: 0,
+        addedNodes: 0,
+        removedNodes: 0,
+        activeEditorMutations: 0,
+        pluginOwnedMutations: 0
+      };
+    }
+
+    pausedMutationDiagnostics.batches += 1;
+    pausedMutationDiagnostics.mutations += mutations.length;
+    for (const mutation of mutations) {
+      if (mutation.type === "childList") {
+        pausedMutationDiagnostics.childList += 1;
+      } else if (mutation.type === "attributes") {
+        pausedMutationDiagnostics.attributes += 1;
+      } else if (mutation.type === "characterData") {
+        pausedMutationDiagnostics.characterData += 1;
+      }
+
+      pausedMutationDiagnostics.addedNodes += mutation.addedNodes?.length ?? 0;
+      pausedMutationDiagnostics.removedNodes += mutation.removedNodes?.length ?? 0;
+      if (isMutationInsideActiveCommentEditor(mutation, documentRef)) {
+        pausedMutationDiagnostics.activeEditorMutations += 1;
+      }
+      if (isPluginOwnedMutation(mutation)) {
+        pausedMutationDiagnostics.pluginOwnedMutations += 1;
+      }
+    }
+
+    schedulePausedMutationDiagnosticsFlush();
+  }
+
+  function schedulePausedMutationDiagnosticsFlush() {
+    if (pausedMutationDiagnosticsTimer) {
+      return;
+    }
+
+    if (!windowRef?.setTimeout) {
+      flushPausedMutationDiagnostics();
+      return;
+    }
+
+    pausedMutationDiagnosticsTimer = windowRef.setTimeout(() => {
+      pausedMutationDiagnosticsTimer = undefined;
+      flushPausedMutationDiagnostics();
+    }, 250);
+  }
+
+  function flushPausedMutationDiagnostics() {
+    if (!pausedMutationDiagnostics) {
+      return;
+    }
+
+    const stats = pausedMutationDiagnostics;
+    pausedMutationDiagnostics = undefined;
+    logger?.log?.(
+      `[annotation-markdown] edit paused mutations batches=${stats.batches} mutations=${stats.mutations} ` +
+      `childList=${stats.childList} attributes=${stats.attributes} characterData=${stats.characterData} ` +
+      `addedNodes=${stats.addedNodes} removedNodes=${stats.removedNodes} ` +
+      `activeEditorMutations=${stats.activeEditorMutations} pluginOwnedMutations=${stats.pluginOwnedMutations}`
+    );
+  }
+
+  function countCommentNodesForDiagnostics() {
+    try {
+      return adapter.findCommentNodes?.(root)?.length ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function countNodes(selector) {
+    try {
+      return root?.querySelectorAll?.(selector)?.length ?? 0;
+    } catch {
+      return 0;
+    }
   }
 }
 
@@ -458,6 +708,10 @@ function getElementTarget(target) {
   return target.nodeType === 1 ? target : target.parentElement;
 }
 
+function now() {
+  return globalThis.performance?.now?.() ?? Date.now();
+}
+
 function findSyncMutationCommentNodes(mutations = [], adapter) {
   const found = [];
   const seen = new Set();
@@ -532,6 +786,15 @@ function isPluginManagedNode(node) {
 function isAnnotationMutationTarget(node) {
   const element = getElementTarget(node);
   return Boolean(element?.closest?.("[data-annotation-id], .annotation, .annotation-row, .comment"));
+}
+
+function isLightweightRenderTarget(node, documentRef) {
+  const activeElement = documentRef?.activeElement;
+  return Boolean(
+    node?.contains?.(activeElement) ||
+    node?.classList?.contains("annotation-markdown-editing") ||
+    node?.closest?.("[data-annotation-id].selected, .annotation.selected, .annotation-row.selected, [aria-selected='true']")
+  );
 }
 
 function isMutationInsideActiveCommentEditor(mutation, documentRef) {

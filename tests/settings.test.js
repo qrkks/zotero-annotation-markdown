@@ -116,4 +116,46 @@ describe("createSettings", () => {
     expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", true);
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", true);
   });
+
+  test("defaults performance diagnostics to disabled", () => {
+    const settings = createSettings();
+
+    expect(settings.isPerformanceDiagnosticsEnabled()).toBe(false);
+  });
+
+  test("reads and writes performance diagnostics preference", () => {
+    const prefs = {
+      get: vi.fn(() => true),
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.isPerformanceDiagnosticsEnabled()).toBe(true);
+
+    settings.setPerformanceDiagnosticsEnabled(false);
+
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", false);
+  });
+
+  test("defaults lightweight rendering mode to disabled", () => {
+    const settings = createSettings();
+
+    expect(settings.isLightweightModeEnabled()).toBe(false);
+  });
+
+  test("reads and writes lightweight rendering mode preference", () => {
+    const prefs = {
+      get: vi.fn(() => true),
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.isLightweightModeEnabled()).toBe(true);
+
+    settings.setLightweightModeEnabled(false);
+
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", false);
+  });
 });

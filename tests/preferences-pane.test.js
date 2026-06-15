@@ -13,6 +13,8 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
     expect(source).toContain("label=\"Paste clipboard content into annotation comments as plain text\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
+    expect(source).not.toContain("preference=\"extensions.annotationMarkdown.lightweightMode\"");
+    expect(source).not.toContain("preference=\"extensions.annotationMarkdown.performanceDiagnostics\"");
     expect(source).toContain("<menulist id=\"annotation-markdown-font-scale\"");
     expect(source).toContain("<menuitem label=\"80%\" value=\"80\"/>");
     expect(source).toContain("<menuitem label=\"100%\" value=\"100\"/>");
@@ -93,6 +95,8 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 120, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
+    expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", expect.anything(), true);
+    expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", expect.anything(), true);
   });
 });
 

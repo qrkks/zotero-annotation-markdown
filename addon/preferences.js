@@ -10,7 +10,12 @@ var ZoteroAnnotationMarkdownPreferences = {
     const pasteAsPlainTextInput = documentRef.getElementById("annotation-markdown-paste-as-plain-text");
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
 
-    if (!enabledInput || !fontScaleSelect || !pasteAsPlainTextInput || !mathEnabledInput) {
+    if (
+      !enabledInput ||
+      !fontScaleSelect ||
+      !pasteAsPlainTextInput ||
+      !mathEnabledInput
+    ) {
       return;
     }
 

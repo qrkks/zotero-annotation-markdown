@@ -213,6 +213,30 @@ describe("createPlugin", () => {
     expect(register).toHaveBeenCalledWith({ id: "reader-1" });
   });
 
+  test("reader events avoid hot-path diagnostic writes", () => {
+    const append = vi.fn();
+    const register = vi.fn();
+    const Zotero = {
+      Reader: {
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      diagnostics: { append },
+      registryFactory: () => ({ register, shutdown: vi.fn() })
+    });
+
+    plugin.startup();
+    append.mockClear();
+    const handler = Zotero.Reader.registerEventListener.mock.calls[0][1];
+    handler({ reader: { id: "reader-1" } });
+
+    expect(register).toHaveBeenCalledWith({ id: "reader-1" });
+    expect(append).not.toHaveBeenCalled();
+  });
+
   test("startup tolerates async registry registration for open readers and reader events", async () => {
     const register = vi.fn(() => Promise.resolve());
     const shutdown = vi.fn();

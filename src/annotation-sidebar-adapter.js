@@ -119,15 +119,12 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         node.textContent = source;
       } else if (sourceNode) {
         sourceNode.textContent = source;
-        showSourceNode(getSourceContainer(node, sourceNode));
-        showSourceNode(sourceNode);
       }
-      getPreviewNode(node)?.remove();
-      unwrapSourceNode(node);
-      node.classList?.remove(EDITING_CLASS);
-      node.removeAttribute(RENDERED_ATTRIBUTE);
-      node.removeAttribute(SOURCE_ATTRIBUTE);
-      node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
+      restoreSourceDom(node);
+    },
+
+    restoreSourceDomForEditing(node) {
+      restoreSourceDom(node);
     },
 
     clearRenderedState(root = documentRef) {
@@ -385,6 +382,22 @@ function getFocusTarget(node, sourceNode) {
       ? node
       : null
   );
+}
+
+function restoreSourceDom(node) {
+  if (!node) {
+    return;
+  }
+
+  const sourceNode = getSourceNode(node);
+  showSourceNode(getSourceContainer(node, sourceNode));
+  showSourceNode(sourceNode);
+  getPreviewNode(node)?.remove();
+  unwrapSourceNode(node);
+  node.classList?.remove(EDITING_CLASS);
+  node.removeAttribute(RENDERED_ATTRIBUTE);
+  node.removeAttribute(SOURCE_ATTRIBUTE);
+  node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
 }
 
 function canEnterEditing(node) {
