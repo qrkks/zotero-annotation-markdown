@@ -44,6 +44,47 @@ describe("createReaderController", () => {
     await startPromise;
 
     expect(render).toHaveBeenCalledWith("**bold**");
+    controller.stop();
+  });
+
+  test("defers initial comment rendering until annotations enter the viewport", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = `
+      <div data-annotation-id="a1"><div class="comment">**first**</div></div>
+      <div data-annotation-id="a2"><div class="comment">**second**</div></div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver
+    });
+
+    await controller.start();
+
+    expect(render).not.toHaveBeenCalled();
+    expect(observed).toEqual(Array.from(document.querySelectorAll(".comment")));
+
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenCalledWith("**first**");
+    expect(observed[0].querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>**first**</p>");
+    expect(observed[1].querySelector(".annotation-markdown-rendered")).toBeNull();
+
+    controller.stop();
   });
 
   test("runs a synchronous scan when annotation comment nodes are added", async () => {
@@ -69,6 +110,50 @@ describe("createReaderController", () => {
     callbacks[0]([{ addedNodes: [added], target: document.querySelector("#root") }]);
 
     expect(render).toHaveBeenCalledWith("**new**");
+
+    controller.stop();
+  });
+
+  test("renders only added annotation comments during synchronous mutation scans", async () => {
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <div id="root">
+        <div data-annotation-id="a1"><div class="comment">**old**</div></div>
+      </div>
+    `;
+    const baseAdapter = createAnnotationSidebarAdapter({ document });
+    const adapter = {
+      ...baseAdapter,
+      findCommentNodes: vi.fn((root) => baseAdapter.findCommentNodes(root))
+    };
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    adapter.findCommentNodes.mockClear();
+    render.mockClear();
+
+    const added = document.createElement("div");
+    added.innerHTML = `<div data-annotation-id="a2"><div class="comment">**new**</div></div>`;
+    document.querySelector("#root").append(added);
+    callbacks[0]([{ type: "childList", addedNodes: [added], target: document.querySelector("#root") }]);
+
+    expect(adapter.findCommentNodes).toHaveBeenCalledTimes(1);
+    expect(adapter.findCommentNodes).toHaveBeenCalledWith(added);
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenCalledWith("**new**");
+
+    controller.stop();
   });
 
   test("ignores unrelated reader mutations while scrolling PDF pages", async () => {
@@ -148,6 +233,151 @@ describe("createReaderController", () => {
     vi.runAllTimers();
 
     expect(adapter.findCommentNodes).not.toHaveBeenCalled();
+
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("does not observe character data changes inside reader comments", async () => {
+    const observe = vi.fn();
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver() {
+      return { observe, disconnect: vi.fn() };
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+
+    expect(observe).toHaveBeenCalledWith(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: false
+    });
+
+    controller.stop();
+  });
+
+  test("ignores child mutations inside a focused annotation editor before scanning added nodes", async () => {
+    vi.useFakeTimers();
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment annotation-markdown-editing">
+          <div class="content" tabindex="0">editing</div>
+        </div>
+      </div>
+    `;
+    const baseAdapter = createAnnotationSidebarAdapter({ document });
+    const adapter = {
+      ...baseAdapter,
+      findCommentNodes: vi.fn((root) => baseAdapter.findCommentNodes(root))
+    };
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    const content = document.querySelector(".content");
+    content.focus();
+    adapter.findCommentNodes.mockClear();
+    const added = document.createElement("span");
+    added.innerHTML = `<span class="comment">editor chrome</span>`;
+    content.append(added);
+    callbacks[0]([{ type: "childList", target: content, addedNodes: [added], removedNodes: [] }]);
+    vi.runAllTimers();
+
+    expect(adapter.findCommentNodes).not.toHaveBeenCalled();
+
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("pauses all mutation rendering while an annotation editor has focus", async () => {
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <div id="root">
+        <div data-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content" tabindex="0">**editing**</div></div>
+        </div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    render.mockClear();
+    document.querySelector(".content").focus();
+
+    const added = document.createElement("div");
+    added.innerHTML = `<div data-annotation-id="a2"><div class="comment">**new**</div></div>`;
+    document.querySelector("#root").append(added);
+    callbacks[0]([{ type: "childList", target: document.querySelector("#root"), addedNodes: [added], removedNodes: [] }]);
+
+    expect(render).not.toHaveBeenCalled();
+
+    controller.stop();
+  });
+
+  test("renders only the edited comment after annotation editing loses focus", async () => {
+    vi.useFakeTimers();
+    const callbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div id="root">
+        <div data-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content" tabindex="0">**editing**</div></div>
+        </div>
+        <div data-annotation-id="a2"><div class="comment">**other**</div></div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source.toUpperCase()}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver
+    });
+
+    await controller.start();
+    render.mockClear();
+    const content = document.querySelector(".content");
+    content.focus();
+    content.textContent = "**changed**";
+    document.querySelector("#outside").focus();
+    vi.runAllTimers();
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenCalledWith("**changed**");
+    expect(document.querySelector("[data-annotation-id='a1'] .annotation-markdown-rendered")?.innerHTML)
+      .toBe("<p>**CHANGED**</p>");
 
     controller.stop();
     vi.useRealTimers();

@@ -59,6 +59,53 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(adapter.findCommentNodes(document.body)).toHaveLength(0);
   });
 
+  test("skips Zotero native note editor comments even when nested inside annotation UI", () => {
+    document.body.innerHTML = `
+      <div class="annotation selected">
+        <div class="note-editor">
+          <div class="comment">
+            <div class="ProseMirror content" contenteditable="true">native note text</div>
+          </div>
+        </div>
+        <div class="comment"><div class="content">**annotation**</div></div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    const nodes = adapter.findCommentNodes(document.body);
+
+    expect(nodes).toHaveLength(1);
+    expect(adapter.getSourceText(nodes[0])).toBe("**annotation**");
+  });
+
+  test("does not treat Zotero native note editor targets as annotation comment editors", () => {
+    document.body.innerHTML = `
+      <div class="annotation selected">
+        <div class="note-editor">
+          <div class="comment">
+            <div class="ProseMirror content" contenteditable="true">native note text</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    expect(adapter.getCommentNodeForTarget(document.querySelector(".ProseMirror"))).toBeNull();
+    expect(adapter.isCommentEditorTarget(document.querySelector(".ProseMirror"))).toBe(false);
+  });
+
+  test("counts skipped native note editor comments for diagnostics", () => {
+    document.body.innerHTML = `
+      <div class="annotation selected">
+        <div class="note-editor"><div class="comment">native note</div></div>
+        <div class="comment">annotation comment</div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    expect(adapter.countNativeNoteEditorComments(document.body)).toBe(1);
+  });
+
   test("marks rendered nodes and keeps the original source text", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment"><div class="content">**bold**</div></div></div>`;
     const node = document.querySelector(".comment");

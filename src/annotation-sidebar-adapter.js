@@ -5,6 +5,12 @@ const COMMENT_SELECTORS = [
 ];
 
 const ANNOTATION_ROW_SELECTOR = "[data-annotation-id], .annotation, .annotation-row";
+const NATIVE_NOTE_EDITOR_SELECTOR = [
+  ".note-editor",
+  ".zotero-note-editor",
+  "[data-note-editor]",
+  ".ProseMirror"
+].join(",");
 const RENDERED_ATTRIBUTE = "data-annotation-markdown-rendered";
 const SOURCE_ATTRIBUTE = "data-annotation-markdown-source";
 const SUPPRESS_UNTIL_ATTRIBUTE = "data-annotation-markdown-suppress-until";
@@ -21,10 +27,34 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         return [];
       }
 
-      return Array.from(root.querySelectorAll(COMMENT_SELECTORS.join(",")))
+      const candidates = [];
+      if (root.nodeType === 1 && root.matches?.(COMMENT_SELECTORS.join(","))) {
+        candidates.push(root);
+      }
+      candidates.push(...Array.from(root.querySelectorAll(COMMENT_SELECTORS.join(","))));
+
+      return candidates
         .filter((node) => node.closest(ANNOTATION_ROW_SELECTOR))
+        .filter((node) => !isInsideNativeNoteEditor(node))
         .filter((node) => !this.isEditable(node))
         .filter((node) => !this.isSuppressed(node));
+    },
+
+    countNativeNoteEditorComments(root = documentRef) {
+      if (!root?.querySelectorAll) {
+        return 0;
+      }
+
+      const candidates = [];
+      if (root.nodeType === 1 && root.matches?.(COMMENT_SELECTORS.join(","))) {
+        candidates.push(root);
+      }
+      candidates.push(...Array.from(root.querySelectorAll(COMMENT_SELECTORS.join(","))));
+
+      return candidates
+        .filter((node) => node.closest(ANNOTATION_ROW_SELECTOR))
+        .filter((node) => isInsideNativeNoteEditor(node))
+        .length;
     },
 
     isEditable(node) {
@@ -174,15 +204,32 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       return node?.getAttribute?.(RENDERED_ATTRIBUTE) === "true";
     },
 
-    isCommentEditorTarget(target) {
+    finishEditing(node) {
+      finishEditing(node);
+    },
+
+    getCommentNodeForTarget(target) {
       const element = getElementTarget(target);
-      const editor = element?.closest?.("textarea,input,[contenteditable='true'],[tabindex]");
+      const comment = element?.closest?.(COMMENT_SELECTORS.join(","));
+      if (!comment?.closest?.(ANNOTATION_ROW_SELECTOR)) {
+        return null;
+      }
+
+      if (isInsideNativeNoteEditor(comment) || isInsideNativeNoteEditor(element)) {
+        return null;
+      }
+
+      return comment;
+    },
+
+    isCommentEditorTarget(target) {
+      const comment = this.getCommentNodeForTarget(target);
+      const editor = getElementTarget(target)?.closest?.("textarea,input,[contenteditable='true'],[tabindex]");
       if (!editor) {
         return false;
       }
 
-      const comment = editor.closest?.(COMMENT_SELECTORS.join(","));
-      return Boolean(comment?.closest?.(ANNOTATION_ROW_SELECTOR));
+      return Boolean(comment);
     }
   };
 }
@@ -439,6 +486,13 @@ function hasFocusInside(node) {
 
 function hasEditorControl(node) {
   return Boolean(node?.querySelector?.("textarea,input,select,[contenteditable='true']"));
+}
+
+function isInsideNativeNoteEditor(node) {
+  return Boolean(
+    node?.closest?.(NATIVE_NOTE_EDITOR_SELECTOR) ||
+    node?.querySelector?.(NATIVE_NOTE_EDITOR_SELECTOR)
+  );
 }
 
 function getElementTarget(target) {

@@ -4,17 +4,25 @@ export function createReaderController({
   renderer,
   settings,
   MutationObserver: MutationObserverRef = globalThis.MutationObserver,
+  IntersectionObserver: IntersectionObserverRef,
   styleText = "",
   logger
 }) {
   let observer;
+  let visibilityObserver;
   let styleElement;
   let safetyTimer;
   let pasteHandler;
+  let focusInHandler;
+  let focusOutHandler;
+  let editingResumeTimer;
+  let pausedComment;
+  const observedComments = new WeakSet();
   const renderCache = new WeakMap();
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
   const windowRef = documentRef?.defaultView ?? globalThis.window;
+  const IntersectionObserverCtor = IntersectionObserverRef ?? windowRef?.IntersectionObserver ?? globalThis.IntersectionObserver;
 
   function renderNode(node) {
     try {
@@ -63,8 +71,16 @@ export function createReaderController({
     },
 
     renderNow() {
+      if (isRenderingPaused()) {
+        return;
+      }
+
       const nodes = adapter.findCommentNodes(root);
       logger?.log?.(`[annotation-markdown] render pass nodes: ${nodes.length}`);
+      const nativeNoteEditorComments = adapter.countNativeNoteEditorComments?.(root) ?? 0;
+      if (nativeNoteEditorComments > 0) {
+        logger?.log?.(`[annotation-markdown] skipped native note editor comments: ${nativeNoteEditorComments}`);
+      }
 
       if (nodes.length === 0) {
         logger?.log?.(`[annotation-markdown] zero-node DOM summary: ${summarizeDom(root)}`);
@@ -72,9 +88,7 @@ export function createReaderController({
         logger?.log?.(`[annotation-markdown] matched nodes: ${summarizeNodes(adapter, nodes)}`);
       }
 
-      for (const node of nodes) {
-        renderNode(node);
-      }
+      handleCommentNodes(nodes);
     },
 
     refresh() {
@@ -85,6 +99,8 @@ export function createReaderController({
     stop() {
       observer?.disconnect();
       observer = undefined;
+      visibilityObserver?.disconnect?.();
+      visibilityObserver = undefined;
       if (safetyTimer && windowRef?.clearTimeout) {
         windowRef.clearTimeout(safetyTimer);
       }
@@ -93,6 +109,19 @@ export function createReaderController({
         root.removeEventListener("paste", pasteHandler, true);
       }
       pasteHandler = undefined;
+      if (focusInHandler && root?.removeEventListener) {
+        root.removeEventListener("focusin", focusInHandler, true);
+      }
+      focusInHandler = undefined;
+      if (focusOutHandler && root?.removeEventListener) {
+        root.removeEventListener("focusout", focusOutHandler, true);
+      }
+      focusOutHandler = undefined;
+      if (editingResumeTimer && windowRef?.clearTimeout) {
+        windowRef.clearTimeout(editingResumeTimer);
+      }
+      editingResumeTimer = undefined;
+      pausedComment = undefined;
       styleElement?.remove();
       styleElement = undefined;
     }
@@ -115,14 +144,26 @@ export function createReaderController({
   function startNow(renderNow) {
     injectStyles();
     registerPasteHandler();
+    registerEditingPauseHandlers();
     adapter.clearRenderedState?.(root);
     renderNow();
 
     if (root && MutationObserverRef && !observer) {
       observer = new MutationObserverRef((mutations) => {
-        if (mutationNeedsSyncScan(mutations)) {
-          renderNow();
+        if (isRenderingPaused()) {
+          return;
         }
+
+        if (mutations.length > 0 && mutations.every((mutation) => isMutationInsideActiveCommentEditor(mutation, documentRef))) {
+          return;
+        }
+
+        const syncNodes = findSyncMutationCommentNodes(mutations, adapter);
+        if (syncNodes.length > 0) {
+          handleCommentNodes(syncNodes);
+          return;
+        }
+
         if (mutationNeedsSafetyScan(mutations, documentRef)) {
           scheduleSafetyScan(80);
         }
@@ -130,7 +171,7 @@ export function createReaderController({
       observer.observe(root, {
         childList: true,
         subtree: true,
-        characterData: true
+        characterData: false
       });
     }
   }
@@ -148,6 +189,10 @@ export function createReaderController({
   }
 
   function scheduleSafetyScan(delay) {
+    if (isRenderingPaused()) {
+      return;
+    }
+
     if (!windowRef?.setTimeout) {
       renderNowInternal();
       return;
@@ -164,10 +209,69 @@ export function createReaderController({
   }
 
   function renderNowInternal() {
+    if (isRenderingPaused()) {
+      return;
+    }
+
     const nodes = adapter.findCommentNodes(root);
+    handleCommentNodes(nodes);
+  }
+
+  function handleCommentNodes(nodes, { force = false } = {}) {
+    if (force || !canLazyRender()) {
+      renderNodes(nodes);
+      return;
+    }
+
+    observeCommentNodes(nodes);
+  }
+
+  function renderNodes(nodes) {
     for (const node of nodes) {
       renderNode(node);
     }
+  }
+
+  function canLazyRender() {
+    return Boolean(root && IntersectionObserverCtor && settings.isEnabled());
+  }
+
+  function observeCommentNodes(nodes) {
+    const visibilityObserverRef = getVisibilityObserver();
+    if (!visibilityObserverRef) {
+      renderNodes(nodes);
+      return;
+    }
+
+    for (const node of nodes) {
+      if (!observedComments.has(node)) {
+        observedComments.add(node);
+        visibilityObserverRef.observe(node);
+      }
+    }
+  }
+
+  function getVisibilityObserver() {
+    if (visibilityObserver || !IntersectionObserverCtor) {
+      return visibilityObserver;
+    }
+
+    visibilityObserver = new IntersectionObserverCtor((entries) => {
+      for (const entry of entries ?? []) {
+        if (!entry?.isIntersecting) {
+          continue;
+        }
+
+        visibilityObserver?.unobserve?.(entry.target);
+        renderNode(entry.target);
+      }
+    }, {
+      root: null,
+      rootMargin: "600px 0px",
+      threshold: 0
+    });
+
+    return visibilityObserver;
   }
 
   function registerPasteHandler() {
@@ -179,6 +283,85 @@ export function createReaderController({
       handlePlainTextPaste(event, adapter, settings, documentRef);
     };
     root.addEventListener("paste", pasteHandler, true);
+  }
+
+  function registerEditingPauseHandlers() {
+    if (!root?.addEventListener || focusInHandler || focusOutHandler) {
+      return;
+    }
+
+    focusInHandler = (event) => {
+      const comment = adapter.getCommentNodeForTarget?.(event.target);
+      if (comment && adapter.isCommentEditorTarget?.(event.target)) {
+        pauseRenderingForEditing(comment);
+      }
+    };
+
+    focusOutHandler = (event) => {
+      if (!pausedComment || !pausedComment.contains?.(event.target)) {
+        return;
+      }
+
+      scheduleEditingResume(pausedComment);
+    };
+
+    root.addEventListener("focusin", focusInHandler, true);
+    root.addEventListener("focusout", focusOutHandler, true);
+
+    const activeComment = adapter.getCommentNodeForTarget?.(documentRef?.activeElement);
+    if (activeComment && adapter.isCommentEditorTarget?.(documentRef.activeElement)) {
+      pauseRenderingForEditing(activeComment);
+    }
+  }
+
+  function pauseRenderingForEditing(comment) {
+    pausedComment = comment;
+
+    if (safetyTimer && windowRef?.clearTimeout) {
+      windowRef.clearTimeout(safetyTimer);
+      safetyTimer = undefined;
+    }
+
+    if (editingResumeTimer && windowRef?.clearTimeout) {
+      windowRef.clearTimeout(editingResumeTimer);
+      editingResumeTimer = undefined;
+    }
+  }
+
+  function scheduleEditingResume(comment) {
+    if (!windowRef?.setTimeout) {
+      resumeRenderingAfterEditing(comment);
+      return;
+    }
+
+    if (editingResumeTimer) {
+      windowRef.clearTimeout(editingResumeTimer);
+    }
+
+    editingResumeTimer = windowRef.setTimeout(() => {
+      editingResumeTimer = undefined;
+      resumeRenderingAfterEditing(comment);
+    }, 0);
+  }
+
+  function resumeRenderingAfterEditing(comment) {
+    const activeComment = adapter.getCommentNodeForTarget?.(documentRef?.activeElement);
+    if (activeComment && adapter.isCommentEditorTarget?.(documentRef.activeElement)) {
+      pauseRenderingForEditing(activeComment);
+      return;
+    }
+
+    if (pausedComment !== comment) {
+      return;
+    }
+
+    pausedComment = undefined;
+    adapter.finishEditing?.(comment);
+    handleCommentNodes([comment], { force: true });
+  }
+
+  function isRenderingPaused() {
+    return Boolean(pausedComment);
   }
 }
 
@@ -275,22 +458,75 @@ function getElementTarget(target) {
   return target.nodeType === 1 ? target : target.parentElement;
 }
 
-function mutationNeedsSyncScan(mutations = []) {
-  return mutations.some((mutation) => Array.from(mutation.addedNodes ?? []).some((node) => (
-    node.nodeType === 1 &&
-    (node.matches?.(".annotation-row, .annotation, .comment") ||
-      node.querySelector?.(".annotation-row .comment, .annotation .comment, [data-annotation-id] .comment"))
-  )));
+function findSyncMutationCommentNodes(mutations = [], adapter) {
+  const found = [];
+  const seen = new Set();
+
+  for (const mutation of mutations) {
+    for (const root of Array.from(mutation.addedNodes ?? [])) {
+      if (!isPotentialAddedCommentRoot(root)) {
+        continue;
+      }
+
+      for (const node of adapter.findCommentNodes(root)) {
+        if (!seen.has(node)) {
+          seen.add(node);
+          found.push(node);
+        }
+      }
+    }
+  }
+
+  return found;
+}
+
+function isPotentialAddedCommentRoot(node) {
+  return Boolean(
+    node?.nodeType === 1 &&
+    (
+      node.matches?.(".annotation-row, .annotation, .comment, .annotation-comment, [data-annotation-id], [data-annotation-comment]") ||
+      node.querySelector?.(".comment, .annotation-comment, [data-annotation-comment]")
+    )
+  );
 }
 
 function mutationNeedsSafetyScan(mutations = [], documentRef = globalThis.document) {
   return mutations.some((mutation) => (
+    !isPluginOwnedMutation(mutation) &&
     !isMutationInsideActiveCommentEditor(mutation, documentRef) && (
       isAnnotationMutationTarget(mutation.target) ||
       Array.from(mutation.addedNodes ?? []).some(isAnnotationMutationTarget) ||
       Array.from(mutation.removedNodes ?? []).some(isAnnotationMutationTarget)
     )
   ));
+}
+
+function isPluginOwnedMutation(mutation) {
+  const changedNodes = [
+    ...Array.from(mutation?.addedNodes ?? []),
+    ...Array.from(mutation?.removedNodes ?? [])
+  ];
+
+  return changedNodes.length > 0 && (
+    changedNodes.every((node) => node.nodeType !== 1 || isPluginOwnedNode(node)) ||
+    (isPluginManagedNode(mutation.target) && changedNodes.every((node) => node.nodeType !== 1 || isPluginOwnedNode(node)))
+  );
+}
+
+function isPluginOwnedNode(node) {
+  return Boolean(
+    node?.getAttribute?.("data-annotation-markdown-preview") === "true" ||
+    node?.getAttribute?.("data-annotation-markdown-source-node") === "true" ||
+    node?.closest?.("[data-annotation-markdown-preview='true'], [data-annotation-markdown-source-node='true']")
+  );
+}
+
+function isPluginManagedNode(node) {
+  return Boolean(
+    node?.getAttribute?.("data-annotation-markdown-rendered") === "true" ||
+    node?.hasAttribute?.("data-annotation-markdown-source") ||
+    node?.closest?.("[data-annotation-markdown-rendered='true'], [data-annotation-markdown-source]")
+  );
 }
 
 function isAnnotationMutationTarget(node) {
