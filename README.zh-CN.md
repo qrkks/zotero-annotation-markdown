@@ -6,7 +6,7 @@
 
 [English](README.md) | 简体中文
 
-Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器侧栏里的批注评论渲染为 Markdown，同时不改变 Zotero 实际保存的批注原文。
+Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器侧栏里的批注评论渲染为 Markdown 和 LaTeX 数学公式，同时不改变 Zotero 实际保存的批注原文。
 
 ## 功能预览
 
@@ -23,6 +23,7 @@ Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器�
 ## 功能
 
 - PDF 和 EPUB 阅读器侧栏里的批注评论默认按 Markdown 渲染。
+- LaTeX 数学公式默认启用，支持 `$...$`、`$$...$$`、`\(...\)` 和 `\[...\]` 分隔符。
 - 单个换行会保留为可见换行。
 - 编辑批注时显示原始 Markdown 文本。
 - 不信任原始 HTML，渲染内容会经过清理。
@@ -46,7 +47,7 @@ https://github.com/qrkks/zotero-annotation-markdown/releases/latest
 
 ## 设置
 
-打开 Zotero 设置，选择 Annotation Markdown 面板，可以启用或关闭 Markdown 渲染，并把阅读器预览字号调整为 80% 到 150%。
+打开 Zotero 设置，选择 Annotation Markdown 面板，可以启用或关闭 Markdown 渲染、LaTeX 数学公式渲染，并把阅读器预览字号调整为 80% 到 150%。
 
 <p align="center">
   <img src="docs/images/settings-guide.webp" alt="Zotero Annotation Markdown 设置选项指南" width="720">

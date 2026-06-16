@@ -6,7 +6,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Render Zotero reader sidebar annotation comments as Markdown while keeping Zotero's stored annotation text unchanged.
+Render Zotero reader sidebar annotation comments as Markdown and LaTeX math while keeping Zotero's stored annotation text unchanged.
 
 ## Target
 
@@ -17,6 +17,7 @@ Render Zotero reader sidebar annotation comments as Markdown while keeping Zoter
 ## Behavior
 
 - PDF and EPUB reader sidebar annotation comments render as Markdown by default.
+- LaTeX math formulas render by default with `$...$`, `$$...$$`, `\(...\)`, and `\[...\]` delimiters.
 - Single line breaks are preserved as visible line breaks.
 - Editing shows the original Markdown source text.
 - Raw HTML is not trusted.
@@ -41,7 +42,7 @@ Install it through Zotero's add-on manager.
 
 ## Settings
 
-Open Zotero Settings and select the Annotation Markdown pane to enable or disable Markdown rendering and adjust the reader preview font size from 80% to 150%.
+Open Zotero Settings and select the Annotation Markdown pane to enable or disable Markdown rendering, enable or disable LaTeX math rendering, and adjust the reader preview font size from 80% to 150%.
 
 ## Installation
 
