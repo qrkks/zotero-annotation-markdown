@@ -10,7 +10,7 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 
 ## Target
 
-- Zotero Desktop 9.0.3 first.
+- Zotero Desktop 9.0.5 first.
 - Zotero 9.x compatibility is the initial goal.
 - Windows is the first development environment.
 
