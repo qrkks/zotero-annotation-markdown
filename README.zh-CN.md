@@ -49,6 +49,8 @@ https://github.com/qrkks/zotero-annotation-markdown/releases/latest
 
 打开 Zotero 设置，选择 Annotation Markdown 面板，可以启用或关闭 Markdown 渲染、LaTeX 数学公式渲染，把阅读器预览字号调整为 80% 到 150%，并选择标注渲染策略。“自动”会预渲染较小的标注集合，并让大型标注集合保持视窗懒加载；也可以明确选择“渲染全部标注”或“仅渲染视窗附近”。
 
+开发者如需排查阅读器性能，可以按照[性能诊断指南](docs/performance-diagnostics.md)采集并解读需手动启用的日志。
+
 <p align="center">
   <img src="docs/images/settings-guide.webp" alt="Zotero Annotation Markdown 设置选项指南" width="720">
 </p>
