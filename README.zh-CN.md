@@ -16,7 +16,7 @@ Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器�
 
 ## 适用版本
 
-- 优先支持 Zotero Desktop 9.0.3。
+- 优先支持 Zotero Desktop 9.0.6。
 - 当前发布版声明兼容 Zotero 9.0.x。
 - Windows 是当前主要开发和验证环境。
 

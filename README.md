@@ -10,7 +10,7 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 
 ## Target
 
-- Zotero Desktop 9.0.5 first.
+- Zotero Desktop 9.0.6 first.
 - Zotero 9.x compatibility is the initial goal.
 - Windows is the first development environment.
 
@@ -65,4 +65,4 @@ https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.
 
 ## Current Limitations
 
-The core renderer, settings, DOM adapter, reader lifecycle, and packaging are covered by local tests. The Zotero 9.0.3 reader sidebar selectors still need live validation inside Zotero, because Zotero's reader DOM is not a fully stable public API.
+The core renderer, settings, DOM adapter, reader lifecycle, and packaging are covered by local tests. The Zotero 9.0.6 reader sidebar selectors have been validated inside Zotero, but Zotero's reader DOM is not a fully stable public API and should continue to be checked against future releases.

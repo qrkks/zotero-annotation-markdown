@@ -2,7 +2,7 @@
 
 ## Summary
 
-Build a Zotero Desktop plugin that renders PDF and EPUB reader sidebar annotation comments as Markdown by default. The first supported baseline is Zotero Desktop 9.0.3 on Windows. Annotation data remains plain Markdown source text in Zotero; the plugin only changes how comments are displayed in the reader sidebar.
+Build a Zotero Desktop plugin that renders PDF and EPUB reader sidebar annotation comments as Markdown by default. The supported and tested baseline is Zotero Desktop 9.0.6 on Windows. Annotation data remains plain Markdown source text in Zotero; the plugin only changes how comments are displayed in the reader sidebar.
 
 The MVP behavior is:
 
@@ -15,20 +15,20 @@ The MVP behavior is:
 
 ## Sources And Version Baseline
 
-- Target app: Zotero Desktop 9.0.3, released 2026-05-06 according to Zotero's official changelog.
+- Target app: Zotero Desktop 9.0.6, used for current Windows validation.
 - Relevant official docs:
   - https://www.zotero.org/support/changelog
   - https://www.zotero.org/support/dev/client_coding/plugin_development
   - https://www.zotero.org/support/dev/zotero_7_for_developers
 
-Although the developer documentation is named for Zotero 7, it describes the modern plugin architecture used by Zotero 7 and later. This plugin should treat Zotero 9.0.3 behavior as the implementation baseline and verify all reader integration points against that version directly.
+Although the developer documentation is named for Zotero 7, it describes the modern plugin architecture used by Zotero 7 and later. This plugin should treat Zotero 9.0.6 behavior as the implementation baseline and verify all reader integration points against that version directly.
 
 ## Goals
 
 - Improve the reading experience by rendering annotation comments in the PDF and EPUB sidebar as Markdown.
 - Keep Zotero annotation storage untouched, so sync, export, and cross-device compatibility remain predictable.
 - Make normal plain text annotations look normal under Markdown rendering.
-- Keep the first version small enough to validate against Zotero 9.0.3 without building a custom editor.
+- Keep the first version small enough to validate against Zotero 9.0.6 without building a custom editor.
 
 ## Non-Goals
 
@@ -67,7 +67,7 @@ The plugin uses the standard Zotero plugin structure:
 - Reader integration is registered during startup and cleaned up during shutdown.
 - Static assets include the Markdown renderer bundle and CSS for rendered annotation content.
 
-The plugin ID and compatibility range should be finalized during implementation. The initial compatibility target should be Zotero 9.x, tested first on 9.0.3.
+The plugin ID and compatibility range should be finalized during implementation. The compatibility target is Zotero 9.x, currently tested on 9.0.6.
 
 ### Reader Integration
 
@@ -154,7 +154,7 @@ Fallback rules:
 
 ## Testing Strategy
 
-Manual testing on Zotero Desktop 9.0.3:
+Manual testing on Zotero Desktop 9.0.6:
 
 - PDF annotation with plain text.
 - PDF annotation with Markdown headings, lists, inline code, code blocks, and links.
@@ -180,8 +180,8 @@ The third risk is styling drift across PDF and EPUB readers. The plugin should s
 
 ## MVP Acceptance Criteria
 
-- On Zotero Desktop 9.0.3, PDF sidebar annotation comments render Markdown by default.
-- On Zotero Desktop 9.0.3, EPUB sidebar annotation comments render Markdown by default.
+- On Zotero Desktop 9.0.6, PDF sidebar annotation comments render Markdown by default.
+- On Zotero Desktop 9.0.6, EPUB sidebar annotation comments render Markdown by default.
 - Single line breaks appear as visible line breaks.
 - Clicking/editing an annotation exposes the original Markdown source text.
 - Saving an edit re-renders the updated Markdown.

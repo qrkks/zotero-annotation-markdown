@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Zotero 9.0.3 plugin prototype that renders PDF and EPUB reader sidebar annotation comments as Markdown by default while preserving source-text editing.
+**Goal:** Build a Zotero 9.0.6 plugin prototype that renders PDF and EPUB reader sidebar annotation comments as Markdown by default while preserving source-text editing.
 
 **Architecture:** The plugin is split into a Zotero lifecycle shell, a reader controller, a DOM adapter, a Markdown renderer, and settings. Testable browser-independent behavior lives under `src/`, with unit tests for rendering, settings, and DOM adaptation.
 
@@ -264,10 +264,10 @@ Expected: PASS and a generated `.xpi` in `dist/`.
 
 README must include:
 
-- Target Zotero version: 9.0.3 first.
+- Target Zotero version: 9.0.6 first.
 - Install path: use Zotero's add-on manager to install the generated `.xpi`.
 - Scope: PDF and EPUB reader sidebar annotation comments.
-- Current limitation: DOM selectors may need validation against live Zotero 9.0.3.
+- Current limitation: DOM selectors should continue to be validated against live Zotero releases after the current 9.0.6 baseline.
 
 - [ ] **Step 2: Run final verification**
 
@@ -285,4 +285,3 @@ git commit -m "feat: scaffold zotero annotation markdown plugin"
 ```
 
 Expected: commit succeeds.
-
