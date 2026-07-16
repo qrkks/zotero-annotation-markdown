@@ -1,86 +1,35 @@
 # Zotero Annotation Markdown
 
 <p align="center">
-  <img src="addon/icons/annotation-markdown.svg" width="64" height="64" alt="Zotero Annotation Markdown icon">
+  <img src="addon/icons/annotation-markdown.svg" width="64" height="64" alt="Zotero Annotation Markdown 图标">
 </p>
 
 [English](README.md) | 简体中文
 
-Zotero Annotation Markdown 是一个 Zotero 插件，用来把 Zotero 阅读器侧栏里的批注评论渲染为 Markdown 和 LaTeX 数学公式，同时不改变 Zotero 实际保存的批注原文。
+将 Zotero 阅读器侧栏里的标注评论渲染为 Markdown 和 LaTeX 数学公式，同时不改变 Zotero 实际保存的标注原文。
 
-## 功能预览
+## 主要功能
 
-<p align="center">
-  <img src="docs/images/overview.webp" alt="Zotero Annotation Markdown 功能总览" width="760">
-</p>
-
-## 适用版本
-
-- 优先支持 Zotero Desktop 9.0.6。
-- 当前发布版声明兼容 Zotero 9.0.x。
-- Windows 是当前主要开发和验证环境。
-
-## 功能
-
-- PDF 和 EPUB 阅读器侧栏里的批注评论默认按 Markdown 渲染。
-- LaTeX 数学公式默认启用，支持 `$...$`、`$$...$$`、`\(...\)` 和 `\[...\]` 分隔符。
-- 单个换行会保留为可见换行。
-- 编辑批注时显示原始 Markdown 文本。
-- 不信任原始 HTML，渲染内容会经过清理。
-- 如果 Markdown 渲染失败，会保留原始纯文本显示。
+- 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
+- 编辑时显示原始 Markdown 源码。
+- 可以调整预览字号和标注渲染策略。
+- 渲染内容经过清理，渲染失败时保留纯文本。
+- 目前主要在 Windows 上针对 Zotero Desktop 9.0.6 开发和测试，当前目标是兼容 Zotero 9.x。
 
 ## 安装
 
 推荐在 Zotero 插件市场中搜索 `Zotero Annotation Markdown` 并安装。
 
-也可以从最新 GitHub Release 手动下载 `zotero-annotation-markdown.xpi`：
+也可以从[最新 GitHub Release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest)下载 `zotero-annotation-markdown.xpi`。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
 
-```text
-https://github.com/qrkks/zotero-annotation-markdown/releases/latest
-```
+## 文档
 
-在 Zotero 中打开 `工具 -> 插件`，然后把 `.xpi` 文件拖入插件窗口安装。
+- [使用指南](docs/zh-CN/user-guide.md)
+- [开发与发布](docs/zh-CN/development.md)
+- [性能诊断](docs/zh-CN/performance-diagnostics.md)
+- [文档索引与翻译规则](docs/README.md)
 
-<p align="center">
-  <img src="docs/images/install-guide.webp" alt="Zotero Annotation Markdown 安装指南" width="760">
-</p>
-
-## 设置
-
-打开 Zotero 设置，选择 Annotation Markdown 面板，可以启用或关闭 Markdown 渲染、LaTeX 数学公式渲染，把阅读器预览字号调整为 80% 到 150%，并选择标注渲染策略。“自动”会预渲染较小的标注集合，并让大型标注集合保持视窗懒加载；也可以明确选择“渲染全部标注”或“仅渲染视窗附近”。
-
-开发者如需排查阅读器性能，可以按照[性能诊断指南](docs/performance-diagnostics.md)采集并解读需手动启用的日志。
-
-<p align="center">
-  <img src="docs/images/settings-guide.webp" alt="Zotero Annotation Markdown 设置选项指南" width="720">
-</p>
-
-## 使用状态
-
-<details>
-<summary>查看渲染、编辑和折叠状态截图</summary>
-
-### 聚焦状态（渲染）
-
-<p align="center">
-  <img src="docs/images/rendered-state.webp" alt="Zotero Annotation Markdown 渲染状态" width="720">
-</p>
-
-### 编辑状态（源码）
-
-<p align="center">
-  <img src="docs/images/editing-state.webp" alt="Zotero Annotation Markdown 编辑状态" width="720">
-</p>
-
-### 失焦状态（折叠）
-
-<p align="center">
-  <img src="docs/images/collapsed-state.webp" alt="Zotero Annotation Markdown 折叠状态" width="720">
-</p>
-
-</details>
-
-## 开发
+## 快速开发
 
 ```powershell
 npm install
@@ -89,25 +38,8 @@ npm run build
 npm run package
 ```
 
-打包后的插件文件会生成在：
+打包后的插件位于 `dist/zotero-annotation-markdown.xpi`。
 
-```text
-dist/zotero-annotation-markdown.xpi
-```
+## 许可证
 
-## 发布
-
-1. 更新 `package.json`、`package-lock.json` 和 `addon/manifest.json` 中的版本号。
-2. 运行 `npm run verify`。
-3. 在 GitHub 创建名为 `v<version>` 的 Release，并上传 `dist/zotero-annotation-markdown.xpi`。
-4. 提交并推送自动生成的 `updates.json`，这样 Zotero 才能发现新版本。
-
-插件更新清单地址：
-
-```text
-https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json
-```
-
-## 当前限制
-
-核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有本地测试覆盖。Zotero 阅读器侧栏 DOM 不是完全稳定的公开 API，因此后续 Zotero 9.x 小版本更新后，仍建议重新做一次真实 Zotero 环境验证。
+[MIT](LICENSE)

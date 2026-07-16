@@ -1,5 +1,7 @@
 # Performance diagnostics
 
+[简体中文](../zh-CN/performance-diagnostics.md)
+
 The add-on includes an opt-in performance log for diagnosing slow reader scrolling, annotation rendering, and editing. It is intended for development and bug reports, not for routine use.
 
 ## Privacy warning

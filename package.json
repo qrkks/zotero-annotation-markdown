@@ -6,9 +6,10 @@
   "private": true,
   "scripts": {
     "test": "vitest run",
+    "docs:check": "node scripts/check-docs.mjs",
     "build": "node scripts/build.mjs",
     "package": "npm run build && node scripts/package.mjs",
-    "verify": "npm test && npm run build && npm run package"
+    "verify": "npm test && npm run docs:check && npm run build && npm run package"
   },
   "dependencies": {
     "dompurify": "^3.3.1",

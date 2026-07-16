@@ -8,22 +8,28 @@ English | [简体中文](README.zh-CN.md)
 
 Render Zotero reader sidebar annotation comments as Markdown and LaTeX math while keeping Zotero's stored annotation text unchanged.
 
-## Target
+## Highlights
 
-- Zotero Desktop 9.0.6 first.
-- Zotero 9.x compatibility is the initial goal.
-- Windows is the first development environment.
+- Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
+- Original Markdown source while editing.
+- Adjustable preview font size and rendering strategy.
+- Sanitized output with a plain-text fallback on rendering failure.
+- Designed and tested primarily for Zotero Desktop 9.0.6 on Windows, with Zotero 9.x compatibility as the current goal.
 
-## Behavior
+## Installation
 
-- PDF and EPUB reader sidebar annotation comments render as Markdown by default.
-- LaTeX math formulas render by default with `$...$`, `$$...$$`, `\(...\)`, and `\[...\]` delimiters.
-- Single line breaks are preserved as visible line breaks.
-- Editing shows the original Markdown source text.
-- Raw HTML is not trusted.
-- Rendering failures leave the original plain text visible.
+Install `Zotero Annotation Markdown` from the Zotero Add-ons marketplace.
 
-## Development
+For manual installation, download `zotero-annotation-markdown.xpi` from the [latest GitHub release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest). In Zotero, open **Tools → Plugins**, then drag the `.xpi` file into the Plugins window.
+
+## Documentation
+
+- [User guide](docs/en/user-guide.md)
+- [Development and release](docs/en/development.md)
+- [Performance diagnostics](docs/en/performance-diagnostics.md)
+- [Documentation index and translation policy](docs/README.md)
+
+## Quick development
 
 ```powershell
 npm install
@@ -32,39 +38,8 @@ npm run build
 npm run package
 ```
 
-The packaged add-on is generated at:
+The packaged add-on is generated at `dist/zotero-annotation-markdown.xpi`.
 
-```text
-dist/zotero-annotation-markdown.xpi
-```
+## License
 
-Install it through Zotero's add-on manager.
-
-## Settings
-
-Open Zotero Settings and select the Annotation Markdown pane to enable or disable Markdown rendering, enable or disable LaTeX math rendering, adjust the reader preview font size from 80% to 150%, and choose an annotation rendering strategy. `Automatic` pre-renders small annotation sets and keeps large sets viewport-lazy; `Render all annotations` and `Render near the viewport` are available as explicit overrides.
-
-Developers investigating reader performance can use the [performance diagnostics guide](docs/performance-diagnostics.md) to capture and interpret the opt-in log.
-
-## Installation
-
-Install from the Zotero Add-ons marketplace by searching for `Zotero Annotation Markdown`.
-
-For manual installation, download `zotero-annotation-markdown.xpi` from the latest GitHub release. In Zotero, open `Tools -> Plugins`, then drag the `.xpi` file into the Plugins window.
-
-## Release
-
-1. Update the version in `package.json`, `package-lock.json`, and `addon/manifest.json`.
-2. Run `npm run verify`.
-3. Upload `dist/zotero-annotation-markdown.xpi` to a GitHub release named `v<version>`.
-4. Commit and push the generated `updates.json` so Zotero can discover the new release.
-
-The add-on update manifest is served from:
-
-```text
-https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json
-```
-
-## Current Limitations
-
-The core renderer, settings, DOM adapter, reader lifecycle, and packaging are covered by local tests. The Zotero 9.0.6 reader sidebar selectors have been validated inside Zotero, but Zotero's reader DOM is not a fully stable public API and should continue to be checked against future releases.
+[MIT](LICENSE)
