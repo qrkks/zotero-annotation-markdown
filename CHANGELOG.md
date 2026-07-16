@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.0 - 2026-07-16
+
+### Added
+
+- Added automatic, render-all, and viewport-near annotation rendering strategies in the preferences pane.
+- Added bounded HTML and offscreen rendered-DOM caches with least-recently-used eviction.
+- Added performance diagnostics for lazy rendering, cache usage, and editing lifecycle behavior.
+
+### Changed
+
+- Render up to four inexpensive annotations per idle period while keeping expensive annotations isolated to a single idle turn.
+- Prioritize the currently selected annotation and pre-render small annotation sets automatically.
+- Preserve rendered previews outside the viewport within a bounded budget and let the browser skip offscreen layout and paint work.
+- Temporarily detach other rendered previews while an annotation editor has focus, then restore the same DOM nodes after editing.
+
+### Fixed
+
+- Render the sidebar annotation selected from a PDF page before its dormant editor receives focus.
+- Avoid repeated Markdown and KaTeX work when scrolling away from and back to previously rendered annotations.
+
 ## 0.3.3 - 2026-06-15
 
 ### Changed

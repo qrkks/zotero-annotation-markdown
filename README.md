@@ -42,7 +42,7 @@ Install it through Zotero's add-on manager.
 
 ## Settings
 
-Open Zotero Settings and select the Annotation Markdown pane to enable or disable Markdown rendering, enable or disable LaTeX math rendering, and adjust the reader preview font size from 80% to 150%.
+Open Zotero Settings and select the Annotation Markdown pane to enable or disable Markdown rendering, enable or disable LaTeX math rendering, adjust the reader preview font size from 80% to 150%, and choose an annotation rendering strategy. `Automatic` pre-renders small annotation sets and keeps large sets viewport-lazy; `Render all annotations` and `Render near the viewport` are available as explicit overrides.
 
 ## Installation
 

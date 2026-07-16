@@ -15,6 +15,7 @@ const RENDERED_ATTRIBUTE = "data-annotation-markdown-rendered";
 const SOURCE_ATTRIBUTE = "data-annotation-markdown-source";
 const SUPPRESS_UNTIL_ATTRIBUTE = "data-annotation-markdown-suppress-until";
 const PREVIEW_ATTRIBUTE = "data-annotation-markdown-preview";
+const PREVIEW_PLACEHOLDER_ATTRIBUTE = "data-annotation-markdown-placeholder";
 const PREVIEW_HIDDEN_ATTRIBUTE = "data-annotation-markdown-preview-hidden";
 const SOURCE_WRAPPER_ATTRIBUTE = "data-annotation-markdown-source-node";
 const SOURCE_HIDDEN_ATTRIBUTE = "data-annotation-markdown-source-hidden";
@@ -38,6 +39,19 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         .filter((node) => !isInsideNativeNoteEditor(node))
         .filter((node) => !this.isEditable(node))
         .filter((node) => !this.isSuppressed(node));
+    },
+
+    findRenderedCommentNodes(root = documentRef) {
+      if (!root?.querySelectorAll) {
+        return [];
+      }
+
+      const candidates = [];
+      if (root.nodeType === 1 && root.getAttribute?.(RENDERED_ATTRIBUTE) === "true") {
+        candidates.push(root);
+      }
+      candidates.push(...Array.from(root.querySelectorAll(`[${RENDERED_ATTRIBUTE}='true']`)));
+      return candidates.filter((node) => !isInsideNativeNoteEditor(node));
     },
 
     countNativeNoteEditorComments(root = documentRef) {
@@ -100,6 +114,8 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
 
       const preview = getPreviewNode(node) ?? createPreviewNode(node, this);
 
+      preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
+
       if (preview.innerHTML === html) {
         hideSourceNode(node);
         showPreviewNode(preview);
@@ -110,6 +126,58 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       hideSourceNode(node);
       showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
+    },
+
+    releaseRenderedHtml(node) {
+      if (!node || !this.isRendered(node) || this.isEditable(node)) {
+        return false;
+      }
+
+      const preview = getPreviewNode(node);
+      if (!preview) {
+        node.removeAttribute(RENDERED_ATTRIBUTE);
+        return false;
+      }
+
+      preview.textContent = this.getSourceText(node);
+      preview.setAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE, "true");
+      showPreviewNode(preview);
+      node.removeAttribute(RENDERED_ATTRIBUTE);
+      return true;
+    },
+
+    suspendRenderedDom(node) {
+      if (!node || !this.isRendered(node) || this.isEditable(node)) {
+        return null;
+      }
+
+      const preview = getPreviewNode(node);
+      if (!preview) {
+        return null;
+      }
+
+      const placeholder = createPreviewPlaceholder(node, this);
+      preview.replaceWith(placeholder);
+      node.removeAttribute(RENDERED_ATTRIBUTE);
+      return preview;
+    },
+
+    restoreSuspendedRenderedDom(node, preview) {
+      if (!node?.isConnected || !preview || this.isEditable(node)) {
+        return false;
+      }
+
+      const placeholder = getPreviewNode(node);
+      if (placeholder?.getAttribute?.(PREVIEW_PLACEHOLDER_ATTRIBUTE) !== "true") {
+        return false;
+      }
+
+      preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
+      placeholder.replaceWith(preview);
+      hideSourceNode(node);
+      showPreviewNode(preview);
+      node.setAttribute(RENDERED_ATTRIBUTE, "true");
+      return true;
     },
 
     restoreSourceText(node) {
@@ -205,6 +273,10 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       return node?.getAttribute?.(RENDERED_ATTRIBUTE) === "true";
     },
 
+    hasPreview(node) {
+      return Boolean(getPreviewNode(node));
+    },
+
     finishEditing(node) {
       finishEditing(node);
     },
@@ -244,6 +316,18 @@ function createPreviewNode(sourceNode, adapter) {
   }, { capture: true });
   getPreviewAnchor(sourceNode)?.after(preview);
   return preview;
+}
+
+function createPreviewPlaceholder(sourceNode, adapter) {
+  const placeholder = sourceNode.ownerDocument.createElement("div");
+  placeholder.className = "annotation-markdown-rendered";
+  placeholder.setAttribute(PREVIEW_ATTRIBUTE, "true");
+  placeholder.setAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE, "true");
+  placeholder.textContent = adapter.getSourceText(sourceNode);
+  placeholder.addEventListener("mousedown", () => {
+    adapter.showSourceForEditing(sourceNode);
+  }, { capture: true });
+  return placeholder;
 }
 
 function getPreviewNode(sourceNode) {

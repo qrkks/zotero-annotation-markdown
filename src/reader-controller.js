@@ -1,3 +1,10 @@
+const MAX_RENDER_CACHE_BYTES = 32 * 1024 * 1024;
+const RENDER_CACHE_ENTRY_OVERHEAD_BYTES = 256;
+const AUTO_EAGER_MAX_ANNOTATIONS = 30;
+const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
+const MAX_IDLE_RENDER_BATCH = 4;
+const MIN_IDLE_TIME_REMAINING_MS = 8;
+
 export function createReaderController({
   reader,
   adapter,
@@ -6,7 +13,12 @@ export function createReaderController({
   MutationObserver: MutationObserverRef = globalThis.MutationObserver,
   IntersectionObserver: IntersectionObserverRef,
   styleText = "",
-  logger
+  logger,
+  now: nowRef = now,
+  requestIdleCallback: requestIdleCallbackOverride,
+  cancelIdleCallback: cancelIdleCallbackOverride,
+  renderCacheMaxBytes: renderCacheMaxBytesOverride = MAX_RENDER_CACHE_BYTES,
+  offscreenRenderMaxBytes: offscreenRenderMaxBytesOverride = MAX_RENDER_CACHE_BYTES
 }) {
   let observer;
   let visibilityObserver;
@@ -22,19 +34,46 @@ export function createReaderController({
   let pausedMutationDiagnosticsTimer;
   let pausedMutationDiagnostics;
   let observedComments = new WeakSet();
-  const renderCache = new WeakMap();
+  let visibleComments = new WeakSet();
+  let visibilityKnownComments = new WeakSet();
+  let eagerComments = new WeakSet();
+  let pendingRenderNodes = new Set();
+  let idleRenderHandle;
+  let lazyRenderDiagnosticSamples = [];
+  const renderCache = new Map();
+  const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
+  const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
+  const renderedNodeWeights = new WeakMap();
+  const offscreenRenderedNodes = new Map();
+  const suspendedEditingPreviews = new Map();
+  let renderCacheBytes = 0;
+  let offscreenRenderedBytes = 0;
+  let activeRenderStrategy;
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
   const windowRef = documentRef?.defaultView ?? globalThis.window;
   const IntersectionObserverCtor = IntersectionObserverRef ?? windowRef?.IntersectionObserver ?? globalThis.IntersectionObserver;
+  const requestIdleCallbackRef = requestIdleCallbackOverride ?? windowRef?.requestIdleCallback?.bind(windowRef);
+  const cancelIdleCallbackRef = cancelIdleCallbackOverride ?? windowRef?.cancelIdleCallback?.bind(windowRef);
 
   function renderNode(node) {
+    const diagnosticsEnabled = isPerformanceDiagnosticsEnabled();
+    const totalStartedAt = diagnosticsEnabled ? nowRef() : 0;
+    let markdownDurationMs = 0;
+    let domDurationMs = 0;
+    let sourceChars = 0;
+    let cachedRender = false;
+
     try {
       if (!settings.isEnabled()) {
-        if (adapter.isRendered(node)) {
-          adapter.restoreSourceText(node);
+        if (adapter.isRendered(node) || adapter.hasPreview?.(node)) {
+          if (adapter.restoreSourceDomForEditing) {
+            adapter.restoreSourceDomForEditing(node);
+          } else {
+            adapter.restoreSourceText(node);
+          }
         }
-        renderCache.delete(node);
+        deleteCachedRender(node);
         return;
       }
 
@@ -43,21 +82,50 @@ export function createReaderController({
       }
 
       const source = adapter.getSourceText(node);
+      sourceChars = source.length;
       const mathEnabled = Boolean(settings.isMathEnabled?.() ?? true);
-      const cached = renderCache.get(node);
+      const cached = getCachedRender(node);
       if (cached?.source === source && cached?.mathEnabled === mathEnabled) {
+        cachedRender = true;
+        renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
+        const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
-        return;
+        if (diagnosticsEnabled) {
+          domDurationMs = Math.max(0, nowRef() - domStartedAt);
+          return createRenderDiagnosticSample();
+        }
+        return undefined;
       }
 
+      const markdownStartedAt = diagnosticsEnabled ? nowRef() : 0;
       const html = renderer.render(source);
-      renderCache.set(node, { source, mathEnabled, html });
+      if (diagnosticsEnabled) {
+        markdownDurationMs = Math.max(0, nowRef() - markdownStartedAt);
+      }
+      setCachedRender(node, { source, mathEnabled, html });
+      const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
+      if (diagnosticsEnabled) {
+        domDurationMs = Math.max(0, nowRef() - domStartedAt);
+        return createRenderDiagnosticSample();
+      }
     } catch {
       if (adapter.isRendered(node)) {
         adapter.restoreSourceText(node);
       }
-      renderCache.delete(node);
+      deleteCachedRender(node);
+    }
+
+    return undefined;
+
+    function createRenderDiagnosticSample() {
+      return {
+        totalDurationMs: Math.max(0, nowRef() - totalStartedAt),
+        markdownDurationMs,
+        domDurationMs,
+        sourceChars,
+        cached: cachedRender
+      };
     }
   }
 
@@ -81,7 +149,7 @@ export function createReaderController({
       }
 
       const diagnosticsEnabled = isPerformanceDiagnosticsEnabled();
-      const startedAt = diagnosticsEnabled ? now() : 0;
+      const startedAt = diagnosticsEnabled ? nowRef() : 0;
       const nodes = adapter.findCommentNodes(root);
       const nativeNoteEditorComments = diagnosticsEnabled
         ? adapter.countNativeNoteEditorComments?.(root) ?? 0
@@ -105,6 +173,16 @@ export function createReaderController({
 
     refresh() {
       injectStyles();
+      restoreSuspendedEditingPreviews();
+      cancelQueuedRendering();
+      visibilityObserver?.disconnect?.();
+      visibilityObserver = undefined;
+      observedComments = new WeakSet();
+      visibilityKnownComments = new WeakSet();
+      eagerComments = new WeakSet();
+      activeRenderStrategy = undefined;
+      lazyRenderDiagnosticSamples = [];
+      resetOffscreenRenderedNodes();
       if (observer) {
         observer.disconnect();
         observer = undefined;
@@ -114,6 +192,7 @@ export function createReaderController({
     },
 
     stop() {
+      restoreSuspendedEditingPreviews();
       observer?.disconnect();
       observer = undefined;
       visibilityObserver?.disconnect?.();
@@ -144,6 +223,11 @@ export function createReaderController({
       pausedMutationDiagnosticsTimer = undefined;
       pausedMutationDiagnostics = undefined;
       pausedComment = undefined;
+      cancelQueuedRendering();
+      lazyRenderDiagnosticSamples = [];
+      renderCache.clear();
+      renderCacheBytes = 0;
+      resetOffscreenRenderedNodes();
       styleElement?.remove();
       styleElement = undefined;
     }
@@ -259,6 +343,14 @@ export function createReaderController({
       };
     }
 
+    if (getActiveRenderStrategy(nodes) === "eager") {
+      return {
+        mode: "eager",
+        handled: observeAndQueueEagerNodes(nodes),
+        filtered: 0
+      };
+    }
+
     return {
       mode: "lazy",
       handled: observeCommentNodes(nodes),
@@ -296,32 +388,150 @@ export function createReaderController({
     return handled;
   }
 
+  function observeAndQueueEagerNodes(nodes) {
+    const handled = observeCommentNodes(nodes);
+    if (!requestIdleCallbackRef) {
+      renderNodes(nodes.filter((node) => !adapter.isRendered(node)));
+      return handled;
+    }
+
+    for (const node of nodes) {
+      if (adapter.isRendered(node)) {
+        continue;
+      }
+      eagerComments.add(node);
+      pendingRenderNodes.add(node);
+    }
+    scheduleQueuedRendering();
+    return handled;
+  }
+
   function getVisibilityObserver() {
     if (visibilityObserver || !IntersectionObserverCtor) {
       return visibilityObserver;
     }
 
     visibilityObserver = new IntersectionObserverCtor((entries) => {
+      const diagnosticSamples = [];
       for (const entry of entries ?? []) {
+        if (entry?.target) {
+          visibilityKnownComments.add(entry.target);
+        }
         if (!entry?.isIntersecting) {
+          visibleComments.delete(entry?.target);
+          if (!eagerComments.has(entry?.target)) {
+            pendingRenderNodes.delete(entry?.target);
+          }
+          if (!isRenderingPaused()) {
+            retainOffscreenRenderedNode(entry?.target);
+          }
           continue;
         }
+
+        removeOffscreenRenderedNode(entry.target);
+        visibleComments.add(entry.target);
 
         if (isRenderingPaused()) {
           logEditLifecycle("lazy render skipped while paused");
           continue;
         }
 
-        visibilityObserver?.unobserve?.(entry.target);
-        renderNode(entry.target);
+        if (adapter.isRendered(entry.target)) {
+          pendingRenderNodes.delete(entry.target);
+          eagerComments.delete(entry.target);
+          continue;
+        }
+
+        if (requestIdleCallbackRef) {
+          pendingRenderNodes.add(entry.target);
+          scheduleQueuedRendering();
+        } else {
+          const diagnosticSample = renderNode(entry.target);
+          if (diagnosticSample) {
+            diagnosticSamples.push(diagnosticSample);
+          }
+        }
+      }
+
+      if (diagnosticSamples.length > 0) {
+        logLazyRenderDiagnostics(diagnosticSamples);
+      } else if (!isPerformanceDiagnosticsEnabled()) {
+        lazyRenderDiagnosticSamples = [];
       }
     }, {
       root: null,
-      rootMargin: "600px 0px",
+      rootMargin: getLazyRenderRootMargin(),
       threshold: 0
     });
 
     return visibilityObserver;
+  }
+
+  function scheduleQueuedRendering() {
+    if (idleRenderHandle !== undefined || pendingRenderNodes.size === 0 || isRenderingPaused()) {
+      return;
+    }
+
+    idleRenderHandle = requestIdleCallbackRef((deadline) => {
+      idleRenderHandle = undefined;
+      if (isRenderingPaused()) {
+        return;
+      }
+
+      const diagnosticSamples = [];
+      let rendered = 0;
+      while (rendered < MAX_IDLE_RENDER_BATCH) {
+        const node = getNextPendingRenderNode();
+        if (!node) {
+          break;
+        }
+
+        pendingRenderNodes.delete(node);
+        const wasEager = eagerComments.has(node);
+        eagerComments.delete(node);
+        const diagnosticSample = renderNode(node);
+        if (diagnosticSample) {
+          diagnosticSamples.push(diagnosticSample);
+        }
+        if (wasEager && visibilityKnownComments.has(node) && !visibleComments.has(node)) {
+          retainOffscreenRenderedNode(node);
+        }
+        rendered += 1;
+        if (!hasIdleTimeForAnotherRender(deadline)) {
+          break;
+        }
+      }
+
+      if (diagnosticSamples.length > 0) {
+        logLazyRenderDiagnostics(diagnosticSamples);
+      }
+
+      scheduleQueuedRendering();
+    }, { timeout: 1000 });
+  }
+
+  function cancelQueuedRendering() {
+    if (idleRenderHandle !== undefined) {
+      cancelIdleCallbackRef?.(idleRenderHandle);
+      idleRenderHandle = undefined;
+    }
+    pendingRenderNodes.clear();
+    visibleComments = new WeakSet();
+    visibilityKnownComments = new WeakSet();
+    eagerComments = new WeakSet();
+  }
+
+  function getNextPendingRenderNode() {
+    const eligible = Array.from(pendingRenderNodes)
+      .filter((candidate) => visibleComments.has(candidate) || eagerComments.has(candidate));
+    return eligible.find(isSelectedComment) ??
+      eligible.find((candidate) => visibleComments.has(candidate)) ??
+      eligible[0];
+  }
+
+  function hasIdleTimeForAnotherRender(deadline) {
+    return typeof deadline?.timeRemaining === "function" &&
+      deadline.timeRemaining() >= MIN_IDLE_TIME_REMAINING_MS;
   }
 
   function registerPasteHandler() {
@@ -370,7 +580,9 @@ export function createReaderController({
     }
 
     pausedComment = comment;
-    editPauseStartedAt = now();
+    discardSuspendedEditingPreview(comment);
+    removeOffscreenRenderedNode(comment);
+    editPauseStartedAt = nowRef();
 
     if (safetyTimer && windowRef?.clearTimeout) {
       windowRef.clearTimeout(safetyTimer);
@@ -389,6 +601,7 @@ export function createReaderController({
     } else {
       adapter.restoreSourceText?.(comment);
     }
+    suspendOtherRenderedPreviews(comment);
     logEditLifecycle("pause");
   }
 
@@ -420,15 +633,16 @@ export function createReaderController({
     }
 
     flushPausedMutationDiagnostics();
-    const pausedForMs = Math.max(0, now() - editPauseStartedAt).toFixed(1);
+    const pausedForMs = Math.max(0, nowRef() - editPauseStartedAt).toFixed(1);
     pausedComment = undefined;
+    restoreSuspendedEditingPreviews();
     adapter.finishEditing?.(comment);
-    const startedAt = isPerformanceDiagnosticsEnabled() ? now() : 0;
+    const startedAt = isPerformanceDiagnosticsEnabled() ? nowRef() : 0;
     const result = handleCommentNodes([comment], { force: true });
     if (isPerformanceDiagnosticsEnabled()) {
       logger?.log?.(
         `[annotation-markdown] edit resume pausedForMs=${pausedForMs} ` +
-        `handled=${result?.handled ?? 0} durationMs=${Math.max(0, now() - startedAt).toFixed(1)}`
+        `handled=${result?.handled ?? 0} durationMs=${Math.max(0, nowRef() - startedAt).toFixed(1)}`
       );
     }
     restoreLazyObservationAfterEditing();
@@ -449,7 +663,7 @@ export function createReaderController({
     for (const node of nodes) {
       if (!targetSet.has(node) && adapter.isRendered(node)) {
         adapter.restoreSourceText(node);
-        renderCache.delete(node);
+        deleteCachedRender(node);
       }
     }
 
@@ -464,6 +678,31 @@ export function createReaderController({
     return Boolean(settings.isLightweightModeEnabled?.());
   }
 
+  function getActiveRenderStrategy(nodes) {
+    if (activeRenderStrategy) {
+      return activeRenderStrategy;
+    }
+
+    const configured = settings.getRenderStrategy?.() ?? "lazy";
+    if (configured === "eager" || configured === "lazy") {
+      activeRenderStrategy = configured;
+      return activeRenderStrategy;
+    }
+
+    let sourceChars = 0;
+    for (const node of nodes) {
+      sourceChars += adapter.getSourceText(node).length;
+      if (sourceChars > AUTO_EAGER_MAX_SOURCE_CHARS) {
+        break;
+      }
+    }
+    activeRenderStrategy = nodes.length <= AUTO_EAGER_MAX_ANNOTATIONS &&
+      sourceChars <= AUTO_EAGER_MAX_SOURCE_CHARS
+      ? "eager"
+      : "lazy";
+    return activeRenderStrategy;
+  }
+
   function getLightweightMutationObserverOptions() {
     if (!isLightweightModeEnabled()) {
       return {};
@@ -476,12 +715,167 @@ export function createReaderController({
   }
 
   function logRenderDiagnostics(label, nodes, result, startedAt, nativeNoteEditorComments) {
-    const durationMs = Math.max(0, now() - startedAt).toFixed(1);
+    const durationMs = Math.max(0, nowRef() - startedAt).toFixed(1);
     logger?.log?.(
       `[annotation-markdown] perf ${label} nodes=${nodes.length} handled=${result?.handled ?? 0} ` +
       `mode=${result?.mode ?? "unknown"} filtered=${result?.filtered ?? 0} ` +
       `nativeNoteEditorComments=${nativeNoteEditorComments} durationMs=${durationMs}`
     );
+  }
+
+  function logLazyRenderDiagnostics(samples) {
+    lazyRenderDiagnosticSamples.push(...samples);
+    const totals = lazyRenderDiagnosticSamples.map((sample) => sample.totalDurationMs);
+    const markdownMs = sumDiagnosticMetric(lazyRenderDiagnosticSamples, "markdownDurationMs");
+    const domMs = sumDiagnosticMetric(lazyRenderDiagnosticSamples, "domDurationMs");
+    const cachedNodes = lazyRenderDiagnosticSamples.filter((sample) => sample.cached).length;
+    const slowNodes = totals.filter((durationMs) => durationMs >= 16).length;
+    const sourceChars = sumDiagnosticMetric(lazyRenderDiagnosticSamples, "sourceChars");
+
+    logger?.log?.(
+      `[annotation-markdown] perf lazyRender batchNodes=${samples.length} ` +
+      `totalNodes=${lazyRenderDiagnosticSamples.length} cachedNodes=${cachedNodes} ` +
+      `markdownMs=${markdownMs.toFixed(1)} domMs=${domMs.toFixed(1)} ` +
+      `p50Ms=${percentile(totals, 0.5).toFixed(1)} ` +
+      `p95Ms=${percentile(totals, 0.95).toFixed(1)} ` +
+      `maxMs=${Math.max(...totals).toFixed(1)} slowNodes=${slowNodes} sourceChars=${sourceChars} ` +
+      `mountedPreviews=${countNodes("[data-annotation-markdown-rendered='true']")} ` +
+      `placeholders=${countNodes("[data-annotation-markdown-placeholder='true']")} ` +
+      `cacheEntries=${renderCache.size} cacheBytes=${renderCacheBytes} ` +
+      `offscreenEntries=${offscreenRenderedNodes.size} offscreenBytes=${offscreenRenderedBytes}`
+    );
+  }
+
+  function getCachedRender(node) {
+    const key = getRenderCacheKey(node);
+    const cached = renderCache.get(key);
+    if (!cached) {
+      return undefined;
+    }
+
+    renderCache.delete(key);
+    renderCache.set(key, cached);
+    return cached;
+  }
+
+  function setCachedRender(node, cached) {
+    const key = getRenderCacheKey(node);
+    removeCachedRender(key);
+
+    const sizeBytes = estimateRenderCacheBytes(cached);
+    renderedNodeWeights.set(node, sizeBytes);
+    if (sizeBytes > renderCacheMaxBytes) {
+      return;
+    }
+
+    renderCache.set(key, { ...cached, sizeBytes });
+    renderCacheBytes += sizeBytes;
+    while (renderCacheBytes > renderCacheMaxBytes && renderCache.size > 0) {
+      removeCachedRender(renderCache.keys().next().value);
+    }
+  }
+
+  function deleteCachedRender(node) {
+    removeCachedRender(getRenderCacheKey(node));
+  }
+
+  function removeCachedRender(key) {
+    const cached = renderCache.get(key);
+    if (!cached) {
+      return;
+    }
+
+    renderCacheBytes = Math.max(0, renderCacheBytes - cached.sizeBytes);
+    renderCache.delete(key);
+  }
+
+  function getRenderCacheKey(node) {
+    const annotationId = node?.closest?.("[data-annotation-id]")?.getAttribute?.("data-annotation-id");
+    return annotationId ? `annotation:${annotationId}` : node;
+  }
+
+  function estimateRenderCacheBytes(cached) {
+    return RENDER_CACHE_ENTRY_OVERHEAD_BYTES +
+      (String(cached?.source ?? "").length + String(cached?.html ?? "").length) * 2;
+  }
+
+  function getLazyRenderRootMargin() {
+    const viewportHeight = Number(windowRef?.innerHeight) || 600;
+    return `${Math.max(1200, viewportHeight * 2)}px 0px`;
+  }
+
+  function isSelectedComment(node) {
+    const annotation = node?.closest?.("[data-annotation-id],.annotation,[aria-selected]");
+    return Boolean(
+      annotation?.classList?.contains("selected") ||
+      annotation?.getAttribute?.("aria-selected") === "true"
+    );
+  }
+
+  function retainOffscreenRenderedNode(node) {
+    removeOffscreenRenderedNode(node);
+    if (!node || !adapter.isRendered(node) || isSelectedComment(node)) {
+      return;
+    }
+
+    const sizeBytes = renderedNodeWeights.get(node) ?? 0;
+    offscreenRenderedNodes.set(node, sizeBytes);
+    offscreenRenderedBytes += sizeBytes;
+
+    while (offscreenRenderedBytes > offscreenRenderMaxBytes && offscreenRenderedNodes.size > 0) {
+      const oldestNode = offscreenRenderedNodes.keys().next().value;
+      removeOffscreenRenderedNode(oldestNode);
+      adapter.releaseRenderedHtml?.(oldestNode);
+    }
+  }
+
+  function removeOffscreenRenderedNode(node) {
+    const sizeBytes = offscreenRenderedNodes.get(node);
+    if (sizeBytes === undefined) {
+      return;
+    }
+
+    offscreenRenderedBytes = Math.max(0, offscreenRenderedBytes - sizeBytes);
+    offscreenRenderedNodes.delete(node);
+  }
+
+  function resetOffscreenRenderedNodes() {
+    offscreenRenderedNodes.clear();
+    offscreenRenderedBytes = 0;
+  }
+
+  function suspendOtherRenderedPreviews(activeComment) {
+    if (!adapter.findRenderedCommentNodes || !adapter.suspendRenderedDom) {
+      return;
+    }
+
+    for (const node of adapter.findRenderedCommentNodes(root)) {
+      if (node === activeComment || suspendedEditingPreviews.has(node)) {
+        continue;
+      }
+
+      removeOffscreenRenderedNode(node);
+      const preview = adapter.suspendRenderedDom(node);
+      if (preview) {
+        suspendedEditingPreviews.set(node, preview);
+      }
+    }
+  }
+
+  function restoreSuspendedEditingPreviews() {
+    if (!adapter.restoreSuspendedRenderedDom) {
+      suspendedEditingPreviews.clear();
+      return;
+    }
+
+    for (const [node, preview] of suspendedEditingPreviews) {
+      adapter.restoreSuspendedRenderedDom(node, preview);
+    }
+    suspendedEditingPreviews.clear();
+  }
+
+  function discardSuspendedEditingPreview(node) {
+    suspendedEditingPreviews.delete(node);
   }
 
   function disconnectMutationObserverForEditing() {
@@ -494,6 +888,7 @@ export function createReaderController({
   }
 
   function disconnectVisibilityObserverForEditing() {
+    cancelQueuedRendering();
     if (!visibilityObserver) {
       return;
     }
@@ -508,7 +903,7 @@ export function createReaderController({
       return;
     }
 
-    observeCommentNodes(adapter.findCommentNodes(root));
+    handleCommentNodes(adapter.findCommentNodes(root));
   }
 
   function logEditLifecycle(action) {
@@ -519,7 +914,9 @@ export function createReaderController({
     logger?.log?.(
       `[annotation-markdown] edit ${action} ` +
       `commentNodes=${countCommentNodesForDiagnostics()} ` +
-      `renderedPreviews=${countNodes("[data-annotation-markdown-preview='true']")} ` +
+      `renderedPreviews=${countNodes("[data-annotation-markdown-rendered='true']")} ` +
+      `placeholders=${countNodes("[data-annotation-markdown-placeholder='true']")} ` +
+      `cacheEntries=${renderCache.size} ` +
       `sourceNodes=${countNodes("[data-annotation-markdown-source-node='true']")}`
     );
   }
@@ -710,6 +1107,20 @@ function getElementTarget(target) {
 
 function now() {
   return globalThis.performance?.now?.() ?? Date.now();
+}
+
+function sumDiagnosticMetric(samples, key) {
+  return samples.reduce((sum, sample) => sum + (Number(sample?.[key]) || 0), 0);
+}
+
+function percentile(values, ratio) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.max(0, Math.ceil(sorted.length * ratio) - 1);
+  return sorted[index];
 }
 
 function findSyncMutationCommentNodes(mutations = [], adapter) {

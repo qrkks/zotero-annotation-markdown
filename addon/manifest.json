@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Zotero Annotation Markdown",
   "version": "0.3.4",
-  "description": "Render Zotero reader annotation comments as Markdown.",
+  "description": "Render Zotero reader annotation comments as Markdown with LaTeX math.",
   "author": "qrkks <34028312@qq.com>",
   "icons": {
     "16": "icons/annotation-markdown.svg",

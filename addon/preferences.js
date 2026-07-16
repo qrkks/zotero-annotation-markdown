@@ -3,18 +3,21 @@ var ZoteroAnnotationMarkdownPreferences = {
   fontScalePercentKey: "extensions.annotationMarkdown.fontScalePercent",
   pasteAsPlainTextKey: "extensions.annotationMarkdown.pasteAsPlainText",
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
+  renderStrategyKey: "extensions.annotationMarkdown.renderStrategy",
 
   init(documentRef = document) {
     const enabledInput = documentRef.getElementById("annotation-markdown-enabled");
     const fontScaleSelect = documentRef.getElementById("annotation-markdown-font-scale");
     const pasteAsPlainTextInput = documentRef.getElementById("annotation-markdown-paste-as-plain-text");
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
+    const renderStrategySelect = documentRef.getElementById("annotation-markdown-render-strategy");
 
     if (
       !enabledInput ||
       !fontScaleSelect ||
       !pasteAsPlainTextInput ||
-      !mathEnabledInput
+      !mathEnabledInput ||
+      !renderStrategySelect
     ) {
       return;
     }
@@ -23,6 +26,7 @@ var ZoteroAnnotationMarkdownPreferences = {
     fontScaleSelect.value = String(this.getPref(this.fontScalePercentKey, 100));
     pasteAsPlainTextInput.checked = this.getPref(this.pasteAsPlainTextKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
+    renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
 
     enabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.enabledKey, Boolean(enabledInput.checked), true);
@@ -38,6 +42,13 @@ var ZoteroAnnotationMarkdownPreferences = {
 
     mathEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.mathEnabledKey, Boolean(mathEnabledInput.checked), true);
+    });
+
+    renderStrategySelect.addEventListener("command", () => {
+      const strategy = ["auto", "eager", "lazy"].includes(renderStrategySelect.value)
+        ? renderStrategySelect.value
+        : "auto";
+      Zotero.Prefs.set(this.renderStrategyKey, strategy, true);
     });
   },
 

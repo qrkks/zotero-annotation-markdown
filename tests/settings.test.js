@@ -158,4 +158,25 @@ describe("createSettings", () => {
     expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", false);
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", false);
   });
+
+  test("defaults annotation rendering strategy to automatic", () => {
+    const settings = createSettings();
+
+    expect(settings.getRenderStrategy()).toBe("auto");
+  });
+
+  test("reads, normalizes, and writes annotation rendering strategy", () => {
+    const prefs = {
+      get: vi.fn(() => "eager"),
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.getRenderStrategy()).toBe("eager");
+    settings.setRenderStrategy("lazy");
+
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "auto");
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy");
+    expect(createSettings({ prefs: { get: () => "unsupported" } }).getRenderStrategy()).toBe("auto");
+  });
 });

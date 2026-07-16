@@ -8,7 +8,8 @@ import {
   FONT_SCALE_PERCENT_PREF_KEY,
   LIGHTWEIGHT_MODE_PREF_KEY,
   MATH_ENABLED_PREF_KEY,
-  PERFORMANCE_DIAGNOSTICS_PREF_KEY
+  PERFORMANCE_DIAGNOSTICS_PREF_KEY,
+  RENDER_STRATEGY_PREF_KEY
 } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
@@ -106,7 +107,8 @@ function registerPreferenceObservers(Zotero, refresh) {
     FONT_SCALE_PERCENT_PREF_KEY,
     MATH_ENABLED_PREF_KEY,
     LIGHTWEIGHT_MODE_PREF_KEY,
-    PERFORMANCE_DIAGNOSTICS_PREF_KEY
+    PERFORMANCE_DIAGNOSTICS_PREF_KEY,
+    RENDER_STRATEGY_PREF_KEY
   ]
     .map((key) => Zotero.Prefs.registerObserver(key, refresh, true))
     .filter(Boolean);

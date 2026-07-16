@@ -186,10 +186,16 @@ describe("createPlugin", () => {
     observers.get("extensions.annotationMarkdown.mathEnabled")();
 
     expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
+    observers.get("extensions.annotationMarkdown.renderStrategy")();
+    expect(refresh).toHaveBeenCalled();
 
     plugin.shutdown();
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.mathEnabled"
+    );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.renderStrategy"
     );
   });
 

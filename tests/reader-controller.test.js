@@ -77,8 +77,10 @@ describe("createReaderController", () => {
   test("defers initial comment rendering until annotations enter the viewport", async () => {
     const observed = [];
     let visibilityCallback;
-    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+    let visibilityOptions;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback, options) {
       visibilityCallback = callback;
+      visibilityOptions = options;
       return {
         observe: vi.fn((node) => observed.push(node)),
         unobserve: vi.fn(),
@@ -103,6 +105,7 @@ describe("createReaderController", () => {
 
     expect(render).not.toHaveBeenCalled();
     expect(observed).toEqual(Array.from(document.querySelectorAll(".comment")));
+    expect(visibilityOptions.rootMargin).toBe(`${Math.max(1200, window.innerHeight * 2)}px 0px`);
 
     visibilityCallback([{ target: observed[0], isIntersecting: true }]);
 
@@ -111,6 +114,405 @@ describe("createReaderController", () => {
     expect(observed[0].querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>**first**</p>");
     expect(observed[1].querySelector(".annotation-markdown-rendered")).toBeNull();
 
+    controller.stop();
+  });
+
+  test("keeps rendered DOM mounted outside the lazy window while the budget allows", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**first**</div></div>`;
+    const render = vi.fn((source) => `<p><strong>${source}</strong></p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver
+    });
+
+    await controller.start();
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+    visibilityCallback([{ target: observed[0], isIntersecting: false }]);
+
+    expect(document.querySelector("[data-annotation-markdown-placeholder='true']")).toBeNull();
+    expect(document.querySelector(".annotation-markdown-rendered strong")?.textContent).toBe("**first**");
+
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(document.querySelector(".annotation-markdown-rendered strong")?.textContent).toBe("**first**");
+    controller.stop();
+  });
+
+  test("releases the least-recently offscreen DOM only after the estimated byte budget is exceeded", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = Array.from({ length: 3 }, (_, index) =>
+      `<div data-annotation-id="a${index}"><div class="comment">comment ${index}</div></div>`
+    ).join("");
+    const render = vi.fn((source) => `<p>${source.padEnd(20, "x")}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      offscreenRenderMaxBytes: 500
+    });
+
+    await controller.start();
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: true })));
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: false })));
+
+    expect(observed[0].querySelector("[data-annotation-markdown-placeholder='true']")).not.toBeNull();
+    expect(observed[1].querySelector("[data-annotation-markdown-placeholder='true']")).not.toBeNull();
+    expect(observed[2].querySelector("[data-annotation-markdown-placeholder='true']")).toBeNull();
+
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+
+    expect(render).toHaveBeenCalledTimes(3);
+    expect(observed[0].querySelector(".annotation-markdown-rendered")?.innerHTML)
+      .toBe("<p>comment 0xxxxxxxxxxx</p>");
+    controller.stop();
+  });
+
+  test("renders at most one visible annotation per idle task", async () => {
+    const observed = [];
+    const idleCallbacks = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = `
+      <div data-annotation-id="a1"><div class="comment">**first**</div></div>
+      <div data-annotation-id="a2"><div class="comment">**second**</div></div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      requestIdleCallback: (callback) => {
+        idleCallbacks.push(callback);
+        return idleCallbacks.length;
+      }
+    });
+
+    await controller.start();
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: true })));
+
+    expect(render).not.toHaveBeenCalled();
+    expect(idleCallbacks).toHaveLength(1);
+
+    idleCallbacks[0]();
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(idleCallbacks).toHaveLength(2);
+
+    idleCallbacks[1]();
+    expect(render).toHaveBeenCalledTimes(2);
+    controller.stop();
+  });
+
+  test("renders up to four cheap annotations while idle time remains", async () => {
+    const observed = [];
+    const idleCallbacks = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = Array.from({ length: 5 }, (_, index) =>
+      `<div data-annotation-id="a${index}"><div class="comment">comment ${index}</div></div>`
+    ).join("");
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      requestIdleCallback: (callback) => {
+        idleCallbacks.push(callback);
+        return idleCallbacks.length;
+      }
+    });
+
+    await controller.start();
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: true })));
+    idleCallbacks[0]({ timeRemaining: () => 20, didTimeout: false });
+
+    expect(render).toHaveBeenCalledTimes(4);
+    expect(idleCallbacks).toHaveLength(2);
+
+    idleCallbacks[1]({ timeRemaining: () => 20, didTimeout: false });
+    expect(render).toHaveBeenCalledTimes(5);
+    controller.stop();
+  });
+
+  test.each(["eager", "auto"])("%s strategy queues a short annotation set before visibility callbacks", async (renderStrategy) => {
+    const idleCallbacks = [];
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver() {
+      return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+    });
+    document.body.innerHTML = `
+      <div data-annotation-id="a1"><div class="comment">first</div></div>
+      <div data-annotation-id="a2"><div class="comment">second</div></div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: {
+        isEnabled: () => true,
+        getRenderStrategy: () => renderStrategy
+      },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      requestIdleCallback: (callback) => {
+        idleCallbacks.push(callback);
+        return idleCallbacks.length;
+      }
+    });
+
+    await controller.start();
+    expect(idleCallbacks).toHaveLength(1);
+    idleCallbacks[0]({ timeRemaining: () => 20, didTimeout: false });
+
+    expect(render).toHaveBeenCalledTimes(2);
+    controller.stop();
+  });
+
+  test("automatic strategy keeps large annotation sets viewport-lazy", async () => {
+    const observed = [];
+    const idleCallbacks = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = Array.from({ length: 31 }, (_, index) =>
+      `<div data-annotation-id="a${index}"><div class="comment">comment ${index}</div></div>`
+    ).join("");
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: {
+        isEnabled: () => true,
+        getRenderStrategy: () => "auto"
+      },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      requestIdleCallback: (callback) => {
+        idleCallbacks.push(callback);
+        return idleCallbacks.length;
+      }
+    });
+
+    await controller.start();
+    expect(idleCallbacks).toHaveLength(0);
+
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+    expect(idleCallbacks).toHaveLength(1);
+    controller.stop();
+  });
+
+  test("renders the selected annotation before surrounding visible annotations", async () => {
+    const observed = [];
+    const idleCallbacks = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = `
+      <div data-annotation-id="a1"><div class="comment">first</div></div>
+      <div data-annotation-id="a2" class="annotation selected"><div class="comment">selected</div></div>
+      <div data-annotation-id="a3"><div class="comment">third</div></div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      requestIdleCallback: (callback) => {
+        idleCallbacks.push(callback);
+        return idleCallbacks.length;
+      }
+    });
+
+    await controller.start();
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: true })));
+    idleCallbacks[0]();
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenCalledWith("selected");
+    controller.stop();
+  });
+
+  test("bounds lazy rendered HTML cache by total string payload while keeping recent entries", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = Array.from({ length: 3 }, (_, index) =>
+      `<div data-annotation-id="a${index}"><div class="comment">comment ${index}</div></div>`
+    ).join("");
+    const render = vi.fn((source) => `<p>${source.padEnd(20, "x")}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      renderCacheMaxBytes: 500,
+      offscreenRenderMaxBytes: 0
+    });
+
+    await controller.start();
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: true })));
+    visibilityCallback(observed.map((target) => ({ target, isIntersecting: false })));
+    visibilityCallback([{ target: observed[2], isIntersecting: true }]);
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+
+    expect(render).toHaveBeenCalledTimes(4);
+    controller.stop();
+  });
+
+  test("logs cumulative lazy render timing percentiles when diagnostics are enabled", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    const now = vi.fn(() => 0);
+    const log = vi.fn();
+    document.body.innerHTML = `
+      <div data-annotation-id="a1"><div class="comment">**first**</div></div>
+      <div data-annotation-id="a2"><div class="comment">**second**</div></div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: {
+        isEnabled: () => true,
+        isPerformanceDiagnosticsEnabled: () => true
+      },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      logger: { log },
+      now
+    });
+
+    await controller.start();
+    log.mockClear();
+    now.mockClear();
+    const timingValues = [
+      0, 1, 5, 5, 7, 8,
+      10, 11, 21, 21, 25, 30
+    ];
+    now.mockImplementation(() => timingValues.shift());
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+    visibilityCallback([{ target: observed[1], isIntersecting: true }]);
+
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("[annotation-markdown] perf lazyRender")
+    );
+    expect(log).toHaveBeenLastCalledWith(expect.stringContaining("batchNodes=1 totalNodes=2"));
+    expect(log).toHaveBeenLastCalledWith(expect.stringContaining("markdownMs=14.0 domMs=6.0"));
+    expect(log).toHaveBeenLastCalledWith(expect.stringContaining("p50Ms=8.0 p95Ms=20.0 maxMs=20.0"));
+    expect(log).toHaveBeenLastCalledWith(expect.stringContaining("slowNodes=1 sourceChars=19"));
+    expect(log).toHaveBeenLastCalledWith(expect.stringContaining("mountedPreviews=2 placeholders=0 cacheEntries=2"));
+    controller.stop();
+  });
+
+  test("does not collect lazy render timings when diagnostics are disabled", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    const now = vi.fn();
+    const log = vi.fn();
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**first**</div></div>`;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      logger: { log },
+      now
+    });
+
+    await controller.start();
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+
+    expect(now).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
     controller.stop();
   });
 
@@ -482,6 +884,76 @@ describe("createReaderController", () => {
 
     controller.stop();
     vi.useRealTimers();
+  });
+
+  test("detaches other preview DOM while editing and restores the same nodes after blur", async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" tabindex="0">**editing**</div></div>
+      </div>
+      <div data-annotation-id="a2" class="annotation">
+        <div class="comment">other $x$</div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p><span class="katex">${source}</span></p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+    const editingContent = document.querySelector("[data-annotation-id='a1'] .content");
+    const otherComment = document.querySelector("[data-annotation-id='a2'] .comment");
+    const otherPreview = otherComment.querySelector("[data-annotation-markdown-preview='true']");
+    const otherMath = otherPreview.querySelector(".katex");
+
+    editingContent.focus();
+
+    expect(otherPreview.isConnected).toBe(false);
+    expect(otherComment.querySelector("[data-annotation-markdown-placeholder='true']")).not.toBeNull();
+
+    document.querySelector("#outside").focus();
+    vi.runAllTimers();
+
+    expect(otherComment.querySelector("[data-annotation-markdown-preview='true']")).toBe(otherPreview);
+    expect(otherPreview.querySelector(".katex")).toBe(otherMath);
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("restores editing-isolated preview DOM when the controller stops", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" tabindex="0">editing</div></div>
+      </div>
+      <div data-annotation-id="a2" class="annotation"><div class="comment">other</div></div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+    const otherComment = document.querySelector("[data-annotation-id='a2'] .comment");
+    const otherPreview = otherComment.querySelector("[data-annotation-markdown-preview='true']");
+    document.querySelector("[data-annotation-id='a1'] .content").focus();
+    expect(otherPreview.isConnected).toBe(false);
+
+    controller.stop();
+
+    expect(otherPreview.isConnected).toBe(true);
+    expect(otherComment.querySelector("[data-annotation-markdown-placeholder='true']")).toBeNull();
   });
 
   test("preserves native source DOM structure during editing", async () => {
@@ -861,6 +1333,7 @@ describe("createReaderController", () => {
     const adapter = createAnnotationSidebarAdapter({ document });
     const node = document.querySelector(".comment");
     adapter.applyRenderedHtml(node, "<p><strong>bold</strong></p>");
+    adapter.releaseRenderedHtml(node);
     const controller = createReaderController({
       reader: { document },
       adapter,
@@ -873,6 +1346,7 @@ describe("createReaderController", () => {
 
     expect(node.textContent).toBe("**bold**");
     expect(adapter.isRendered(node)).toBe(false);
+    expect(adapter.hasPreview(node)).toBe(false);
   });
 
   test("rerenders edited source text after editing loses focus", () => {

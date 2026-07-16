@@ -4,6 +4,8 @@ export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.paste
 export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled";
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
+export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
+export const RENDER_STRATEGIES = ["auto", "eager", "lazy"];
 const DEFAULT_FONT_SCALE = 1;
 const DEFAULT_FONT_SCALE_PERCENT = 100;
 const MIN_FONT_SCALE = 0.8;
@@ -16,7 +18,8 @@ export function createSettings({
   pasteAsPlainTextKey = PASTE_AS_PLAIN_TEXT_PREF_KEY,
   mathEnabledKey = MATH_ENABLED_PREF_KEY,
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
-  lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY
+  lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
+  renderStrategyKey = RENDER_STRATEGY_PREF_KEY
 } = {}) {
   let memoryEnabled = true;
   let memoryFontScale = DEFAULT_FONT_SCALE;
@@ -24,6 +27,7 @@ export function createSettings({
   let memoryMathEnabled = true;
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
+  let memoryRenderStrategy = "auto";
 
   return {
     isEnabled() {
@@ -132,8 +136,30 @@ export function createSettings({
       }
 
       memoryLightweightMode = value;
+    },
+
+    getRenderStrategy() {
+      if (prefs?.get) {
+        return normalizeRenderStrategy(prefs.get(renderStrategyKey, "auto"));
+      }
+
+      return memoryRenderStrategy;
+    },
+
+    setRenderStrategy(strategy) {
+      const value = normalizeRenderStrategy(strategy);
+
+      if (prefs?.set) {
+        prefs.set(renderStrategyKey, value);
+      }
+
+      memoryRenderStrategy = value;
     }
   };
+}
+
+function normalizeRenderStrategy(value) {
+  return RENDER_STRATEGIES.includes(value) ? value : "auto";
 }
 
 function normalizeFontScalePercent(value) {

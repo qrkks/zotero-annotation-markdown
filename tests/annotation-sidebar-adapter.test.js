@@ -227,6 +227,52 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(node.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p><strong>changed</strong></p>");
   });
 
+  test("releases complex rendered DOM into a lightweight source placeholder", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment"><div class="content">**bold** and $x$</div></div></div>`;
+    const node = document.querySelector(".comment");
+    const content = document.querySelector(".content");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<p><strong>bold</strong> and <span class='katex'><span>math</span></span></p>");
+    adapter.releaseRenderedHtml(node);
+
+    const placeholder = node.querySelector("[data-annotation-markdown-preview='true']");
+    expect(adapter.isRendered(node)).toBe(false);
+    expect(placeholder?.getAttribute("data-annotation-markdown-placeholder")).toBe("true");
+    expect(placeholder?.textContent).toBe("**bold** and $x$");
+    expect(placeholder?.querySelector(".katex")).toBeNull();
+    expect(content.hidden).toBe(true);
+
+    adapter.applyRenderedHtml(node, "<p><strong>bold</strong> and <span class='katex'>math</span></p>");
+
+    expect(adapter.isRendered(node)).toBe(true);
+    expect(placeholder?.hasAttribute("data-annotation-markdown-placeholder")).toBe(false);
+    expect(placeholder?.querySelector(".katex")?.textContent).toBe("math");
+  });
+
+  test("temporarily detaches and restores the exact rendered preview DOM", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment"><div class="content">**bold** and $x$</div></div></div>`;
+    const node = document.querySelector(".comment");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<p><strong>bold</strong> and <span class='katex'><span>math</span></span></p>");
+    const preview = node.querySelector("[data-annotation-markdown-preview='true']");
+    const mathNode = preview.querySelector(".katex");
+
+    const suspendedPreview = adapter.suspendRenderedDom(node);
+
+    expect(suspendedPreview).toBe(preview);
+    expect(preview.isConnected).toBe(false);
+    expect(adapter.isRendered(node)).toBe(false);
+    expect(node.querySelector("[data-annotation-markdown-placeholder='true']")?.textContent)
+      .toBe("**bold** and $x$");
+
+    expect(adapter.restoreSuspendedRenderedDom(node, suspendedPreview)).toBe(true);
+    expect(node.querySelector("[data-annotation-markdown-preview='true']")).toBe(preview);
+    expect(preview.querySelector(".katex")).toBe(mathNode);
+    expect(adapter.isRendered(node)).toBe(true);
+  });
+
   test("restores original source text", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment"><div class="content">**bold**</div></div></div>`;
     const node = document.querySelector(".comment");

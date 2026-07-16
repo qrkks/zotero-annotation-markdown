@@ -1,5 +1,7 @@
 .annotation-markdown-rendered {
     color: inherit;
+    contain-intrinsic-size: auto none auto 4.5em;
+    content-visibility: auto;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
@@ -15,6 +17,8 @@
 
 .annotation.selected .annotation-markdown-rendered,
 .annotation-row.selected .annotation-markdown-rendered {
+    contain-intrinsic-size: none;
+    content-visibility: visible;
     -webkit-line-clamp: unset;
     line-clamp: unset;
     display: block;
@@ -23,11 +27,22 @@
 }
 
 .annotation-popup .annotation-markdown-rendered {
+    contain-intrinsic-size: none;
+    content-visibility: visible;
     -webkit-line-clamp: unset;
     line-clamp: unset;
     display: block;
     max-height: none;
     overflow: visible;
+}
+
+.annotation.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"],
+.annotation-row.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"] {
+    display: -webkit-box;
+    -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
+    line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
+    max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em);
+    overflow: hidden;
 }
 
 .annotation-markdown-editing .annotation-markdown-rendered {

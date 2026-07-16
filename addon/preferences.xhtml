@@ -15,6 +15,21 @@
   </groupbox>
 
   <groupbox>
+    <label><html:h2>Rendering Performance</html:h2></label>
+    <hbox class="annotation-markdown-preference-field" align="center">
+      <label value="Annotation rendering"/>
+      <menulist id="annotation-markdown-render-strategy"
+        preference="extensions.annotationMarkdown.renderStrategy">
+        <menupopup>
+          <menuitem label="Automatic (recommended)" value="auto"/>
+          <menuitem label="Render all annotations" value="eager"/>
+          <menuitem label="Render near the viewport" value="lazy"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+  </groupbox>
+
+  <groupbox>
     <label><html:h2>Preview Font Size</html:h2></label>
     <hbox class="annotation-markdown-preference-field" align="center">
       <label value="Markdown preview font size"/>

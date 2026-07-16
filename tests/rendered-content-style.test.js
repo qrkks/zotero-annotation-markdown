@@ -19,11 +19,21 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain(".annotation-row.selected .annotation-markdown-rendered");
     expect(addonCss).toContain("-webkit-line-clamp: unset");
     expect(addonCss).toContain(".annotation-popup .annotation-markdown-rendered");
+    expect(addonCss).toContain("[data-annotation-markdown-placeholder=\"true\"]");
     expect(addonCss).toContain(".annotation-markdown-editing .annotation-markdown-rendered");
     expect(addonCss).toContain("display: none !important");
     expect(addonCss).toContain("font-size: var(--annotation-markdown-font-scale, 1em)");
     expect(addonCss).toContain("max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em)");
     expect(addonCss).toContain("max-height: none");
+  });
+
+  test("lets the browser skip folded offscreen preview work without containing expanded previews", async () => {
+    const addonCss = await readAddonCss();
+
+    expect(addonCss).toMatch(/\.annotation-markdown-rendered\s*\{[^}]*content-visibility:\s*auto;/);
+    expect(addonCss).toMatch(/\.annotation-markdown-rendered\s*\{[^}]*contain-intrinsic-size:\s*auto none auto 4\.5em;/);
+    expect(addonCss).toMatch(/\.annotation\.selected \.annotation-markdown-rendered,[\s\S]*?\{[^}]*content-visibility:\s*visible;/);
+    expect(addonCss).toMatch(/\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*content-visibility:\s*visible;/);
   });
 
   test("keeps markdown headings compact inside annotation previews", async () => {
