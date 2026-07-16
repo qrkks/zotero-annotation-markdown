@@ -59,6 +59,27 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(adapter.findCommentNodes(document.body)).toHaveLength(0);
   });
 
+  test("renders a selected Zotero comment whose dormant editor has no focus", () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**selected**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document });
+    const content = document.querySelector(".content");
+
+    expect(adapter.findCommentNodes(document.body)).toEqual([document.querySelector(".comment")]);
+
+    content.focus();
+
+    expect(adapter.findCommentNodes(document.body)).toHaveLength(0);
+  });
+
   test("skips Zotero native note editor comments even when nested inside annotation UI", () => {
     document.body.innerHTML = `
       <div class="annotation selected">

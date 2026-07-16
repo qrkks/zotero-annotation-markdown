@@ -63,7 +63,7 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       }
 
       if (node.classList?.contains(EDITING_CLASS)) {
-        if (hasFocusInside(node) || hasEditorControl(node)) {
+        if (hasFocusInside(node)) {
           return true;
         }
 
@@ -78,7 +78,11 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
         return true;
       }
 
-      return hasEditorControl(node);
+      if (hasFocusInside(node)) {
+        return true;
+      }
+
+      return hasEditorControl(node) && !hasDormantSelectedAnnotationEditor(node);
     },
 
     getSourceText(node) {
@@ -499,6 +503,19 @@ function hasFocusInside(node) {
 
 function hasEditorControl(node) {
   return Boolean(node?.querySelector?.("textarea,input,select,[contenteditable='true']"));
+}
+
+function hasDormantSelectedAnnotationEditor(node) {
+  const annotation = node?.closest?.(ANNOTATION_ROW_SELECTOR);
+  const selected = annotation?.classList?.contains("selected") || annotation?.getAttribute?.("aria-selected") === "true";
+  if (!selected) {
+    return false;
+  }
+
+  const controls = Array.from(node.querySelectorAll?.("textarea,input,select,[contenteditable='true']") ?? []);
+  return controls.length > 0 && controls.every((control) =>
+    control.matches?.(".content[contenteditable='true']")
+  );
 }
 
 function isInsideNativeNoteEditor(node) {

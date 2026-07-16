@@ -23,6 +23,33 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("renders a page-selected annotation before its dormant editor receives focus", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**selected**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+
+    expect(render).toHaveBeenCalledWith("**selected**");
+    expect(document.querySelector(".annotation-markdown-rendered")?.innerHTML).toBe("<p>**selected**</p>");
+    controller.stop();
+  });
+
   test("waits for Zotero reader readiness before the first render pass", async () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const render = vi.fn((source) => `<p>${source}</p>`);
@@ -857,7 +884,7 @@ describe("createReaderController", () => {
     };
 
     try {
-      document.body.innerHTML = `<div data-annotation-id="a1" class="annotation selected"><div class="comment"><div class="content" tabindex="0">**bold**</div></div></div>`;
+      document.body.innerHTML = `<button id="outside">outside</button><div data-annotation-id="a1" class="annotation selected"><div class="comment"><div class="content" tabindex="0">**bold**</div></div></div>`;
       const adapter = createAnnotationSidebarAdapter({ document });
       const controller = createReaderController({
         reader: { document },
@@ -874,6 +901,7 @@ describe("createReaderController", () => {
       callbacks[0]();
 
       content.textContent = "**changed**";
+      document.querySelector("#outside").focus();
       content.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
       controller.renderNow();
 
