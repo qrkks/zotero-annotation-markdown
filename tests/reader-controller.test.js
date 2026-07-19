@@ -918,7 +918,7 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
-  test("detaches other preview DOM while editing and restores the same nodes after blur", async () => {
+  test("keeps other rendered previews mounted while editing and after blur", async () => {
     vi.useFakeTimers();
     document.body.innerHTML = `
       <button id="outside">outside</button>
@@ -947,8 +947,9 @@ describe("createReaderController", () => {
 
     editingContent.focus();
 
-    expect(otherPreview.isConnected).toBe(false);
-    expect(otherComment.querySelector("[data-annotation-markdown-placeholder='true']")).not.toBeNull();
+    expect(otherPreview.isConnected).toBe(true);
+    expect(otherComment.querySelector("[data-annotation-markdown-preview='true']")).toBe(otherPreview);
+    expect(otherComment.querySelector("[data-annotation-markdown-placeholder='true']")).toBeNull();
 
     document.querySelector("#outside").focus();
     vi.runAllTimers();
@@ -959,7 +960,7 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
-  test("restores editing-isolated preview DOM when the controller stops", async () => {
+  test("keeps other rendered previews mounted when the controller stops during editing", async () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1" class="annotation selected">
         <div class="comment"><div class="content" tabindex="0">editing</div></div>
@@ -980,7 +981,7 @@ describe("createReaderController", () => {
     const otherComment = document.querySelector("[data-annotation-id='a2'] .comment");
     const otherPreview = otherComment.querySelector("[data-annotation-markdown-preview='true']");
     document.querySelector("[data-annotation-id='a1'] .content").focus();
-    expect(otherPreview.isConnected).toBe(false);
+    expect(otherPreview.isConnected).toBe(true);
 
     controller.stop();
 

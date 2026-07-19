@@ -45,7 +45,6 @@ export function createReaderController({
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
   const renderedNodeWeights = new WeakMap();
   const offscreenRenderedNodes = new Map();
-  const suspendedEditingPreviews = new Map();
   let renderCacheBytes = 0;
   let offscreenRenderedBytes = 0;
   let activeRenderStrategy;
@@ -187,7 +186,6 @@ export function createReaderController({
 
     refresh() {
       injectStyles();
-      restoreSuspendedEditingPreviews();
       cancelQueuedRendering();
       visibilityObserver?.disconnect?.();
       visibilityObserver = undefined;
@@ -206,7 +204,6 @@ export function createReaderController({
     },
 
     stop() {
-      restoreSuspendedEditingPreviews();
       observer?.disconnect();
       observer = undefined;
       visibilityObserver?.disconnect?.();
@@ -594,7 +591,6 @@ export function createReaderController({
     }
 
     pausedComment = comment;
-    discardSuspendedEditingPreview(comment);
     removeOffscreenRenderedNode(comment);
     editPauseStartedAt = nowRef();
 
@@ -615,7 +611,6 @@ export function createReaderController({
     } else {
       adapter.restoreSourceText?.(comment);
     }
-    suspendOtherRenderedPreviews(comment);
     logEditLifecycle("pause");
   }
 
@@ -649,7 +644,6 @@ export function createReaderController({
     flushPausedMutationDiagnostics();
     const pausedForMs = Math.max(0, nowRef() - editPauseStartedAt).toFixed(1);
     pausedComment = undefined;
-    restoreSuspendedEditingPreviews();
     adapter.finishEditing?.(comment);
     const startedAt = isPerformanceDiagnosticsEnabled() ? nowRef() : 0;
     const result = handleCommentNodes([comment], { force: true });
@@ -856,40 +850,6 @@ export function createReaderController({
   function resetOffscreenRenderedNodes() {
     offscreenRenderedNodes.clear();
     offscreenRenderedBytes = 0;
-  }
-
-  function suspendOtherRenderedPreviews(activeComment) {
-    if (!adapter.findRenderedCommentNodes || !adapter.suspendRenderedDom) {
-      return;
-    }
-
-    for (const node of adapter.findRenderedCommentNodes(root)) {
-      if (node === activeComment || suspendedEditingPreviews.has(node)) {
-        continue;
-      }
-
-      removeOffscreenRenderedNode(node);
-      const preview = adapter.suspendRenderedDom(node);
-      if (preview) {
-        suspendedEditingPreviews.set(node, preview);
-      }
-    }
-  }
-
-  function restoreSuspendedEditingPreviews() {
-    if (!adapter.restoreSuspendedRenderedDom) {
-      suspendedEditingPreviews.clear();
-      return;
-    }
-
-    for (const [node, preview] of suspendedEditingPreviews) {
-      adapter.restoreSuspendedRenderedDom(node, preview);
-    }
-    suspendedEditingPreviews.clear();
-  }
-
-  function discardSuspendedEditingPreview(node) {
-    suspendedEditingPreviews.delete(node);
   }
 
   function disconnectMutationObserverForEditing() {
