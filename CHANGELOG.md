@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1 - 2026-07-19
+
+### Changed
+
+- Keep surrounding rendered annotation previews mounted while editing so leaving an editor no longer causes sidebar-wide DOM replacement and repainting.
+
+### Fixed
+
+- Preserve Zotero's native add-comment control for annotations whose comments are empty.
+
 ## 0.4.0 - 2026-07-16
 
 ### Added
