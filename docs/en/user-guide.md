@@ -7,6 +7,7 @@
 - PDF and EPUB reader sidebar annotation comments render as Markdown by default.
 - LaTeX math renders by default with `$...$`, `$$...$$`, `\(...\)`, and `\[...\]` delimiters.
 - Single line breaks remain visible.
+- Bare URLs become clickable links in rendered previews.
 - Editing shows the original Markdown source text.
 - Raw HTML is not trusted; rendered output is sanitized.
 - Rendering failures leave the original plain text visible.

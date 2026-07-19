@@ -48,6 +48,15 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("line-height: 1.25");
   });
 
+  test("styles rendered links as interactive content", async () => {
+    const addonCss = await readAddonCss();
+
+    expect(addonCss).toContain(".annotation-markdown-rendered a");
+    expect(addonCss).toContain("color: LinkText");
+    expect(addonCss).toContain("cursor: pointer");
+    expect(addonCss).toContain("text-decoration: underline");
+  });
+
   test("keeps fenced code blocks readable in narrow previews", async () => {
     const addonCss = await readAddonCss();
 

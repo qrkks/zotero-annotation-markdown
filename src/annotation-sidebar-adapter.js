@@ -21,7 +21,10 @@ const SOURCE_WRAPPER_ATTRIBUTE = "data-annotation-markdown-source-node";
 const SOURCE_HIDDEN_ATTRIBUTE = "data-annotation-markdown-source-hidden";
 const EDITING_CLASS = "annotation-markdown-editing";
 
-export function createAnnotationSidebarAdapter({ document: documentRef = globalThis.document } = {}) {
+export function createAnnotationSidebarAdapter({
+  document: documentRef = globalThis.document,
+  openLink
+} = {}) {
   return {
     findCommentNodes(root = documentRef) {
       if (!root?.querySelectorAll) {
@@ -303,7 +306,9 @@ export function createAnnotationSidebarAdapter({ document: documentRef = globalT
       }
 
       return Boolean(comment);
-    }
+    },
+
+    openLink: typeof openLink === "function" ? openLink : null
   };
 }
 
@@ -311,8 +316,33 @@ function createPreviewNode(sourceNode, adapter) {
   const preview = sourceNode.ownerDocument.createElement("div");
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
-  preview.addEventListener("mousedown", () => {
+  preview.addEventListener("mousedown", (event) => {
+    const link = getElementTarget(event.target)?.closest?.("a[href]");
+    if (link) {
+      event.stopPropagation();
+      if (event.button === 0 && adapter.openLink) {
+        event.preventDefault();
+        adapter.openLink(link.getAttribute("href"));
+      }
+      return;
+    }
     adapter.showSourceForEditing(sourceNode);
+  }, { capture: true });
+  preview.addEventListener("click", (event) => {
+    const link = getElementTarget(event.target)?.closest?.("a[href]");
+    if (!link) {
+      return;
+    }
+
+    event.stopPropagation();
+    if (event.button !== 0 || !adapter.openLink) {
+      return;
+    }
+
+    event.preventDefault();
+    if (event.detail === 0) {
+      adapter.openLink(link.getAttribute("href"));
+    }
   }, { capture: true });
   getPreviewAnchor(sourceNode)?.after(preview);
   return preview;

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.js";
 
@@ -376,6 +376,35 @@ describe("createAnnotationSidebarAdapter", () => {
     } finally {
       globalThis.requestAnimationFrame = requestAnimationFrame;
     }
+  });
+
+  test("first click on a link opens it without selecting or editing the annotation", () => {
+    document.body.innerHTML = `<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content" tabindex="0">https://example.com</div></div></div>`;
+    const row = document.querySelector(".annotation");
+    const node = document.querySelector(".comment");
+    const content = node.querySelector(".content");
+    const openLink = vi.fn();
+    const hostMouseDown = vi.fn();
+    const hostClick = vi.fn();
+    row.addEventListener("mousedown", hostMouseDown);
+    row.addEventListener("click", hostClick);
+    const adapter = createAnnotationSidebarAdapter({ document, openLink });
+
+    adapter.applyRenderedHtml(node, '<p><a href="https://example.com">https://example.com</a></p>');
+    const link = node.querySelector(".annotation-markdown-rendered a");
+    const mouseDown = new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 });
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, detail: 1 });
+
+    expect(link.dispatchEvent(mouseDown)).toBe(false);
+    expect(hostMouseDown).not.toHaveBeenCalled();
+    expect(openLink).toHaveBeenCalledOnce();
+    expect(openLink).toHaveBeenCalledWith("https://example.com");
+    expect(link.dispatchEvent(click)).toBe(false);
+    expect(hostClick).not.toHaveBeenCalled();
+    expect(openLink).toHaveBeenCalledOnce();
+    expect(node.classList.contains("annotation-markdown-editing")).toBe(false);
+    expect(content.hidden).toBe(true);
+    expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(false);
   });
 
   test("preview click on a selected Zotero reader comment restores the editor shell", () => {

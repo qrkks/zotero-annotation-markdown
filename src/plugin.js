@@ -40,7 +40,12 @@ export function createPlugin({
         const readerDocument = getReaderDocument(reader) ?? readerWindow?.document;
         return createReaderController({
           reader,
-          adapter: createAnnotationSidebarAdapter({ document: readerDocument }),
+          adapter: createAnnotationSidebarAdapter({
+            document: readerDocument,
+            openLink: typeof Zotero?.launchURL === "function"
+              ? (url) => Zotero.launchURL(url)
+              : undefined
+          }),
           renderer: createMarkdownRenderer({
             isMathEnabled: () => settings.isMathEnabled(),
             windowRef: readerWindow

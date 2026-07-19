@@ -462,6 +462,42 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("does not replace a selected outer annotation preview with a plain-text placeholder", async () => {
+    const observed = [];
+    let visibilityCallback;
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver(callback) {
+      visibilityCallback = callback;
+      return {
+        observe: vi.fn((node) => observed.push(node)),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      };
+    });
+    document.body.innerHTML = `
+      <div class="annotation selected">
+        <div data-annotation-id="a1"><div class="comment">https://example.com</div></div>
+      </div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: () => '<p><a href="https://example.com">https://example.com</a></p>' },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver,
+      offscreenRenderMaxBytes: 0
+    });
+
+    await controller.start();
+    visibilityCallback([{ target: observed[0], isIntersecting: true }]);
+    visibilityCallback([{ target: observed[0], isIntersecting: false }]);
+
+    const preview = document.querySelector("[data-annotation-markdown-preview='true']");
+    expect(preview?.querySelector("a")?.href).toBe("https://example.com/");
+    expect(preview?.hasAttribute("data-annotation-markdown-placeholder")).toBe(false);
+    controller.stop();
+  });
+
   test("logs cumulative lazy render timing percentiles when diagnostics are enabled", async () => {
     const observed = [];
     let visibilityCallback;

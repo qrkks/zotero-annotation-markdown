@@ -92,7 +92,7 @@ No other module should query reader DOM directly.
 5. The renderer converts the source with Markdown options:
    - `breaks: true`
    - raw HTML disabled
-   - linkification optional, initially disabled unless it works cleanly with Zotero styling
+   - linkification enabled, with link interaction kept separate from preview editing
 6. The adapter replaces only the display content area, adding a plugin-owned marker attribute to avoid duplicate rendering.
 7. If the row enters edit mode, the adapter restores or leaves the source text untouched.
 8. When editing ends, the observer sees the display node again and re-renders it.
@@ -194,7 +194,7 @@ The third risk is styling drift across PDF and EPUB readers. The plugin should s
 
 - Plugin name: Zotero Annotation Markdown.
 - Initial plugin ID: `annotation-markdown@local`.
-- Markdown renderer: bundle `markdown-it` directly with the plugin and configure it with `html: false`, `breaks: true`, `linkify: false`, and `typographer: false`.
+- Markdown renderer: bundle `markdown-it` directly with the plugin and configure it with `html: false`, `breaks: true`, `linkify: true`, and `typographer: false`.
 - Sanitization: sanitize rendered HTML before insertion. Prefer a bundled sanitizer such as DOMPurify if compatible with Zotero's runtime; otherwise use a small allowlist sanitizer owned by `MarkdownRenderer`.
-- URL auto-linking: disabled in the first release. Users can still write explicit Markdown links.
+- URL auto-linking: enabled. Clicking a rendered link must not enter annotation editing.
 - Settings UI: include a minimal preference checkbox if the Zotero 9 plugin preference pattern is straightforward during scaffolding. The `Settings` module must exist either way, with the default value enabled.

@@ -5,7 +5,7 @@ import markdownItTexmath from "markdown-it-texmath";
 const DEFAULT_MARKDOWN_OPTIONS = {
   html: false,
   breaks: true,
-  linkify: false,
+  linkify: true,
   typographer: false
 };
 

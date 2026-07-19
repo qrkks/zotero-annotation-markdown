@@ -12,7 +12,7 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("second line");
   });
 
-  test("renders common markdown without enabling URL auto-linking", () => {
+  test("renders common markdown and automatically links bare URLs", () => {
     const renderer = createMarkdownRenderer();
 
     const html = renderer.render("**bold** and `code`\nhttps://example.com");
@@ -20,7 +20,7 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("<strong>bold</strong>");
     expect(html).toContain("<code>code</code>");
     expect(html).toContain("https://example.com");
-    expect(html).not.toContain("<a href=\"https://example.com\"");
+    expect(html).toContain("<a href=\"https://example.com\">https://example.com</a>");
   });
 
   test("does not trust raw HTML from annotation comments", () => {

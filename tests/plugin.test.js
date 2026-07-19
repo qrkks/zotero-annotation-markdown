@@ -199,6 +199,29 @@ describe("createPlugin", () => {
     );
   });
 
+  test("opens rendered links through Zotero instead of the reader document", async () => {
+    document.body.innerHTML = `<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content">https://example.com</div></div></div>`;
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {},
+      launchURL: vi.fn()
+    };
+    const plugin = createPlugin({ Zotero });
+
+    await plugin.startup();
+    const link = document.querySelector(".annotation-markdown-rendered a");
+    link.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 }));
+
+    expect(Zotero.launchURL).toHaveBeenCalledOnce();
+    expect(Zotero.launchURL).toHaveBeenCalledWith("https://example.com");
+
+    plugin.shutdown();
+  });
+
   test("reader events register their reader with the registry", () => {
     const register = vi.fn();
     const Zotero = {

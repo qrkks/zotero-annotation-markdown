@@ -813,11 +813,9 @@ export function createReaderController({
   }
 
   function isSelectedComment(node) {
-    const annotation = node?.closest?.("[data-annotation-id],.annotation,[aria-selected]");
-    return Boolean(
-      annotation?.classList?.contains("selected") ||
-      annotation?.getAttribute?.("aria-selected") === "true"
-    );
+    return Boolean(node?.closest?.(
+      ".annotation.selected,.annotation-row.selected,[data-annotation-id].selected,[aria-selected='true']"
+    ));
   }
 
   function retainOffscreenRenderedNode(node) {

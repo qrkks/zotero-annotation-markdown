@@ -57,6 +57,12 @@
     margin-bottom: 0;
 }
 
+.annotation-markdown-rendered a {
+    color: LinkText;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
 .annotation-markdown-rendered h1,
 .annotation-markdown-rendered h2 {
     font-weight: 600;
