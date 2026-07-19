@@ -50,6 +50,38 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("keeps Zotero's add-comment control visible for an empty annotation comment", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true"></div>
+            <div class="renderer">Add comment</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+
+    const sourceShell = document.querySelector(".expandable-editor");
+    expect(render).not.toHaveBeenCalled();
+    expect(sourceShell.hidden).toBe(false);
+    expect(sourceShell.style.display).toBe("");
+    expect(document.querySelector(".renderer")?.textContent).toBe("Add comment");
+    expect(document.querySelector(".annotation-markdown-rendered")).toBeNull();
+    controller.stop();
+  });
+
   test("waits for Zotero reader readiness before the first render pass", async () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const render = vi.fn((source) => `<p>${source}</p>`);

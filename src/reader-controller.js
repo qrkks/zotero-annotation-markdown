@@ -83,6 +83,20 @@ export function createReaderController({
 
       const source = adapter.getSourceText(node);
       sourceChars = source.length;
+      if (!source.trim()) {
+        if (adapter.isRendered(node) || adapter.hasPreview?.(node)) {
+          if (adapter.restoreSourceDomForEditing) {
+            adapter.restoreSourceDomForEditing(node);
+          } else {
+            adapter.restoreSourceText(node);
+          }
+        }
+        deleteCachedRender(node);
+        removeOffscreenRenderedNode(node);
+        renderedNodeWeights.delete(node);
+        return;
+      }
+
       const mathEnabled = Boolean(settings.isMathEnabled?.() ?? true);
       const cached = getCachedRender(node);
       if (cached?.source === source && cached?.mathEnabled === mathEnabled) {
