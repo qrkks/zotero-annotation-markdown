@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 - 2026-07-19
+
+### Added
+
+- Automatically turn bare URLs in rendered annotation comments into clickable links.
+
+### Fixed
+
+- Open rendered links through Zotero on the first click without entering annotation editing.
+- Keep links rendered when Zotero marks an outer annotation container as selected.
+
 ## 0.4.1 - 2026-07-19
 
 ### Changed
