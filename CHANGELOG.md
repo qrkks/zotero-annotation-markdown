@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2 - 2026-07-20
+
+### Fixed
+
+- Continue cleaning active readers when a previously closed reader exposes an inaccessible DOM wrapper during plugin shutdown.
+- Aggregate repeated best-effort shutdown cleanup failures instead of emitting one warning per failed cleanup step.
+- Rotate the diagnostic log at 5 MiB and retain one backup so diagnostic storage remains bounded.
+
 ## 0.5.1 - 2026-07-20
 
 ### Fixed
