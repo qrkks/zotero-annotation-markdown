@@ -239,6 +239,19 @@ export function createReaderController({
       renderCache.clear();
       renderCacheBytes = 0;
       resetOffscreenRenderedNodes();
+      const cleanupRoots = new Set([
+        root,
+        getReaderRoot(reader),
+        documentRef?.body,
+        reader?.document?.body,
+        reader?.window?.document?.body,
+        reader?._iframeWindow?.document?.body
+      ].filter(Boolean));
+      logShutdownCleanup("before", cleanupRoots);
+      for (const cleanupRoot of cleanupRoots) {
+        adapter.clearRenderedState?.(cleanupRoot);
+      }
+      logShutdownCleanup("after", cleanupRoots);
       styleElement?.remove();
       styleElement = undefined;
     }
@@ -981,6 +994,38 @@ export function createReaderController({
     } catch {
       return 0;
     }
+  }
+
+  function logShutdownCleanup(phase, cleanupRoots) {
+    if (!logger?.log) {
+      return;
+    }
+
+    const previews = collectCleanupNodes(cleanupRoots, "[data-annotation-markdown-preview='true'], .annotation-markdown-rendered");
+    const renderedMarkers = collectCleanupNodes(cleanupRoots, "[data-annotation-markdown-rendered]");
+    const sourceMarkers = collectCleanupNodes(cleanupRoots, "[data-annotation-markdown-source]");
+    const hiddenSources = collectCleanupNodes(cleanupRoots, "[data-annotation-markdown-source-hidden='true'], [data-annotation-markdown-source-node='true'][hidden]");
+    const editingComments = collectCleanupNodes(cleanupRoots, ".annotation-markdown-editing");
+    const selectedPreviews = Array.from(previews).filter((preview) =>
+      preview.closest?.("[data-annotation-id].selected, .annotation.selected, .annotation-row.selected, [aria-selected='true']")
+    );
+
+    logger.log(
+      "[annotation-markdown] shutdown cleanup " + phase + " roots=" + cleanupRoots.size +
+      " previews=" + previews.size + " renderedMarkers=" + renderedMarkers.size +
+      " sourceMarkers=" + sourceMarkers.size + " hiddenSources=" + hiddenSources.size +
+      " editingComments=" + editingComments.size + " selectedPreviews=" + selectedPreviews.length
+    );
+  }
+
+  function collectCleanupNodes(cleanupRoots, selector) {
+    const nodes = new Set();
+    for (const cleanupRoot of cleanupRoots) {
+      for (const node of cleanupRoot?.querySelectorAll?.(selector) ?? []) {
+        nodes.add(node);
+      }
+    }
+    return nodes;
   }
 }
 

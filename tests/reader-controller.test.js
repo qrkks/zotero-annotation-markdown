@@ -996,7 +996,7 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
-  test("keeps other rendered previews mounted when the controller stops during editing", async () => {
+  test("removes rendered previews and restores native source when the controller stops during editing", async () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1" class="annotation selected">
         <div class="comment"><div class="content" tabindex="0">editing</div></div>
@@ -1016,13 +1016,54 @@ describe("createReaderController", () => {
     await controller.start();
     const otherComment = document.querySelector("[data-annotation-id='a2'] .comment");
     const otherPreview = otherComment.querySelector("[data-annotation-markdown-preview='true']");
+    const otherSource = otherComment.querySelector("[data-annotation-markdown-source-node='true']");
     document.querySelector("[data-annotation-id='a1'] .content").focus();
     expect(otherPreview.isConnected).toBe(true);
+    expect(otherSource.hidden).toBe(true);
 
     controller.stop();
 
-    expect(otherPreview.isConnected).toBe(true);
+    expect(otherPreview.isConnected).toBe(false);
+    expect(otherSource.hidden).toBe(false);
+    expect(otherComment.hasAttribute("data-annotation-markdown-rendered")).toBe(false);
+    expect(otherComment.hasAttribute("data-annotation-markdown-source")).toBe(false);
     expect(otherComment.querySelector("[data-annotation-markdown-placeholder='true']")).toBeNull();
+  });
+
+  test("cleans the current reader DOM if Zotero replaces the body after startup", async () => {
+    document.body.innerHTML = '<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content">**bold**</div></div></div>';
+    const adapter = createAnnotationSidebarAdapter({ document });
+    const reader = { document };
+    const log = vi.fn();
+    const controller = createReaderController({
+      reader,
+      adapter,
+      renderer: { render: (source) => "<p>" + source + "</p>" },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null,
+      logger: { log }
+    });
+
+    await controller.start();
+    const replacementBody = document.body.cloneNode(true);
+    document.documentElement.replaceChild(replacementBody, document.body);
+
+    expect(document.querySelector("[data-annotation-markdown-preview='true']")).not.toBeNull();
+    expect(document.querySelector(".content").hidden).toBe(true);
+
+    controller.stop();
+
+    expect(document.querySelector("[data-annotation-markdown-preview='true']")).toBeNull();
+    expect(document.querySelector(".content").hidden).toBe(false);
+    expect(document.querySelector("[data-annotation-markdown-rendered]")).toBeNull();
+    expect(document.querySelector("[data-annotation-markdown-source]")).toBeNull();
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(
+      "shutdown cleanup before roots=2 previews=2 renderedMarkers=2 sourceMarkers=2 hiddenSources=2"
+    ));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining(
+      "shutdown cleanup after roots=2 previews=0 renderedMarkers=0 sourceMarkers=0 hiddenSources=0"
+    ));
   });
 
   test("preserves native source DOM structure during editing", async () => {
