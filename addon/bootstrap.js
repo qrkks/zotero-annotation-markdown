@@ -1,5 +1,8 @@
 var ZoteroAnnotationMarkdownInstance;
 var ZoteroAnnotationMarkdownPreferencePaneID;
+var ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG = "annotation-markdown-debug.log";
+var ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_BACKUP = "annotation-markdown-debug.log.1";
+var ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_MAX_BYTES = 5 * 1024 * 1024;
 
 function startup(data) {
   globalThis.ZoteroAnnotationMarkdownDiagnostics = createDiagnostics();
@@ -82,8 +85,10 @@ function createDiagnostics() {
   return {
     append(message) {
       try {
-        const file = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
-        file.append("annotation-markdown-debug.log");
+        const profileDir = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
+        rotateDiagnosticLog(profileDir);
+        const file = profileDir.clone();
+        file.append(ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG);
 
         const stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
           .createInstance(Components.interfaces.nsIFileOutputStream);
@@ -97,4 +102,19 @@ function createDiagnostics() {
       }
     }
   };
+}
+
+function rotateDiagnosticLog(profileDir, maxBytes = ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_MAX_BYTES) {
+  const file = profileDir.clone();
+  file.append(ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG);
+  if (!file.exists() || file.fileSize < maxBytes) {
+    return;
+  }
+
+  const backup = profileDir.clone();
+  backup.append(ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_BACKUP);
+  if (backup.exists()) {
+    backup.remove(false);
+  }
+  file.moveTo(profileDir, ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_BACKUP);
 }

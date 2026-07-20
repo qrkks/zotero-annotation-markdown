@@ -1090,6 +1090,43 @@ describe("createReaderController", () => {
     expect(clearRenderedState).toHaveBeenCalledWith(liveDocument.body);
   });
 
+  test("aggregates repeated shutdown cleanup failures into one warning", async () => {
+    const staleRoot = document.body;
+    const liveDocument = document.implementation.createHTMLDocument("replacement reader");
+    const reader = { document };
+    let cleanupShouldFail = false;
+    const clearRenderedState = vi.fn(() => {
+      if (cleanupShouldFail) {
+        throw new Error("can't access dead object");
+      }
+    });
+    const warn = vi.fn();
+    const controller = createReaderController({
+      reader,
+      adapter: {
+        ...createAnnotationSidebarAdapter({ document }),
+        clearRenderedState
+      },
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null,
+      logger: { warn }
+    });
+
+    await controller.start();
+    clearRenderedState.mockClear();
+    reader.document = liveDocument;
+    cleanupShouldFail = true;
+
+    expect(() => controller.stop()).not.toThrow();
+    expect(clearRenderedState).toHaveBeenCalledWith(staleRoot);
+    expect(clearRenderedState).toHaveBeenCalledWith(liveDocument.body);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][1].message).toContain("skippedSteps=2");
+    expect(warn.mock.calls[0][1].message).toContain("can't access dead object");
+  });
+
   test("preserves native source DOM structure during editing", async () => {
     vi.useFakeTimers();
     document.body.innerHTML = `

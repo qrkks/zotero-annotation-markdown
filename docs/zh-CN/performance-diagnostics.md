@@ -37,12 +37,14 @@ Linux:   ~/.zotero/zotero/<随机字符串>
 
 如果存在多个配置，请参阅 Zotero 的[配置目录说明](https://www.zotero.org/support/kb/profile_directory)。
 
-日志只会追加写入，不会自动轮换。采集干净日志时：
+当前日志达到 5 MiB 时会自动轮换。插件只保留一个名为 `annotation-markdown-debug.log.1` 的备份，因此诊断日志总占用约限制在 10 MiB。采集干净日志时：
 
 1. 关闭 Zotero。
 2. 重命名或删除 `annotation-markdown-debug.log`。
 3. 启动 Zotero，只复现一次问题。
 4. 关闭发生问题的阅读器，使生命周期结束信息写入日志。
+
+Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包含诊断信息，并会在需要时重新创建。
 
 即使性能诊断没有启用，日志中也可能出现部分启动和生命周期消息。详细的 `perf` 和 `edit` 条目只会在上述首选项启用后产生。
 

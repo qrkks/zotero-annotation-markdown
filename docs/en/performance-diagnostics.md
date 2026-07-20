@@ -37,12 +37,14 @@ Linux:   ~/.zotero/zotero/<randomstring>
 
 See Zotero's [profile directory documentation](https://www.zotero.org/support/kb/profile_directory) if more than one profile exists.
 
-The file is append-only and is not rotated automatically. For a clean capture:
+The active log is automatically rotated when it reaches 5 MiB. The add-on keeps one backup named `annotation-markdown-debug.log.1`, so diagnostic storage stays bounded at approximately 10 MiB. For a clean capture:
 
 1. Close Zotero.
 2. Rename or delete `annotation-markdown-debug.log`.
 3. Start Zotero and reproduce the problem once.
 4. Close the affected reader so its final lifecycle entries are written.
+
+Deleting both the active log and its `.1` backup is safe while Zotero is closed. They contain diagnostics only and are recreated when needed.
 
 Some startup and lifecycle messages can appear even when performance diagnostics are disabled. Detailed `perf` and `edit` entries require the preference above.
 

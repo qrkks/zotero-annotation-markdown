@@ -48,6 +48,7 @@ export function createReaderController({
   let renderCacheBytes = 0;
   let offscreenRenderedBytes = 0;
   let activeRenderStrategy;
+  let shutdownCleanupFailures = [];
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
   const windowRef = documentRef?.defaultView ?? globalThis.window;
@@ -204,6 +205,7 @@ export function createReaderController({
     },
 
     stop() {
+      shutdownCleanupFailures = [];
       runShutdownStep(() => observer?.disconnect());
       observer = undefined;
       runShutdownStep(() => visibilityObserver?.disconnect?.());
@@ -259,6 +261,7 @@ export function createReaderController({
       logShutdownCleanup("after", cleanupRoots);
       runShutdownStep(() => styleElement?.remove());
       styleElement = undefined;
+      logShutdownCleanupFailures();
     }
   };
 
@@ -266,7 +269,29 @@ export function createReaderController({
     try {
       callback();
     } catch (error) {
-      logger?.warn?.("Could not fully clean a Zotero Annotation Markdown reader", error);
+      shutdownCleanupFailures.push(getShutdownFailureReason(error));
+    }
+  }
+
+  function getShutdownFailureReason(error) {
+    try {
+      return String(error?.message ?? error ?? "unknown error");
+    } catch {
+      return "unavailable error";
+    }
+  }
+
+  function logShutdownCleanupFailures() {
+    if (shutdownCleanupFailures.length === 0 || !logger?.warn) {
+      return;
+    }
+
+    const reasons = Array.from(new Set(shutdownCleanupFailures)).join(" | ");
+    const summary = `skippedSteps=${shutdownCleanupFailures.length} reasons=${reasons}`;
+    try {
+      logger.warn("Could not fully clean a Zotero Annotation Markdown reader", new Error(summary));
+    } catch {
+      // Diagnostics must never break reader shutdown.
     }
   }
 
