@@ -204,58 +204,89 @@ export function createReaderController({
     },
 
     stop() {
-      observer?.disconnect();
+      runShutdownStep(() => observer?.disconnect());
       observer = undefined;
-      visibilityObserver?.disconnect?.();
+      runShutdownStep(() => visibilityObserver?.disconnect?.());
       visibilityObserver = undefined;
-      if (safetyTimer && windowRef?.clearTimeout) {
-        windowRef.clearTimeout(safetyTimer);
-      }
+      runShutdownStep(() => {
+        if (safetyTimer && windowRef?.clearTimeout) {
+          windowRef.clearTimeout(safetyTimer);
+        }
+      });
       safetyTimer = undefined;
-      if (pasteHandler && root?.removeEventListener) {
-        root.removeEventListener("paste", pasteHandler, true);
-      }
+      runShutdownStep(() => {
+        if (pasteHandler) {
+          root?.removeEventListener?.("paste", pasteHandler, true);
+        }
+      });
       pasteHandler = undefined;
-      if (focusInHandler && root?.removeEventListener) {
-        root.removeEventListener("focusin", focusInHandler, true);
-      }
+      runShutdownStep(() => {
+        if (focusInHandler) {
+          root?.removeEventListener?.("focusin", focusInHandler, true);
+        }
+      });
       focusInHandler = undefined;
-      if (focusOutHandler && root?.removeEventListener) {
-        root.removeEventListener("focusout", focusOutHandler, true);
-      }
+      runShutdownStep(() => {
+        if (focusOutHandler) {
+          root?.removeEventListener?.("focusout", focusOutHandler, true);
+        }
+      });
       focusOutHandler = undefined;
-      if (editingResumeTimer && windowRef?.clearTimeout) {
-        windowRef.clearTimeout(editingResumeTimer);
-      }
+      runShutdownStep(() => {
+        if (editingResumeTimer && windowRef?.clearTimeout) {
+          windowRef.clearTimeout(editingResumeTimer);
+        }
+      });
       editingResumeTimer = undefined;
-      if (pausedMutationDiagnosticsTimer && windowRef?.clearTimeout) {
-        windowRef.clearTimeout(pausedMutationDiagnosticsTimer);
-      }
+      runShutdownStep(() => {
+        if (pausedMutationDiagnosticsTimer && windowRef?.clearTimeout) {
+          windowRef.clearTimeout(pausedMutationDiagnosticsTimer);
+        }
+      });
       pausedMutationDiagnosticsTimer = undefined;
       pausedMutationDiagnostics = undefined;
       pausedComment = undefined;
-      cancelQueuedRendering();
+      runShutdownStep(cancelQueuedRendering);
       lazyRenderDiagnosticSamples = [];
       renderCache.clear();
       renderCacheBytes = 0;
       resetOffscreenRenderedNodes();
-      const cleanupRoots = new Set([
-        root,
-        getReaderRoot(reader),
-        documentRef?.body,
-        reader?.document?.body,
-        reader?.window?.document?.body,
-        reader?._iframeWindow?.document?.body
-      ].filter(Boolean));
+      const cleanupRoots = collectShutdownRoots();
       logShutdownCleanup("before", cleanupRoots);
       for (const cleanupRoot of cleanupRoots) {
-        adapter.clearRenderedState?.(cleanupRoot);
+        runShutdownStep(() => adapter.clearRenderedState?.(cleanupRoot));
       }
       logShutdownCleanup("after", cleanupRoots);
-      styleElement?.remove();
+      runShutdownStep(() => styleElement?.remove());
       styleElement = undefined;
     }
   };
+
+  function runShutdownStep(callback) {
+    try {
+      callback();
+    } catch (error) {
+      logger?.warn?.("Could not fully clean a Zotero Annotation Markdown reader", error);
+    }
+  }
+
+  function collectShutdownRoots() {
+    const cleanupRoots = new Set();
+    const addRoot = (getRoot) => runShutdownStep(() => {
+      const cleanupRoot = getRoot();
+      if (cleanupRoot) {
+        cleanupRoots.add(cleanupRoot);
+      }
+    });
+
+    addRoot(() => root);
+    addRoot(() => getReaderRoot(reader));
+    addRoot(() => documentRef?.body);
+    addRoot(() => reader?.document?.body);
+    addRoot(() => reader?.window?.document?.body);
+    addRoot(() => reader?._iframeWindow?.document?.body);
+    return cleanupRoots;
+  }
 
   function injectStyles() {
     if (!styleText || !documentRef?.head) {
@@ -1021,9 +1052,11 @@ export function createReaderController({
   function collectCleanupNodes(cleanupRoots, selector) {
     const nodes = new Set();
     for (const cleanupRoot of cleanupRoots) {
-      for (const node of cleanupRoot?.querySelectorAll?.(selector) ?? []) {
-        nodes.add(node);
-      }
+      runShutdownStep(() => {
+        for (const node of cleanupRoot?.querySelectorAll?.(selector) ?? []) {
+          nodes.add(node);
+        }
+      });
     }
     return nodes;
   }

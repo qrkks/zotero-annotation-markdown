@@ -54,7 +54,11 @@ export function createReaderRegistry({ controllerFactory }) {
     shutdown() {
       for (const [reader, entry] of entries) {
         entry.stopRequested = true;
-        stopIfRequested(reader, entry);
+        try {
+          stopIfRequested(reader, entry);
+        } catch {
+          entries.delete(reader);
+        }
       }
     },
 

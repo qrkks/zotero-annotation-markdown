@@ -78,6 +78,25 @@ describe("createReaderRegistry", () => {
     expect(stops[1]).toHaveBeenCalledTimes(1);
   });
 
+  test("shutdown continues stopping readers after one controller throws", () => {
+    const deadReaderStop = vi.fn(() => {
+      throw new Error("can't access dead object");
+    });
+    const liveReaderStop = vi.fn();
+    const stops = [deadReaderStop, liveReaderStop];
+    let index = 0;
+    const registry = createReaderRegistry({
+      controllerFactory: () => ({ start: vi.fn(), stop: stops[index++] })
+    });
+
+    registry.register({});
+    registry.register({});
+
+    expect(() => registry.shutdown()).not.toThrow();
+    expect(deadReaderStop).toHaveBeenCalledTimes(1);
+    expect(liveReaderStop).toHaveBeenCalledTimes(1);
+  });
+
   test("refresh updates all active controllers", () => {
     const refreshes = [vi.fn(), vi.fn()];
     let index = 0;

@@ -1058,6 +1058,38 @@ describe("createReaderController", () => {
     expect(document.querySelector("[data-annotation-markdown-source]")).toBeNull();
   });
 
+  test("continues cleaning live reader roots when a stale root throws", async () => {
+    const staleRoot = document.body;
+    const liveDocument = document.implementation.createHTMLDocument("replacement reader");
+    const reader = { document };
+    let staleRootIsDead = false;
+    const clearRenderedState = vi.fn((cleanupRoot) => {
+      if (staleRootIsDead && cleanupRoot === staleRoot) {
+        throw new Error("can't access dead object");
+      }
+    });
+    const controller = createReaderController({
+      reader,
+      adapter: {
+        ...createAnnotationSidebarAdapter({ document }),
+        clearRenderedState
+      },
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+    clearRenderedState.mockClear();
+    reader.document = liveDocument;
+    staleRootIsDead = true;
+
+    expect(() => controller.stop()).not.toThrow();
+    expect(clearRenderedState).toHaveBeenCalledWith(staleRoot);
+    expect(clearRenderedState).toHaveBeenCalledWith(liveDocument.body);
+  });
+
   test("preserves native source DOM structure during editing", async () => {
     vi.useFakeTimers();
     document.body.innerHTML = `
