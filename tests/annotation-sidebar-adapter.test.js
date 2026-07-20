@@ -315,7 +315,7 @@ describe("createAnnotationSidebarAdapter", () => {
       <div data-annotation-id="a1">
         <div class="comment annotation-markdown-editing" data-annotation-markdown-rendered="true" data-annotation-markdown-source="**old**" data-annotation-markdown-suppress-until="9999999999999">
           <div class="content" hidden>**new**</div>
-          <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><p>old</p></div>
+          <div class="annotation-markdown-rendered"><p>old</p></div>
         </div>
       </div>
     `;

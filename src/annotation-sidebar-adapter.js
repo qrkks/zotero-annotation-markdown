@@ -207,7 +207,7 @@ export function createAnnotationSidebarAdapter({
         return;
       }
 
-      for (const preview of root.querySelectorAll(`[${PREVIEW_ATTRIBUTE}='true']`)) {
+      for (const preview of root.querySelectorAll(`[${PREVIEW_ATTRIBUTE}='true'], .annotation-markdown-rendered`)) {
         preview.remove();
       }
 

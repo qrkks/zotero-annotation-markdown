@@ -997,7 +997,7 @@ export function createReaderController({
   }
 
   function logShutdownCleanup(phase, cleanupRoots) {
-    if (!logger?.log) {
+    if (!isPerformanceDiagnosticsEnabled() || !logger?.log) {
       return;
     }
 

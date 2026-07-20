@@ -1034,15 +1034,13 @@ describe("createReaderController", () => {
     document.body.innerHTML = '<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content">**bold**</div></div></div>';
     const adapter = createAnnotationSidebarAdapter({ document });
     const reader = { document };
-    const log = vi.fn();
     const controller = createReaderController({
       reader,
       adapter,
       renderer: { render: (source) => "<p>" + source + "</p>" },
       settings: { isEnabled: () => true },
       MutationObserver: null,
-      IntersectionObserver: null,
-      logger: { log }
+      IntersectionObserver: null
     });
 
     await controller.start();
@@ -1058,12 +1056,6 @@ describe("createReaderController", () => {
     expect(document.querySelector(".content").hidden).toBe(false);
     expect(document.querySelector("[data-annotation-markdown-rendered]")).toBeNull();
     expect(document.querySelector("[data-annotation-markdown-source]")).toBeNull();
-    expect(log).toHaveBeenCalledWith(expect.stringContaining(
-      "shutdown cleanup before roots=2 previews=2 renderedMarkers=2 sourceMarkers=2 hiddenSources=2"
-    ));
-    expect(log).toHaveBeenCalledWith(expect.stringContaining(
-      "shutdown cleanup after roots=2 previews=0 renderedMarkers=0 sourceMarkers=0 hiddenSources=0"
-    ));
   });
 
   test("preserves native source DOM structure during editing", async () => {

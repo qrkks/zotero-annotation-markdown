@@ -98,6 +98,33 @@ describe("createPlugin", () => {
     expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
   });
 
+  test("shutdown removes rendered previews and restores native reader comments", async () => {
+    document.body.innerHTML = '<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content">**bold**</div></div></div>';
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({ Zotero });
+
+    await plugin.startup();
+
+    const comment = document.querySelector(".comment");
+    const source = comment.querySelector(".content");
+    expect(comment.querySelector("[data-annotation-markdown-preview='true']")).not.toBeNull();
+    expect(source.hidden).toBe(true);
+
+    plugin.shutdown();
+
+    expect(comment.querySelector(".annotation-markdown-rendered")).toBeNull();
+    expect(comment.hasAttribute("data-annotation-markdown-rendered")).toBe(false);
+    expect(comment.hasAttribute("data-annotation-markdown-source")).toBe(false);
+    expect(source.hidden).toBe(false);
+  });
+
   test("passes numeric font scale preferences into reader styles", async () => {
     const reader = { document };
     const Zotero = {
