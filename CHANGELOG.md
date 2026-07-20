@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 - 2026-07-20
+
+### Fixed
+
+- Remove rendered previews and restore Zotero's native annotation comments immediately when the plugin is disabled.
+- Clean stale preview nodes left by older or interrupted plugin instances.
+
 ## 0.5.0 - 2026-07-19
 
 ### Added
