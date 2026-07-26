@@ -1,3 +1,9 @@
+/**
+ * Pure annotation text rendering boundary.
+ *
+ * This module normalizes copied text, renders Markdown and optional math, then
+ * sanitizes generated HTML. It does not read or mutate Zotero Reader DOM.
+ */
 import createDOMPurify, { type WindowLike } from "dompurify";
 import MarkdownIt from "markdown-it";
 import markdownItTexmath from "markdown-it-texmath";
@@ -33,6 +39,10 @@ const DEFAULT_MARKDOWN_OPTIONS = {
   typographer: false
 };
 
+/**
+ * Creates a renderer with separate plain and math-capable Markdown engines so
+ * toggling math never leaves texmath rules attached to the plain path.
+ */
 export function createMarkdownRenderer({
   markdown,
   mathMarkdown,

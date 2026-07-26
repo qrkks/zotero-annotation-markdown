@@ -28,7 +28,7 @@ dist/zotero-annotation-markdown.xpi
 pnpm run verify
 ```
 
-该命令会运行自动化测试和 TypeScript 检查、构建插件并打包 XPI。新增源码模块应使用 TypeScript，现有 JavaScript 模块可以逐步迁移。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
+该命令会运行自动化测试和 TypeScript 检查、构建插件并打包 XPI。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
 
 ## 发布检查清单
 

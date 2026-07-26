@@ -1,3 +1,9 @@
+/**
+ * Per-Reader controller ownership and asynchronous lifecycle coordination.
+ *
+ * The registry prevents duplicate controllers and guarantees that a stop
+ * requested during startup is applied after startup settles.
+ */
 import type { ReaderController, ReaderRegistry } from "./types.js";
 
 interface RegistryEntry {
@@ -12,6 +18,7 @@ interface CreateReaderRegistryOptions<Reader> {
   controllerFactory(reader: Reader): ReaderController;
 }
 
+/** Creates a registry that owns at most one controller for each Reader object. */
 export function createReaderRegistry<Reader>({
   controllerFactory
 }: CreateReaderRegistryOptions<Reader>): ReaderRegistry<Reader> {

@@ -1,3 +1,8 @@
+/**
+ * Preference keys, defaults, normalization, and the runtime settings facade.
+ *
+ * Consumers depend on this API instead of reading Zotero.Prefs directly.
+ */
 import type { PreferenceStore } from "./types.js";
 
 export const ENABLED_PREF_KEY = "extensions.annotationMarkdown.enabled";
@@ -10,6 +15,7 @@ export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStr
 export const RENDER_STRATEGIES = ["auto", "eager", "lazy"] as const;
 export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
 
+/** Settings consumed by rendering and preference UI integration. */
 export interface Settings {
   isEnabled(): boolean;
   setEnabled(enabled: boolean): void;
@@ -43,6 +49,10 @@ const DEFAULT_FONT_SCALE_PERCENT = 100;
 const MIN_FONT_SCALE = 0.8;
 const MAX_FONT_SCALE = 1.5;
 
+/**
+ * Creates normalized settings over an injected store, with in-memory fallbacks
+ * for tests and environments where Zotero preferences are unavailable.
+ */
 export function createSettings({
   prefs,
   key = ENABLED_PREF_KEY,

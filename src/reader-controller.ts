@@ -1,3 +1,9 @@
+/**
+ * Rendering lifecycle for one Zotero Reader.
+ *
+ * The controller coordinates discovery, eager/lazy scheduling, editing pauses,
+ * caches, diagnostics, styles, and cleanup through injected boundary objects.
+ */
 import type { AnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
 import type { Settings } from "./settings.js";
 import type { MarkdownRenderer, ReaderController } from "./types.js";
@@ -84,6 +90,12 @@ const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
 
+/**
+ * Creates one controller for one Reader.
+ *
+ * The controller never owns Zotero's source DOM directly; all DOM policy stays
+ * behind `AnnotationSidebarAdapter`.
+ */
 export function createReaderController({
   reader,
   adapter,

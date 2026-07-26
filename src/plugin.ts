@@ -1,3 +1,9 @@
+/**
+ * Zotero-facing composition root.
+ *
+ * This module adapts host APIs, creates per-Reader dependencies, and coordinates
+ * plugin startup and shutdown without implementing rendering or DOM policy.
+ */
 import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
@@ -95,6 +101,12 @@ interface PluginGlobals {
 
 const pluginGlobals = globalThis as unknown as PluginGlobals;
 
+/**
+ * Creates the lifecycle object called by `addon/bootstrap.js`.
+ *
+ * Dependencies are injectable so startup, event compatibility, and cleanup can
+ * be exercised without a live Zotero process.
+ */
 export function createPlugin({
   Zotero = pluginGlobals.Zotero,
   window: windowRef = globalThis.window,

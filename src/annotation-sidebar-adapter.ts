@@ -1,3 +1,9 @@
+/**
+ * Zotero Reader annotation DOM boundary.
+ *
+ * The adapter discovers renderable comments and manages plugin-owned preview
+ * nodes while preserving Zotero's original source and native editor structure.
+ */
 const COMMENT_SELECTORS: string[] = [
   "[data-annotation-comment]",
   ".annotation-comment",
@@ -26,6 +32,7 @@ interface CreateAnnotationSidebarAdapterOptions {
   openLink?(url: string): void;
 }
 
+/** Operations the controller may perform without knowing Zotero's DOM shape. */
 export interface AnnotationSidebarAdapter {
   findCommentNodes(root?: Node | null): HTMLElement[];
   findRenderedCommentNodes(root?: Node | null): HTMLElement[];
@@ -53,6 +60,12 @@ export interface AnnotationSidebarAdapter {
   openLink: ((url: string) => void) | null;
 }
 
+/**
+ * Creates a source-plus-preview adapter scoped to one Reader document.
+ *
+ * Native note editors are excluded even when they contain generic classes such
+ * as `.comment` or `.content`.
+ */
 export function createAnnotationSidebarAdapter({
   document: documentRef = globalThis.document,
   openLink

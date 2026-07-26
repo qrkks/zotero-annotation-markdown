@@ -28,7 +28,7 @@ Run the complete local verification pipeline before a release:
 pnpm run verify
 ```
 
-This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI. New source modules should use TypeScript; existing JavaScript modules can be migrated incrementally. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
+This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI. All modules under `src/` use strict TypeScript; JavaScript under `addon/` remains where Zotero executes files directly, and `scripts/*.mjs` remains Node tooling. See the [architecture and file map](architecture.md) for ownership and runtime boundaries. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
 
 ## Release checklist
 
