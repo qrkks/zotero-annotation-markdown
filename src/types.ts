@@ -7,6 +7,7 @@ export interface PreferenceStore {
 
 export interface ReaderController {
   start(): void | PromiseLike<void>;
+  renderNow(): void;
   stop(): void;
   refresh?(): void;
 }

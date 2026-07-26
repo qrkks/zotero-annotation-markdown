@@ -1,13 +1,10 @@
 import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
-import type { AnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
 import type {
-  MarkdownRenderer,
   PreferenceStore,
-  PreferenceValue,
-  ReaderController
+  PreferenceValue
 } from "./types.js";
 import {
   createSettings,
@@ -18,7 +15,6 @@ import {
   PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   RENDER_STRATEGY_PREF_KEY
 } from "./settings.js";
-import type { Settings } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
 const READER_EVENT = "renderSidebarAnnotationHeader";
@@ -99,21 +95,6 @@ interface PluginGlobals {
 
 const pluginGlobals = globalThis as unknown as PluginGlobals;
 
-interface CreateControllerOptions {
-  reader: ReaderLike;
-  adapter: AnnotationSidebarAdapter;
-  renderer: MarkdownRenderer;
-  settings: Settings;
-  MutationObserver?: typeof MutationObserver;
-  styleText: string;
-  logger: Required<Logger>;
-}
-
-// The controller remains JS for now, so pin its public contract at this boundary.
-const createController = createReaderController as unknown as (
-  options: CreateControllerOptions
-) => ReaderController;
-
 export function createPlugin({
   Zotero = pluginGlobals.Zotero,
   window: windowRef = globalThis.window,
@@ -138,7 +119,7 @@ export function createPlugin({
         const readerWindow = getReaderWindow(reader) ?? windowRef;
         const readerDocument = getReaderDocument(reader) ?? readerWindow?.document;
         const launchURL = Zotero?.launchURL;
-        return createController({
+        return createReaderController({
           reader,
           adapter: createAnnotationSidebarAdapter({
             document: readerDocument,

@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.ts";
-import { createReaderController } from "../src/reader-controller.js";
+import { createReaderController } from "../src/reader-controller.ts";
 
 describe("createReaderController", () => {
   test("renders comments during the initial render pass when enabled", () => {

@@ -1,4 +1,83 @@
-const MAX_RENDER_CACHE_BYTES = 32 * 1024 * 1024;
+import type { AnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
+import type { Settings } from "./settings.js";
+import type { MarkdownRenderer, ReaderController } from "./types.js";
+
+interface ReaderLike {
+  document?: Document | null;
+  window?: Window | null;
+  _iframeWindow?: Window | null;
+  _waitForReader?(): PromiseLike<void> | null;
+  _initPromise?: PromiseLike<void> | null;
+}
+
+interface Logger {
+  log?(message: string): void;
+  warn?(message: string, error?: unknown): void;
+}
+
+interface IdleDeadlineLike {
+  timeRemaining(): number;
+}
+
+type RequestIdleCallbackLike = (
+  callback: (deadline: IdleDeadlineLike) => void,
+  options?: { timeout?: number }
+) => number;
+type CancelIdleCallbackLike = (handle: number) => void;
+type ReaderRoot = Document | HTMLElement;
+type RenderCacheKey = string | HTMLElement;
+type ActiveRenderStrategy = "eager" | "lazy";
+
+interface RenderDiagnosticSample {
+  totalDurationMs: number;
+  markdownDurationMs: number;
+  domDurationMs: number;
+  sourceChars: number;
+  cached: boolean;
+}
+
+interface CachedRender {
+  source: string;
+  mathEnabled: boolean;
+  html: string;
+  sizeBytes?: number;
+}
+
+interface HandleCommentResult {
+  mode: "sync" | "eager" | "lazy";
+  handled: number;
+  filtered: number;
+}
+
+interface PausedMutationDiagnostics {
+  batches: number;
+  mutations: number;
+  childList: number;
+  attributes: number;
+  characterData: number;
+  addedNodes: number;
+  removedNodes: number;
+  activeEditorMutations: number;
+  pluginOwnedMutations: number;
+}
+
+interface CreateReaderControllerOptions {
+  reader: ReaderLike;
+  adapter: AnnotationSidebarAdapter;
+  renderer: MarkdownRenderer;
+  settings: Settings;
+  MutationObserver?: typeof MutationObserver;
+  IntersectionObserver?: typeof IntersectionObserver;
+  styleText?: string;
+  logger?: Logger;
+  now?: () => number;
+  requestIdleCallback?: RequestIdleCallbackLike;
+  cancelIdleCallback?: CancelIdleCallbackLike;
+  renderCacheMaxBytes?: number;
+  offscreenRenderMaxBytes?: number;
+}
+
+const MAX_RENDER_CACHE_BYTES: number = 32 * 1024 * 1024;
 const RENDER_CACHE_ENTRY_OVERHEAD_BYTES = 256;
 const AUTO_EAGER_MAX_ANNOTATIONS = 30;
 const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
@@ -19,44 +98,47 @@ export function createReaderController({
   cancelIdleCallback: cancelIdleCallbackOverride,
   renderCacheMaxBytes: renderCacheMaxBytesOverride = MAX_RENDER_CACHE_BYTES,
   offscreenRenderMaxBytes: offscreenRenderMaxBytesOverride = MAX_RENDER_CACHE_BYTES
-}) {
-  let observer;
-  let visibilityObserver;
-  let styleElement;
-  let safetyTimer;
-  let pasteHandler;
-  let focusInHandler;
-  let focusOutHandler;
-  let editingResumeTimer;
-  let pausedComment;
-  let renderNowCallback;
+}: CreateReaderControllerOptions): ReaderController {
+  let observer: MutationObserver | undefined;
+  let visibilityObserver: IntersectionObserver | undefined;
+  let styleElement: HTMLStyleElement | undefined;
+  let safetyTimer: number | undefined;
+  let pasteHandler: EventListener | undefined;
+  let focusInHandler: EventListener | undefined;
+  let focusOutHandler: EventListener | undefined;
+  let editingResumeTimer: number | undefined;
+  let pausedComment: HTMLElement | undefined;
   let editPauseStartedAt = 0;
-  let pausedMutationDiagnosticsTimer;
-  let pausedMutationDiagnostics;
-  let observedComments = new WeakSet();
-  let visibleComments = new WeakSet();
-  let visibilityKnownComments = new WeakSet();
-  let eagerComments = new WeakSet();
-  let pendingRenderNodes = new Set();
-  let idleRenderHandle;
-  let lazyRenderDiagnosticSamples = [];
-  const renderCache = new Map();
+  let pausedMutationDiagnosticsTimer: number | undefined;
+  let pausedMutationDiagnostics: PausedMutationDiagnostics | undefined;
+  let observedComments = new WeakSet<HTMLElement>();
+  let visibleComments = new WeakSet<HTMLElement>();
+  let visibilityKnownComments = new WeakSet<HTMLElement>();
+  let eagerComments = new WeakSet<HTMLElement>();
+  let pendingRenderNodes = new Set<HTMLElement>();
+  let idleRenderHandle: number | undefined;
+  let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
+  const renderCache = new Map<RenderCacheKey, CachedRender>();
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
-  const renderedNodeWeights = new WeakMap();
-  const offscreenRenderedNodes = new Map();
+  const renderedNodeWeights = new WeakMap<HTMLElement, number>();
+  const offscreenRenderedNodes = new Map<HTMLElement, number>();
   let renderCacheBytes = 0;
   let offscreenRenderedBytes = 0;
-  let activeRenderStrategy;
-  let shutdownCleanupFailures = [];
+  let activeRenderStrategy: ActiveRenderStrategy | undefined;
+  let shutdownCleanupFailures: string[] = [];
+  // Keep the startup root for observation; shutdown also discovers live roots
+  // because Zotero may replace the Reader document body while the plugin runs.
   const root = getReaderRoot(reader);
-  const documentRef = root?.ownerDocument ?? reader?.document ?? globalThis.document;
-  const windowRef = documentRef?.defaultView ?? globalThis.window;
+  const documentRef = root?.ownerDocument ?? reader.document ?? globalThis.document;
+  const windowRef = documentRef.defaultView ?? globalThis.window;
   const IntersectionObserverCtor = IntersectionObserverRef ?? windowRef?.IntersectionObserver ?? globalThis.IntersectionObserver;
-  const requestIdleCallbackRef = requestIdleCallbackOverride ?? windowRef?.requestIdleCallback?.bind(windowRef);
-  const cancelIdleCallbackRef = cancelIdleCallbackOverride ?? windowRef?.cancelIdleCallback?.bind(windowRef);
+  const requestIdleCallbackRef = requestIdleCallbackOverride ??
+    windowRef.requestIdleCallback?.bind(windowRef) as RequestIdleCallbackLike | undefined;
+  const cancelIdleCallbackRef = cancelIdleCallbackOverride ??
+    windowRef.cancelIdleCallback?.bind(windowRef) as CancelIdleCallbackLike | undefined;
 
-  function renderNode(node) {
+  function renderNode(node: HTMLElement): RenderDiagnosticSample | undefined {
     const diagnosticsEnabled = isPerformanceDiagnosticsEnabled();
     const totalStartedAt = diagnosticsEnabled ? nowRef() : 0;
     let markdownDurationMs = 0;
@@ -132,7 +214,7 @@ export function createReaderController({
 
     return undefined;
 
-    function createRenderDiagnosticSample() {
+    function createRenderDiagnosticSample(): RenderDiagnosticSample {
       return {
         totalDurationMs: Math.max(0, nowRef() - totalStartedAt),
         markdownDurationMs,
@@ -201,7 +283,7 @@ export function createReaderController({
         observer = undefined;
       }
       this.renderNow();
-      registerMutationObserver(() => this.renderNow());
+      registerMutationObserver();
     },
 
     stop() {
@@ -265,7 +347,7 @@ export function createReaderController({
     }
   };
 
-  function runShutdownStep(callback) {
+  function runShutdownStep(callback: () => void): void {
     try {
       callback();
     } catch (error) {
@@ -273,15 +355,15 @@ export function createReaderController({
     }
   }
 
-  function getShutdownFailureReason(error) {
+  function getShutdownFailureReason(error: unknown): string {
     try {
-      return String(error?.message ?? error ?? "unknown error");
+      return String(error instanceof Error ? error.message : error ?? "unknown error");
     } catch {
       return "unavailable error";
     }
   }
 
-  function logShutdownCleanupFailures() {
+  function logShutdownCleanupFailures(): void {
     if (shutdownCleanupFailures.length === 0 || !logger?.warn) {
       return;
     }
@@ -295,9 +377,11 @@ export function createReaderController({
     }
   }
 
-  function collectShutdownRoots() {
-    const cleanupRoots = new Set();
-    const addRoot = (getRoot) => runShutdownStep(() => {
+  function collectShutdownRoots(): Set<ReaderRoot> {
+    const cleanupRoots = new Set<ReaderRoot>();
+    const addRoot = (
+      getRoot: () => ReaderRoot | null | undefined
+    ): void => runShutdownStep(() => {
       const cleanupRoot = getRoot();
       if (cleanupRoot) {
         cleanupRoots.add(cleanupRoot);
@@ -313,31 +397,33 @@ export function createReaderController({
     return cleanupRoots;
   }
 
-  function injectStyles() {
+  function injectStyles(): void {
     if (!styleText || !documentRef?.head) {
       return;
     }
 
-    if (!styleElement) {
-      styleElement = documentRef.createElement("style");
-      styleElement.setAttribute("data-annotation-markdown-style", "true");
-      documentRef.head.append(styleElement);
+    let activeStyleElement = styleElement;
+    if (!activeStyleElement) {
+      activeStyleElement = documentRef.createElement("style");
+      activeStyleElement.setAttribute("data-annotation-markdown-style", "true");
+      documentRef.head.append(activeStyleElement);
+      styleElement = activeStyleElement;
     }
 
-    styleElement.textContent = `${styleText}\n${createFontScaleStyle(settings.getFontScale?.() ?? 1)}`;
+    activeStyleElement.textContent =
+      `${styleText}\n${createFontScaleStyle(settings.getFontScale?.() ?? 1)}`;
   }
 
-  function startNow(renderNow) {
-    renderNowCallback = renderNow;
+  function startNow(renderNow: () => void): void {
     injectStyles();
     registerPasteHandler();
     registerEditingPauseHandlers();
     adapter.clearRenderedState?.(root);
     renderNow();
-    registerMutationObserver(renderNow);
+    registerMutationObserver();
   }
 
-  function registerMutationObserver(renderNow) {
+  function registerMutationObserver(): void {
     if (isRenderingPaused()) {
       return;
     }
@@ -355,6 +441,7 @@ export function createReaderController({
 
         const syncNodes = findSyncMutationCommentNodes(mutations, adapter);
         if (syncNodes.length > 0) {
+          // Added annotation subtrees are handled directly to avoid a full sidebar scan.
           handleCommentNodes(syncNodes);
           return;
         }
@@ -372,7 +459,7 @@ export function createReaderController({
     }
   }
 
-  function getReaderReadyPromise() {
+  function getReaderReadyPromise(): PromiseLike<void> | null {
     if (typeof reader?._waitForReader === "function") {
       return reader._waitForReader();
     }
@@ -384,7 +471,7 @@ export function createReaderController({
     return null;
   }
 
-  function scheduleSafetyScan(delay) {
+  function scheduleSafetyScan(delay: number): void {
     if (isRenderingPaused()) {
       return;
     }
@@ -404,7 +491,7 @@ export function createReaderController({
     }, delay);
   }
 
-  function renderNowInternal() {
+  function renderNowInternal(): void {
     if (isRenderingPaused()) {
       return;
     }
@@ -413,7 +500,10 @@ export function createReaderController({
     handleCommentNodes(nodes);
   }
 
-  function handleCommentNodes(nodes, { force = false } = {}) {
+  function handleCommentNodes(
+    nodes: HTMLElement[],
+    { force = false }: { force?: boolean } = {}
+  ): HandleCommentResult {
     if (force || !canLazyRender()) {
       const targetNodes = filterLightweightNodes(nodes, { force });
       return {
@@ -438,7 +528,7 @@ export function createReaderController({
     };
   }
 
-  function renderNodes(nodes) {
+  function renderNodes(nodes: HTMLElement[]): number {
     let handled = 0;
     for (const node of nodes) {
       renderNode(node);
@@ -447,11 +537,11 @@ export function createReaderController({
     return handled;
   }
 
-  function canLazyRender() {
+  function canLazyRender(): boolean {
     return Boolean(root && IntersectionObserverCtor && settings.isEnabled());
   }
 
-  function observeCommentNodes(nodes) {
+  function observeCommentNodes(nodes: HTMLElement[]): number {
     const visibilityObserverRef = getVisibilityObserver();
     if (!visibilityObserverRef) {
       return renderNodes(nodes);
@@ -468,7 +558,7 @@ export function createReaderController({
     return handled;
   }
 
-  function observeAndQueueEagerNodes(nodes) {
+  function observeAndQueueEagerNodes(nodes: HTMLElement[]): number {
     const handled = observeCommentNodes(nodes);
     if (!requestIdleCallbackRef) {
       renderNodes(nodes.filter((node) => !adapter.isRendered(node)));
@@ -486,47 +576,46 @@ export function createReaderController({
     return handled;
   }
 
-  function getVisibilityObserver() {
+  function getVisibilityObserver(): IntersectionObserver | undefined {
     if (visibilityObserver || !IntersectionObserverCtor) {
       return visibilityObserver;
     }
 
-    visibilityObserver = new IntersectionObserverCtor((entries) => {
-      const diagnosticSamples = [];
+    visibilityObserver = new IntersectionObserverCtor((entries: IntersectionObserverEntry[]) => {
+      const diagnosticSamples: RenderDiagnosticSample[] = [];
       for (const entry of entries ?? []) {
-        if (entry?.target) {
-          visibilityKnownComments.add(entry.target);
-        }
-        if (!entry?.isIntersecting) {
-          visibleComments.delete(entry?.target);
-          if (!eagerComments.has(entry?.target)) {
-            pendingRenderNodes.delete(entry?.target);
+        const node = entry.target as HTMLElement;
+        visibilityKnownComments.add(node);
+        if (!entry.isIntersecting) {
+          visibleComments.delete(node);
+          if (!eagerComments.has(node)) {
+            pendingRenderNodes.delete(node);
           }
           if (!isRenderingPaused()) {
-            retainOffscreenRenderedNode(entry?.target);
+            retainOffscreenRenderedNode(node);
           }
           continue;
         }
 
-        removeOffscreenRenderedNode(entry.target);
-        visibleComments.add(entry.target);
+        removeOffscreenRenderedNode(node);
+        visibleComments.add(node);
 
         if (isRenderingPaused()) {
           logEditLifecycle("lazy render skipped while paused");
           continue;
         }
 
-        if (adapter.isRendered(entry.target)) {
-          pendingRenderNodes.delete(entry.target);
-          eagerComments.delete(entry.target);
+        if (adapter.isRendered(node)) {
+          pendingRenderNodes.delete(node);
+          eagerComments.delete(node);
           continue;
         }
 
         if (requestIdleCallbackRef) {
-          pendingRenderNodes.add(entry.target);
+          pendingRenderNodes.add(node);
           scheduleQueuedRendering();
         } else {
-          const diagnosticSample = renderNode(entry.target);
+          const diagnosticSample = renderNode(node);
           if (diagnosticSample) {
             diagnosticSamples.push(diagnosticSample);
           }
@@ -547,18 +636,24 @@ export function createReaderController({
     return visibilityObserver;
   }
 
-  function scheduleQueuedRendering() {
-    if (idleRenderHandle !== undefined || pendingRenderNodes.size === 0 || isRenderingPaused()) {
+  function scheduleQueuedRendering(): void {
+    if (
+      idleRenderHandle !== undefined ||
+      pendingRenderNodes.size === 0 ||
+      isRenderingPaused() ||
+      !requestIdleCallbackRef
+    ) {
       return;
     }
 
-    idleRenderHandle = requestIdleCallbackRef((deadline) => {
+    // Idle work is intentionally bounded so one large sidebar cannot monopolize a frame.
+    idleRenderHandle = requestIdleCallbackRef((deadline: IdleDeadlineLike) => {
       idleRenderHandle = undefined;
       if (isRenderingPaused()) {
         return;
       }
 
-      const diagnosticSamples = [];
+      const diagnosticSamples: RenderDiagnosticSample[] = [];
       let rendered = 0;
       while (rendered < MAX_IDLE_RENDER_BATCH) {
         const node = getNextPendingRenderNode();
@@ -590,18 +685,18 @@ export function createReaderController({
     }, { timeout: 1000 });
   }
 
-  function cancelQueuedRendering() {
+  function cancelQueuedRendering(): void {
     if (idleRenderHandle !== undefined) {
       cancelIdleCallbackRef?.(idleRenderHandle);
       idleRenderHandle = undefined;
     }
     pendingRenderNodes.clear();
-    visibleComments = new WeakSet();
-    visibilityKnownComments = new WeakSet();
-    eagerComments = new WeakSet();
+    visibleComments = new WeakSet<HTMLElement>();
+    visibilityKnownComments = new WeakSet<HTMLElement>();
+    eagerComments = new WeakSet<HTMLElement>();
   }
 
-  function getNextPendingRenderNode() {
+  function getNextPendingRenderNode(): HTMLElement | undefined {
     const eligible = Array.from(pendingRenderNodes)
       .filter((candidate) => visibleComments.has(candidate) || eagerComments.has(candidate));
     return eligible.find(isSelectedComment) ??
@@ -609,36 +704,37 @@ export function createReaderController({
       eligible[0];
   }
 
-  function hasIdleTimeForAnotherRender(deadline) {
+  function hasIdleTimeForAnotherRender(deadline: IdleDeadlineLike): boolean {
     return typeof deadline?.timeRemaining === "function" &&
       deadline.timeRemaining() >= MIN_IDLE_TIME_REMAINING_MS;
   }
 
-  function registerPasteHandler() {
+  function registerPasteHandler(): void {
     if (!root?.addEventListener || pasteHandler) {
       return;
     }
 
-    pasteHandler = (event) => {
-      handlePlainTextPaste(event, adapter, settings, documentRef);
+    pasteHandler = (event: Event) => {
+      handlePlainTextPaste(event as ClipboardEvent, adapter, settings, documentRef);
     };
     root.addEventListener("paste", pasteHandler, true);
   }
 
-  function registerEditingPauseHandlers() {
+  function registerEditingPauseHandlers(): void {
     if (!root?.addEventListener || focusInHandler || focusOutHandler) {
       return;
     }
 
-    focusInHandler = (event) => {
+    focusInHandler = (event: Event) => {
       const comment = adapter.getCommentNodeForTarget?.(event.target);
       if (comment && adapter.isCommentEditorTarget?.(event.target)) {
         pauseRenderingForEditing(comment);
       }
     };
 
-    focusOutHandler = (event) => {
-      if (!pausedComment || !pausedComment.contains?.(event.target)) {
+    focusOutHandler = (event: Event) => {
+      const target = getElementTarget(event.target);
+      if (!pausedComment || !target || !pausedComment.contains(target)) {
         return;
       }
 
@@ -654,7 +750,7 @@ export function createReaderController({
     }
   }
 
-  function pauseRenderingForEditing(comment) {
+  function pauseRenderingForEditing(comment: HTMLElement): void {
     if (pausedComment === comment) {
       return;
     }
@@ -673,6 +769,7 @@ export function createReaderController({
       editingResumeTimer = undefined;
     }
 
+    // Pause both discovery paths globally while Zotero owns an active editor.
     disconnectMutationObserverForEditing();
     disconnectVisibilityObserverForEditing();
     if (adapter.restoreSourceDomForEditing) {
@@ -683,7 +780,7 @@ export function createReaderController({
     logEditLifecycle("pause");
   }
 
-  function scheduleEditingResume(comment) {
+  function scheduleEditingResume(comment: HTMLElement): void {
     if (!windowRef?.setTimeout) {
       resumeRenderingAfterEditing(comment);
       return;
@@ -699,7 +796,7 @@ export function createReaderController({
     }, 0);
   }
 
-  function resumeRenderingAfterEditing(comment) {
+  function resumeRenderingAfterEditing(comment: HTMLElement): void {
     const activeComment = adapter.getCommentNodeForTarget?.(documentRef?.activeElement);
     if (activeComment && adapter.isCommentEditorTarget?.(documentRef.activeElement)) {
       pauseRenderingForEditing(activeComment);
@@ -723,14 +820,17 @@ export function createReaderController({
       );
     }
     restoreLazyObservationAfterEditing();
-    registerMutationObserver(renderNowCallback);
+    registerMutationObserver();
   }
 
-  function isRenderingPaused() {
+  function isRenderingPaused(): boolean {
     return Boolean(pausedComment);
   }
 
-  function filterLightweightNodes(nodes, { force = false } = {}) {
+  function filterLightweightNodes(
+    nodes: HTMLElement[],
+    { force = false }: { force?: boolean } = {}
+  ): HTMLElement[] {
     if (force || !isLightweightModeEnabled()) {
       return nodes;
     }
@@ -747,15 +847,15 @@ export function createReaderController({
     return targetNodes;
   }
 
-  function isPerformanceDiagnosticsEnabled() {
+  function isPerformanceDiagnosticsEnabled(): boolean {
     return Boolean(settings.isPerformanceDiagnosticsEnabled?.());
   }
 
-  function isLightweightModeEnabled() {
+  function isLightweightModeEnabled(): boolean {
     return Boolean(settings.isLightweightModeEnabled?.());
   }
 
-  function getActiveRenderStrategy(nodes) {
+  function getActiveRenderStrategy(nodes: HTMLElement[]): ActiveRenderStrategy {
     if (activeRenderStrategy) {
       return activeRenderStrategy;
     }
@@ -780,7 +880,7 @@ export function createReaderController({
     return activeRenderStrategy;
   }
 
-  function getLightweightMutationObserverOptions() {
+  function getLightweightMutationObserverOptions(): MutationObserverInit {
     if (!isLightweightModeEnabled()) {
       return {};
     }
@@ -791,7 +891,13 @@ export function createReaderController({
     };
   }
 
-  function logRenderDiagnostics(label, nodes, result, startedAt, nativeNoteEditorComments) {
+  function logRenderDiagnostics(
+    label: string,
+    nodes: HTMLElement[],
+    result: HandleCommentResult,
+    startedAt: number,
+    nativeNoteEditorComments: number
+  ): void {
     const durationMs = Math.max(0, nowRef() - startedAt).toFixed(1);
     logger?.log?.(
       `[annotation-markdown] perf ${label} nodes=${nodes.length} handled=${result?.handled ?? 0} ` +
@@ -800,7 +906,7 @@ export function createReaderController({
     );
   }
 
-  function logLazyRenderDiagnostics(samples) {
+  function logLazyRenderDiagnostics(samples: RenderDiagnosticSample[]): void {
     lazyRenderDiagnosticSamples.push(...samples);
     const totals = lazyRenderDiagnosticSamples.map((sample) => sample.totalDurationMs);
     const markdownMs = sumDiagnosticMetric(lazyRenderDiagnosticSamples, "markdownDurationMs");
@@ -823,7 +929,7 @@ export function createReaderController({
     );
   }
 
-  function getCachedRender(node) {
+  function getCachedRender(node: HTMLElement): CachedRender | undefined {
     const key = getRenderCacheKey(node);
     const cached = renderCache.get(key);
     if (!cached) {
@@ -835,7 +941,7 @@ export function createReaderController({
     return cached;
   }
 
-  function setCachedRender(node, cached) {
+  function setCachedRender(node: HTMLElement, cached: CachedRender): void {
     const key = getRenderCacheKey(node);
     removeCachedRender(key);
 
@@ -848,46 +954,54 @@ export function createReaderController({
     renderCache.set(key, { ...cached, sizeBytes });
     renderCacheBytes += sizeBytes;
     while (renderCacheBytes > renderCacheMaxBytes && renderCache.size > 0) {
-      removeCachedRender(renderCache.keys().next().value);
+      const oldestKey = renderCache.keys().next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      removeCachedRender(oldestKey);
     }
   }
 
-  function deleteCachedRender(node) {
+  function deleteCachedRender(node: HTMLElement): void {
     removeCachedRender(getRenderCacheKey(node));
   }
 
-  function removeCachedRender(key) {
+  function removeCachedRender(key: RenderCacheKey): void {
     const cached = renderCache.get(key);
     if (!cached) {
       return;
     }
 
-    renderCacheBytes = Math.max(0, renderCacheBytes - cached.sizeBytes);
+    renderCacheBytes = Math.max(
+      0,
+      renderCacheBytes - (cached.sizeBytes ?? estimateRenderCacheBytes(cached))
+    );
     renderCache.delete(key);
   }
 
-  function getRenderCacheKey(node) {
-    const annotationId = node?.closest?.("[data-annotation-id]")?.getAttribute?.("data-annotation-id");
+  function getRenderCacheKey(node: HTMLElement): RenderCacheKey {
+    const annotationId = node.closest("[data-annotation-id]")
+      ?.getAttribute("data-annotation-id");
     return annotationId ? `annotation:${annotationId}` : node;
   }
 
-  function estimateRenderCacheBytes(cached) {
+  function estimateRenderCacheBytes(cached: CachedRender): number {
     return RENDER_CACHE_ENTRY_OVERHEAD_BYTES +
       (String(cached?.source ?? "").length + String(cached?.html ?? "").length) * 2;
   }
 
-  function getLazyRenderRootMargin() {
+  function getLazyRenderRootMargin(): string {
     const viewportHeight = Number(windowRef?.innerHeight) || 600;
     return `${Math.max(1200, viewportHeight * 2)}px 0px`;
   }
 
-  function isSelectedComment(node) {
-    return Boolean(node?.closest?.(
+  function isSelectedComment(node: HTMLElement): boolean {
+    return Boolean(node.closest(
       ".annotation.selected,.annotation-row.selected,[data-annotation-id].selected,[aria-selected='true']"
     ));
   }
 
-  function retainOffscreenRenderedNode(node) {
+  function retainOffscreenRenderedNode(node: HTMLElement): void {
     removeOffscreenRenderedNode(node);
     if (!node || !adapter.isRendered(node) || isSelectedComment(node)) {
       return;
@@ -899,12 +1013,20 @@ export function createReaderController({
 
     while (offscreenRenderedBytes > offscreenRenderMaxBytes && offscreenRenderedNodes.size > 0) {
       const oldestNode = offscreenRenderedNodes.keys().next().value;
+      if (!oldestNode) {
+        break;
+      }
       removeOffscreenRenderedNode(oldestNode);
       adapter.releaseRenderedHtml?.(oldestNode);
     }
   }
 
-  function removeOffscreenRenderedNode(node) {
+  function removeOffscreenRenderedNode(
+    node: HTMLElement | null | undefined
+  ): void {
+    if (!node) {
+      return;
+    }
     const sizeBytes = offscreenRenderedNodes.get(node);
     if (sizeBytes === undefined) {
       return;
@@ -914,12 +1036,12 @@ export function createReaderController({
     offscreenRenderedNodes.delete(node);
   }
 
-  function resetOffscreenRenderedNodes() {
+  function resetOffscreenRenderedNodes(): void {
     offscreenRenderedNodes.clear();
     offscreenRenderedBytes = 0;
   }
 
-  function disconnectMutationObserverForEditing() {
+  function disconnectMutationObserverForEditing(): void {
     if (!observer) {
       return;
     }
@@ -928,7 +1050,7 @@ export function createReaderController({
     observer = undefined;
   }
 
-  function disconnectVisibilityObserverForEditing() {
+  function disconnectVisibilityObserverForEditing(): void {
     cancelQueuedRendering();
     if (!visibilityObserver) {
       return;
@@ -936,10 +1058,10 @@ export function createReaderController({
 
     visibilityObserver.disconnect?.();
     visibilityObserver = undefined;
-    observedComments = new WeakSet();
+    observedComments = new WeakSet<HTMLElement>();
   }
 
-  function restoreLazyObservationAfterEditing() {
+  function restoreLazyObservationAfterEditing(): void {
     if (!canLazyRender()) {
       return;
     }
@@ -947,7 +1069,7 @@ export function createReaderController({
     handleCommentNodes(adapter.findCommentNodes(root));
   }
 
-  function logEditLifecycle(action) {
+  function logEditLifecycle(action: string): void {
     if (!isPerformanceDiagnosticsEnabled()) {
       return;
     }
@@ -962,7 +1084,7 @@ export function createReaderController({
     );
   }
 
-  function recordPausedMutations(mutations = []) {
+  function recordPausedMutations(mutations: MutationRecord[] = []): void {
     if (!isPerformanceDiagnosticsEnabled()) {
       return;
     }
@@ -1005,7 +1127,7 @@ export function createReaderController({
     schedulePausedMutationDiagnosticsFlush();
   }
 
-  function schedulePausedMutationDiagnosticsFlush() {
+  function schedulePausedMutationDiagnosticsFlush(): void {
     if (pausedMutationDiagnosticsTimer) {
       return;
     }
@@ -1021,7 +1143,7 @@ export function createReaderController({
     }, 250);
   }
 
-  function flushPausedMutationDiagnostics() {
+  function flushPausedMutationDiagnostics(): void {
     if (!pausedMutationDiagnostics) {
       return;
     }
@@ -1036,7 +1158,7 @@ export function createReaderController({
     );
   }
 
-  function countCommentNodesForDiagnostics() {
+  function countCommentNodesForDiagnostics(): number {
     try {
       return adapter.findCommentNodes?.(root)?.length ?? 0;
     } catch {
@@ -1044,7 +1166,7 @@ export function createReaderController({
     }
   }
 
-  function countNodes(selector) {
+  function countNodes(selector: string): number {
     try {
       return root?.querySelectorAll?.(selector)?.length ?? 0;
     } catch {
@@ -1052,7 +1174,10 @@ export function createReaderController({
     }
   }
 
-  function logShutdownCleanup(phase, cleanupRoots) {
+  function logShutdownCleanup(
+    phase: string,
+    cleanupRoots: Set<ReaderRoot>
+  ): void {
     if (!isPerformanceDiagnosticsEnabled() || !logger?.log) {
       return;
     }
@@ -1074,8 +1199,11 @@ export function createReaderController({
     );
   }
 
-  function collectCleanupNodes(cleanupRoots, selector) {
-    const nodes = new Set();
+  function collectCleanupNodes(
+    cleanupRoots: Set<ReaderRoot>,
+    selector: string
+  ): Set<Element> {
+    const nodes = new Set<Element>();
     for (const cleanupRoot of cleanupRoots) {
       runShutdownStep(() => {
         for (const node of cleanupRoot?.querySelectorAll?.(selector) ?? []) {
@@ -1087,11 +1215,16 @@ export function createReaderController({
   }
 }
 
-function createFontScaleStyle(fontScale) {
+function createFontScaleStyle(fontScale: number): string {
   return `.annotation-markdown-rendered { --annotation-markdown-font-scale: ${fontScale}em; }`;
 }
 
-function handlePlainTextPaste(event, adapter, settings, documentRef) {
+function handlePlainTextPaste(
+  event: ClipboardEvent,
+  adapter: AnnotationSidebarAdapter,
+  settings: Settings,
+  documentRef: Document
+): void {
   if (!settings.isPlainTextPasteEnabled?.()) {
     return;
   }
@@ -1100,35 +1233,52 @@ function handlePlainTextPaste(event, adapter, settings, documentRef) {
     return;
   }
 
-  const text = event.clipboardData?.getData?.("text/plain");
+  const text = event.clipboardData?.getData("text/plain");
   if (typeof text !== "string" || text.length === 0) {
     return;
   }
 
   if (insertPlainText(event.target, text, documentRef)) {
-    event.preventDefault?.();
+    event.preventDefault();
   }
 }
 
-function insertPlainText(target, text, documentRef) {
+function insertPlainText(
+  target: EventTarget | null,
+  text: string,
+  documentRef: Document
+): boolean {
   const targetElement = getElementTarget(target);
-  const editor = targetElement?.closest?.("textarea,input,[contenteditable='true'],[tabindex]");
+  const editor = targetElement?.closest(
+    "textarea,input,[contenteditable='true'],[tabindex]"
+  );
   if (!editor) {
     return false;
   }
 
-  if (editor.matches?.("textarea,input")) {
+  if (isTextControl(editor)) {
     insertIntoTextControl(editor, text, documentRef);
     return true;
   }
 
+  if (!isHTMLElement(editor)) {
+    return false;
+  }
   insertIntoEditableElement(editor, text, documentRef);
   return true;
 }
 
-function insertIntoTextControl(control, text, documentRef) {
-  const start = Number.isInteger(control.selectionStart) ? control.selectionStart : String(control.value ?? "").length;
-  const end = Number.isInteger(control.selectionEnd) ? control.selectionEnd : start;
+function insertIntoTextControl(
+  control: HTMLInputElement | HTMLTextAreaElement,
+  text: string,
+  documentRef: Document
+): void {
+  const start = typeof control.selectionStart === "number"
+    ? control.selectionStart
+    : String(control.value ?? "").length;
+  const end = typeof control.selectionEnd === "number"
+    ? control.selectionEnd
+    : start;
 
   if (typeof control.setRangeText === "function") {
     control.setRangeText(text, start, end, "end");
@@ -1140,9 +1290,13 @@ function insertIntoTextControl(control, text, documentRef) {
   dispatchInputEvent(control, text, documentRef);
 }
 
-function insertIntoEditableElement(editor, text, documentRef) {
+function insertIntoEditableElement(
+  editor: HTMLElement,
+  text: string,
+  documentRef: Document
+): void {
   const doc = editor.ownerDocument ?? documentRef;
-  if (typeof doc?.execCommand === "function" && doc.execCommand("insertText", false, text)) {
+  if (typeof doc.execCommand === "function" && doc.execCommand("insertText", false, text)) {
     dispatchInputEvent(editor, text, doc);
     return;
   }
@@ -1150,7 +1304,7 @@ function insertIntoEditableElement(editor, text, documentRef) {
   const selection = doc?.defaultView?.getSelection?.();
   const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
 
-  if (range && editor.contains(range.commonAncestorContainer)) {
+  if (selection && range && editor.contains(range.commonAncestorContainer)) {
     range.deleteContents();
     range.insertNode(doc.createTextNode(text));
     range.collapse(false);
@@ -1163,32 +1317,56 @@ function insertIntoEditableElement(editor, text, documentRef) {
   dispatchInputEvent(editor, text, doc);
 }
 
-function dispatchInputEvent(target, text, documentRef) {
-  const InputEventRef = documentRef?.defaultView?.InputEvent ?? globalThis.InputEvent;
-  const EventRef = documentRef?.defaultView?.Event ?? globalThis.Event;
+function dispatchInputEvent(
+  target: EventTarget,
+  text: string,
+  documentRef: Document
+): void {
+  const InputEventRef = documentRef.defaultView?.InputEvent ?? globalThis.InputEvent;
+  const EventRef = documentRef.defaultView?.Event ?? globalThis.Event;
   const event = typeof InputEventRef === "function"
     ? new InputEventRef("input", { bubbles: true, inputType: "insertFromPaste", data: text })
     : new EventRef("input", { bubbles: true });
-  target.dispatchEvent?.(event);
+  target.dispatchEvent(event);
 }
 
-function getElementTarget(target) {
-  if (!target) {
+function getElementTarget(target: EventTarget | null | undefined): Element | null {
+  if (
+    !target ||
+    typeof target !== "object" ||
+    !("nodeType" in target)
+  ) {
     return null;
   }
 
-  return target.nodeType === 1 ? target : target.parentElement;
+  const node = target as Node;
+  return node.nodeType === 1 ? node as Element : node.parentElement;
 }
 
-function now() {
+function isTextControl(
+  element: Element
+): element is HTMLInputElement | HTMLTextAreaElement {
+  return element.tagName === "INPUT" || element.tagName === "TEXTAREA";
+}
+
+function isHTMLElement(value: Element): value is HTMLElement {
+  return "style" in value && "hidden" in value;
+}
+
+function now(): number {
   return globalThis.performance?.now?.() ?? Date.now();
 }
 
-function sumDiagnosticMetric(samples, key) {
+type NumericDiagnosticKey = Exclude<keyof RenderDiagnosticSample, "cached">;
+
+function sumDiagnosticMetric(
+  samples: RenderDiagnosticSample[],
+  key: NumericDiagnosticKey
+): number {
   return samples.reduce((sum, sample) => sum + (Number(sample?.[key]) || 0), 0);
 }
 
-function percentile(values, ratio) {
+function percentile(values: number[], ratio: number): number {
   if (values.length === 0) {
     return 0;
   }
@@ -1198,9 +1376,12 @@ function percentile(values, ratio) {
   return sorted[index];
 }
 
-function findSyncMutationCommentNodes(mutations = [], adapter) {
-  const found = [];
-  const seen = new Set();
+function findSyncMutationCommentNodes(
+  mutations: MutationRecord[] = [],
+  adapter: AnnotationSidebarAdapter
+): HTMLElement[] {
+  const found: HTMLElement[] = [];
+  const seen = new Set<HTMLElement>();
 
   for (const mutation of mutations) {
     for (const root of Array.from(mutation.addedNodes ?? [])) {
@@ -1220,17 +1401,21 @@ function findSyncMutationCommentNodes(mutations = [], adapter) {
   return found;
 }
 
-function isPotentialAddedCommentRoot(node) {
+function isPotentialAddedCommentRoot(node: Node | null): boolean {
+  const element = getElementTarget(node);
   return Boolean(
-    node?.nodeType === 1 &&
+    element &&
     (
-      node.matches?.(".annotation-row, .annotation, .comment, .annotation-comment, [data-annotation-id], [data-annotation-comment]") ||
-      node.querySelector?.(".comment, .annotation-comment, [data-annotation-comment]")
+      element.matches(".annotation-row, .annotation, .comment, .annotation-comment, [data-annotation-id], [data-annotation-comment]") ||
+      element.querySelector(".comment, .annotation-comment, [data-annotation-comment]")
     )
   );
 }
 
-function mutationNeedsSafetyScan(mutations = [], documentRef = globalThis.document) {
+function mutationNeedsSafetyScan(
+  mutations: MutationRecord[] = [],
+  documentRef: Document = globalThis.document
+): boolean {
   return mutations.some((mutation) => (
     !isPluginOwnedMutation(mutation) &&
     !isMutationInsideActiveCommentEditor(mutation, documentRef) && (
@@ -1241,62 +1426,77 @@ function mutationNeedsSafetyScan(mutations = [], documentRef = globalThis.docume
   ));
 }
 
-function isPluginOwnedMutation(mutation) {
+function isPluginOwnedMutation(mutation: MutationRecord): boolean {
   const changedNodes = [
     ...Array.from(mutation?.addedNodes ?? []),
     ...Array.from(mutation?.removedNodes ?? [])
   ];
 
   return changedNodes.length > 0 && (
-    changedNodes.every((node) => node.nodeType !== 1 || isPluginOwnedNode(node)) ||
-    (isPluginManagedNode(mutation.target) && changedNodes.every((node) => node.nodeType !== 1 || isPluginOwnedNode(node)))
+    changedNodes.every(
+      (node) => node === null || node.nodeType !== 1 || isPluginOwnedNode(node)
+    ) ||
+    (
+      isPluginManagedNode(mutation.target) &&
+      changedNodes.every(
+        (node) => node === null || node.nodeType !== 1 || isPluginOwnedNode(node)
+      )
+    )
   );
 }
 
-function isPluginOwnedNode(node) {
-  return Boolean(
-    node?.getAttribute?.("data-annotation-markdown-preview") === "true" ||
-    node?.getAttribute?.("data-annotation-markdown-source-node") === "true" ||
-    node?.closest?.("[data-annotation-markdown-preview='true'], [data-annotation-markdown-source-node='true']")
-  );
-}
-
-function isPluginManagedNode(node) {
-  return Boolean(
-    node?.getAttribute?.("data-annotation-markdown-rendered") === "true" ||
-    node?.hasAttribute?.("data-annotation-markdown-source") ||
-    node?.closest?.("[data-annotation-markdown-rendered='true'], [data-annotation-markdown-source]")
-  );
-}
-
-function isAnnotationMutationTarget(node) {
+function isPluginOwnedNode(node: Node | null): boolean {
   const element = getElementTarget(node);
-  return Boolean(element?.closest?.("[data-annotation-id], .annotation, .annotation-row, .comment"));
-}
-
-function isLightweightRenderTarget(node, documentRef) {
-  const activeElement = documentRef?.activeElement;
   return Boolean(
-    node?.contains?.(activeElement) ||
-    node?.classList?.contains("annotation-markdown-editing") ||
-    node?.closest?.("[data-annotation-id].selected, .annotation.selected, .annotation-row.selected, [aria-selected='true']")
+    element?.getAttribute("data-annotation-markdown-preview") === "true" ||
+    element?.getAttribute("data-annotation-markdown-source-node") === "true" ||
+    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-source-node='true']")
   );
 }
 
-function isMutationInsideActiveCommentEditor(mutation, documentRef) {
+function isPluginManagedNode(node: Node | null): boolean {
+  const element = getElementTarget(node);
+  return Boolean(
+    element?.getAttribute("data-annotation-markdown-rendered") === "true" ||
+    element?.hasAttribute("data-annotation-markdown-source") ||
+    element?.closest("[data-annotation-markdown-rendered='true'], [data-annotation-markdown-source]")
+  );
+}
+
+function isAnnotationMutationTarget(node: Node | null): boolean {
+  const element = getElementTarget(node);
+  return Boolean(element?.closest("[data-annotation-id], .annotation, .annotation-row, .comment"));
+}
+
+function isLightweightRenderTarget(
+  node: HTMLElement,
+  documentRef: Document
+): boolean {
+  const activeElement = documentRef.activeElement;
+  return Boolean(
+    (activeElement && node.contains(activeElement)) ||
+    node.classList.contains("annotation-markdown-editing") ||
+    node.closest("[data-annotation-id].selected, .annotation.selected, .annotation-row.selected, [aria-selected='true']")
+  );
+}
+
+function isMutationInsideActiveCommentEditor(
+  mutation: MutationRecord,
+  documentRef: Document
+): boolean {
   const element = getElementTarget(mutation.target);
-  const comment = element?.closest?.(".comment, .annotation-comment, [data-annotation-comment]");
+  const comment = element?.closest(".comment, .annotation-comment, [data-annotation-comment]");
   if (!comment) {
     return false;
   }
 
-  const activeElement = documentRef?.activeElement;
+  const activeElement = documentRef.activeElement;
   const hasFocusInside = Boolean(activeElement && activeElement !== documentRef.body && comment.contains(activeElement));
-  const isEditing = comment.classList?.contains("annotation-markdown-editing");
+  const isEditing = comment.classList.contains("annotation-markdown-editing");
   return hasFocusInside || isEditing;
 }
 
-function getReaderRoot(reader) {
+function getReaderRoot(reader: ReaderLike): ReaderRoot | null {
   return (
     reader?.document?.body ??
     reader?.document ??
@@ -1306,19 +1506,19 @@ function getReaderRoot(reader) {
   );
 }
 
-function summarizeDom(root) {
-  if (!root?.querySelectorAll) {
+function summarizeDom(root: ReaderRoot | null): string {
+  if (!root) {
     return "no root";
   }
 
   return Array.from(root.querySelectorAll("[class], [data-annotation-id], [data-id], [data-key]"))
     .slice(0, 80)
     .map((node) => {
-      const tag = node.tagName?.toLowerCase?.() ?? "node";
-      const className = node.getAttribute?.("class");
-      const dataAnnotationId = node.getAttribute?.("data-annotation-id");
-      const dataId = node.getAttribute?.("data-id");
-      const dataKey = node.getAttribute?.("data-key");
+      const tag = node.tagName.toLowerCase();
+      const className = node.getAttribute("class");
+      const dataAnnotationId = node.getAttribute("data-annotation-id");
+      const dataId = node.getAttribute("data-id");
+      const dataKey = node.getAttribute("data-key");
       return [
         tag,
         className ? `.${String(className).trim().replace(/\s+/g, ".")}` : "",
@@ -1330,12 +1530,15 @@ function summarizeDom(root) {
     .join(" ");
 }
 
-function summarizeNodes(adapter, nodes) {
+function summarizeNodes(
+  adapter: AnnotationSidebarAdapter,
+  nodes: HTMLElement[]
+): string {
   return nodes
     .slice(0, 12)
     .map((node) => {
-      const tag = node.tagName?.toLowerCase?.() ?? "node";
-      const className = node.getAttribute?.("class");
+      const tag = node.tagName.toLowerCase();
+      const className = node.getAttribute("class");
       const source = adapter.getSourceText(node)
         .replaceAll("\r", "\\r")
         .replaceAll("\n", "\\n")
