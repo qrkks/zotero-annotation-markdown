@@ -5,12 +5,11 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["zotero-types"],
-    "allowJs": true,
-    "checkJs": false,
+    "allowJs": false,
     "noEmit": true,
     "strict": true,
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "scripts/**/*", "vitest.config.mjs"]
+  "include": ["src/**/*"]
 }
