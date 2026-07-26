@@ -1,3 +1,5 @@
+import type { PreferenceStore } from "./types.js";
+
 export const ENABLED_PREF_KEY = "extensions.annotationMarkdown.enabled";
 export const FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.fontScalePercent";
 export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.pasteAsPlainText";
@@ -5,7 +7,37 @@ export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled"
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
-export const RENDER_STRATEGIES = ["auto", "eager", "lazy"];
+export const RENDER_STRATEGIES = ["auto", "eager", "lazy"] as const;
+export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
+
+export interface Settings {
+  isEnabled(): boolean;
+  setEnabled(enabled: boolean): void;
+  getFontScale(): number;
+  setFontScale(fontScale: number): void;
+  isPlainTextPasteEnabled(): boolean;
+  setPlainTextPasteEnabled(enabled: boolean): void;
+  isMathEnabled(): boolean;
+  setMathEnabled(enabled: boolean): void;
+  isPerformanceDiagnosticsEnabled(): boolean;
+  setPerformanceDiagnosticsEnabled(enabled: boolean): void;
+  isLightweightModeEnabled(): boolean;
+  setLightweightModeEnabled(enabled: boolean): void;
+  getRenderStrategy(): RenderStrategy;
+  setRenderStrategy(strategy: RenderStrategy): void;
+}
+
+interface CreateSettingsOptions {
+  prefs?: PreferenceStore;
+  key?: string;
+  fontScalePercentKey?: string;
+  pasteAsPlainTextKey?: string;
+  mathEnabledKey?: string;
+  performanceDiagnosticsKey?: string;
+  lightweightModeKey?: string;
+  renderStrategyKey?: string;
+}
+
 const DEFAULT_FONT_SCALE = 1;
 const DEFAULT_FONT_SCALE_PERCENT = 100;
 const MIN_FONT_SCALE = 0.8;
@@ -20,14 +52,14 @@ export function createSettings({
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY
-} = {}) {
+}: CreateSettingsOptions = {}): Settings {
   let memoryEnabled = true;
   let memoryFontScale = DEFAULT_FONT_SCALE;
   let memoryPlainTextPaste = true;
   let memoryMathEnabled = true;
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
-  let memoryRenderStrategy = "auto";
+  let memoryRenderStrategy: RenderStrategy = "auto";
 
   return {
     isEnabled() {
@@ -158,12 +190,12 @@ export function createSettings({
   };
 }
 
-function normalizeRenderStrategy(value) {
-  return RENDER_STRATEGIES.includes(value) ? value : "auto";
+function normalizeRenderStrategy(value: unknown): RenderStrategy {
+  return RENDER_STRATEGIES.includes(value as RenderStrategy) ? (value as RenderStrategy) : "auto";
 }
 
-function normalizeFontScalePercent(value) {
-  const number = Number.parseInt(value, 10);
+function normalizeFontScalePercent(value: unknown): number {
+  const number = Number.parseInt(String(value), 10);
   if (!Number.isFinite(number)) {
     return DEFAULT_FONT_SCALE;
   }
@@ -171,8 +203,8 @@ function normalizeFontScalePercent(value) {
   return normalizeFontScale(number / 100);
 }
 
-function normalizeFontScale(value) {
-  const number = Number.parseFloat(value);
+function normalizeFontScale(value: unknown): number {
+  const number = Number.parseFloat(String(value));
   if (!Number.isFinite(number)) {
     return DEFAULT_FONT_SCALE;
   }

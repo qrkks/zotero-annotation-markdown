@@ -1,7 +1,7 @@
 import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
-import { createReaderRegistry } from "./reader-registry.js";
+import { createReaderRegistry } from "./reader-registry.ts";
 import {
   createSettings,
   ENABLED_PREF_KEY,
@@ -10,7 +10,7 @@ import {
   MATH_ENABLED_PREF_KEY,
   PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   RENDER_STRATEGY_PREF_KEY
-} from "./settings.js";
+} from "./settings.ts";
 
 export const PLUGIN_ID = "annotation-markdown@local";
 const READER_EVENT = "renderSidebarAnnotationHeader";

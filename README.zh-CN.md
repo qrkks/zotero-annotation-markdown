@@ -33,10 +33,10 @@
 ## 快速开发
 
 ```powershell
-npm install
-npm test
-npm run build
-npm run package
+pnpm install
+pnpm test
+pnpm run build
+pnpm run package
 ```
 
 打包后的插件位于 `dist/zotero-annotation-markdown.xpi`。

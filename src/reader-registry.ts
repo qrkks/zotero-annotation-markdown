@@ -1,5 +1,21 @@
-export function createReaderRegistry({ controllerFactory }) {
-  const entries = new Map();
+import type { ReaderController, ReaderRegistry } from "./types.js";
+
+interface RegistryEntry {
+  controller: ReaderController;
+  started: boolean;
+  stopRequested: boolean;
+  stopCalled: boolean;
+  startPromise: PromiseLike<void>;
+}
+
+interface CreateReaderRegistryOptions<Reader> {
+  controllerFactory(reader: Reader): ReaderController;
+}
+
+export function createReaderRegistry<Reader>({
+  controllerFactory
+}: CreateReaderRegistryOptions<Reader>): ReaderRegistry<Reader> {
+  const entries = new Map<Reader, RegistryEntry>();
 
   return {
     register(reader) {
@@ -13,12 +29,12 @@ export function createReaderRegistry({ controllerFactory }) {
       }
 
       const controller = controllerFactory(reader);
-      const entry = {
+      const entry: RegistryEntry = {
         controller,
         started: false,
         stopRequested: false,
         stopCalled: false,
-        startPromise: undefined
+        startPromise: Promise.resolve()
       };
       entries.set(reader, entry);
 
@@ -71,7 +87,7 @@ export function createReaderRegistry({ controllerFactory }) {
     }
   };
 
-  function stopIfRequested(reader, entry) {
+  function stopIfRequested(reader: Reader, entry: RegistryEntry): void {
     if (!entry.stopRequested || !entry.started || entry.stopCalled) {
       return;
     }
@@ -82,6 +98,6 @@ export function createReaderRegistry({ controllerFactory }) {
   }
 }
 
-function isPromiseLike(value) {
-  return Boolean(value && typeof value.then === "function");
+function isPromiseLike(value: unknown): value is PromiseLike<void> {
+  return Boolean(value && typeof (value as PromiseLike<void>).then === "function");
 }

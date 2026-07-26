@@ -33,10 +33,10 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 ## Quick development
 
 ```powershell
-npm install
-npm test
-npm run build
-npm run package
+pnpm install
+pnpm test
+pnpm run build
+pnpm run package
 ```
 
 The packaged add-on is generated at `dist/zotero-annotation-markdown.xpi`.

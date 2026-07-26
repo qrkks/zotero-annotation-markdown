@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createReaderRegistry } from "../src/reader-registry.js";
+import { createReaderRegistry } from "../src/reader-registry.ts";
 
 describe("createReaderRegistry", () => {
   test("starts one controller per reader and avoids duplicate registration", () => {

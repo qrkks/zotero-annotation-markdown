@@ -4,23 +4,28 @@
   "description": "Render Zotero reader annotation comments as Markdown with LaTeX math.",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "docs:check": "node scripts/check-docs.mjs",
     "build": "node scripts/build.mjs",
-    "package": "npm run build && node scripts/package.mjs",
-    "verify": "npm test && npm run docs:check && npm run build && npm run package"
+    "package": "pnpm run build && node scripts/package.mjs",
+    "verify": "pnpm test && pnpm run typecheck && pnpm run docs:check && pnpm run build && pnpm run package"
   },
   "dependencies": {
-    "dompurify": "^3.3.1",
+    "dompurify": "^3.4.12",
     "katex": "^0.17.0",
-    "markdown-it": "^14.1.0",
+    "markdown-it": "^14.3.0",
     "markdown-it-texmath": "^1.0.0"
   },
   "devDependencies": {
-    "@zip.js/zip.js": "^2.8.11",
-    "esbuild": "^0.27.1",
-    "jsdom": "^27.2.0",
-    "vitest": "^4.0.15"
+    "@zip.js/zip.js": "^2.8.34",
+    "esbuild": "^0.28.1",
+    "jsdom": "^27.4.0",
+    "typescript": "^7.0.2",
+    "vite": "8.0.16",
+    "vitest": "^4.1.10",
+    "zotero-types": "^4.1.3"
   }
 }

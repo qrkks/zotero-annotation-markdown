@@ -1,0 +1,6 @@
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  es5-ext: false

@@ -5,10 +5,11 @@
 ## Local development
 
 ```powershell
-npm install
-npm test
-npm run build
-npm run package
+pnpm install
+pnpm test
+pnpm run typecheck
+pnpm run build
+pnpm run package
 ```
 
 The packaged add-on is generated at:
@@ -24,16 +25,16 @@ Install it through Zotero's plugin manager for real-reader validation.
 Run the complete local verification pipeline before a release:
 
 ```powershell
-npm run verify
+pnpm run verify
 ```
 
-This runs the automated tests, builds the add-on, and packages the XPI. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
+This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI. New source modules should use TypeScript; existing JavaScript modules can be migrated incrementally. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
 
 ## Release checklist
 
-1. Update the version in `package.json`, `package-lock.json`, and `addon/manifest.json`.
+1. Update the version in `package.json`, `pnpm-lock.yaml`, and `addon/manifest.json`.
 2. Update `CHANGELOG.md` and both languages of any affected documentation.
-3. Run `npm run verify`.
+3. Run `pnpm run verify`.
 4. Create a GitHub release named `v<version>` and upload `dist/zotero-annotation-markdown.xpi`.
 5. Commit and push the generated `updates.json` so Zotero can discover the release.
 

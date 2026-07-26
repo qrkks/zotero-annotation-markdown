@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createSettings } from "../src/settings.js";
+import { createSettings } from "../src/settings.ts";
 
 describe("createSettings", () => {
   test("defaults to enabled without a preference service", () => {
