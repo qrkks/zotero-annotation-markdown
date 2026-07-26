@@ -11,6 +11,10 @@ export interface ReaderController {
   refresh?(): void;
 }
 
+export interface MarkdownRenderer {
+  render(source: unknown): string;
+}
+
 export interface ReaderRegistry<Reader> {
   register(reader: Reader | null | undefined): PromiseLike<void>;
   unregister(reader: Reader): void;

@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createMarkdownRenderer } from "../src/markdown-renderer.js";
+import { createMarkdownRenderer } from "../src/markdown-renderer.ts";
 
 describe("createMarkdownRenderer", () => {
   test("preserves single line breaks as visible breaks", () => {
@@ -32,6 +32,20 @@ describe("createMarkdownRenderer", () => {
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
     expect(html).toContain("&lt;script");
+  });
+
+  test("sanitizes HTML returned by an injected Markdown renderer", () => {
+    const renderer = createMarkdownRenderer({
+      markdown: {
+        render: () => '<p>safe</p><img src="x" onerror="alert(1)">',
+        use: vi.fn()
+      }
+    });
+
+    const html = renderer.render("ignored");
+
+    expect(html).toContain("<p>safe</p>");
+    expect(html).not.toContain("onerror");
   });
 
   test("falls back to escaped plain text if markdown rendering throws", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createPlugin } from "../src/plugin.js";
+import { createPlugin } from "../src/plugin.ts";
 
 describe("createPlugin", () => {
   test("startup registers existing readers and reader event listener", () => {
@@ -267,6 +267,27 @@ describe("createPlugin", () => {
     handler({ reader: { id: "reader-1" } });
 
     expect(register).toHaveBeenCalledWith({ id: "reader-1" });
+  });
+
+  test("reader events also accept a bare reader payload", () => {
+    const register = vi.fn();
+    const Zotero = {
+      Reader: {
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ register, shutdown: vi.fn() })
+    });
+
+    plugin.startup();
+    const handler = Zotero.Reader.registerEventListener.mock.calls[0][1];
+    const reader = { id: "reader-1" };
+    handler(reader);
+
+    expect(register).toHaveBeenCalledWith(reader);
   });
 
   test("reader events avoid hot-path diagnostic writes", () => {

@@ -14,7 +14,7 @@ await cp(path.join(root, "addon"), distAddon, { recursive: true });
 await appendKatexAssets();
 
 await build({
-  entryPoints: [path.join(root, "src", "plugin.js")],
+  entryPoints: [path.join(root, "src", "plugin.ts")],
   bundle: true,
   format: "iife",
   globalName: "ZoteroAnnotationMarkdown",
