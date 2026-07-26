@@ -1,4 +1,5 @@
 import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
+import type { AnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
@@ -97,12 +98,6 @@ interface PluginGlobals {
 }
 
 const pluginGlobals = globalThis as unknown as PluginGlobals;
-type AnnotationSidebarAdapter = ReturnType<typeof createAnnotationSidebarAdapter>;
-
-interface CreateAdapterOptions {
-  document?: Document | null;
-  openLink?(url: string): void;
-}
 
 interface CreateControllerOptions {
   reader: ReaderLike;
@@ -114,10 +109,7 @@ interface CreateControllerOptions {
   logger: Required<Logger>;
 }
 
-// These JS modules are migrated later; pin their public contracts at this boundary for now.
-const createAdapter = createAnnotationSidebarAdapter as unknown as (
-  options: CreateAdapterOptions
-) => AnnotationSidebarAdapter;
+// The controller remains JS for now, so pin its public contract at this boundary.
 const createController = createReaderController as unknown as (
   options: CreateControllerOptions
 ) => ReaderController;
@@ -148,7 +140,7 @@ export function createPlugin({
         const launchURL = Zotero?.launchURL;
         return createController({
           reader,
-          adapter: createAdapter({
+          adapter: createAnnotationSidebarAdapter({
             document: readerDocument,
             openLink: typeof launchURL === "function"
               ? (url) => launchURL.call(Zotero, url)

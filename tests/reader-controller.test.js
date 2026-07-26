@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.js";
+import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.ts";
 import { createReaderController } from "../src/reader-controller.js";
 
 describe("createReaderController", () => {
