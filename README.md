@@ -15,7 +15,7 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 - Original Markdown source while editing.
 - Adjustable preview font size and rendering strategy.
 - Sanitized output with a plain-text fallback on rendering failure.
-- Designed and tested primarily for Zotero Desktop 9.0.6 on Windows, with Zotero 9.x compatibility as the current goal.
+- Supports Zotero Desktop 9.0 and 10.0.x, tested on Windows with Zotero 9.0.6 and 10.0.0.
 
 ## Installation
 

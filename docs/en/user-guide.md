@@ -44,6 +44,6 @@ The add-on changes presentation only; the Markdown source stored by Zotero is no
 
 ## Compatibility
 
-The current implementation is developed and tested primarily with Zotero Desktop 9.0.6 on Windows. Zotero 9.x compatibility is the current target.
+The current implementation supports Zotero Desktop 9.0 and 10.0.x. It is tested on Windows with Zotero 9.0.6 and 10.0.0.
 
 The reader sidebar DOM is not a fully stable public API. Real-Zotero validation should be repeated after Zotero updates, even when automated tests pass.

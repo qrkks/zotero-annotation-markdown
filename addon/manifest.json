@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Annotation Markdown",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Render Zotero reader annotation comments as Markdown with LaTeX math.",
   "author": "qrkks <34028312@qq.com>",
   "icons": {
@@ -14,7 +14,7 @@
       "id": "zotero-annotation-markdown@34028312.qq.com",
       "update_url": "https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json",
       "strict_min_version": "9.0",
-      "strict_max_version": "9.0.*"
+      "strict_max_version": "10.0.*"
     }
   }
 }

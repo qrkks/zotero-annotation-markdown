@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.3 - 2026-08-19
+
+### Changed
+
+- Declare compatibility with Zotero 10.0 while retaining Zotero 9.0 support.
+- Migrate the source and verification workflow to TypeScript and pnpm without changing the add-on's intended behavior.
+
 ## 0.5.2 - 2026-07-20
 
 ### Fixed

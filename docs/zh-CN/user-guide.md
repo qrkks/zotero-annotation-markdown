@@ -44,6 +44,6 @@
 
 ## 兼容性
 
-目前主要在 Windows 上使用 Zotero Desktop 9.0.6 进行开发和测试，当前目标是兼容 Zotero 9.x。
+当前实现支持 Zotero Desktop 9.0 和 10.0.x，已在 Windows 上使用 Zotero 9.0.6 和 10.0.0 测试。
 
 阅读器侧栏 DOM 不是完全稳定的公开 API。即使自动化测试通过，Zotero 更新后仍应重新进行真实环境验证。

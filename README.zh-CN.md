@@ -15,7 +15,7 @@
 - 编辑时显示原始 Markdown 源码。
 - 可以调整预览字号和标注渲染策略。
 - 渲染内容经过清理，渲染失败时保留纯文本。
-- 目前主要在 Windows 上针对 Zotero Desktop 9.0.6 开发和测试，当前目标是兼容 Zotero 9.x。
+- 支持 Zotero Desktop 9.0 和 10.0.x，已在 Windows 上使用 Zotero 9.0.6 和 10.0.0 测试。
 
 ## 安装
 
