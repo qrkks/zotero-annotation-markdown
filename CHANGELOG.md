@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.4 - 2026-08-19
+
+### Fixed
+
+- Upgrade DOMPurify to 3.4.13 to address GHSA-55q2-fjhq-7xh7.
+
 ## 0.5.3 - 2026-08-19
 
 ### Changed

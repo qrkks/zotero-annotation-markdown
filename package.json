@@ -1,6 +1,6 @@
 {
   "name": "zotero-annotation-markdown",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Render Zotero reader annotation comments as Markdown with LaTeX math.",
   "type": "module",
   "private": true,
