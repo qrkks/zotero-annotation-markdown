@@ -11,6 +11,7 @@
     "docs:check": "node scripts/check-docs.mjs",
     "build": "node scripts/build.mjs",
     "package": "pnpm run build && node scripts/package.mjs",
+    "release:verify": "node scripts/verify-release.mjs",
     "verify": "pnpm test && pnpm run typecheck && pnpm run docs:check && pnpm run build && pnpm run package"
   },
   "dependencies": {

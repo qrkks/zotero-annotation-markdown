@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to validate without publishing
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Verify and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify source and package
+        run: pnpm run verify
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod
+
+      - name: Verify release metadata and artifact
+        run: pnpm run release:verify "$RELEASE_TAG"
+
+      - name: Ensure generated update manifest is committed
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: git diff --exit-code -- updates.json
+
+      - name: Ensure release does not already exist
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists" >&2
+            exit 1
+          fi
+
+      - name: Publish GitHub release
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: |
+          version="${RELEASE_TAG#v}"
+          gh release create "$RELEASE_TAG" \
+            "dist/zotero-annotation-markdown.xpi" \
+            --verify-tag \
+            --title "Zotero Annotation Markdown $version" \
+            --generate-notes \
+            --latest
+
+      - name: Verify published asset
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: |
+          asset="zotero-annotation-markdown.xpi"
+          expected_hash="$(sha256sum "dist/$asset" | cut -d ' ' -f 1)"
+          expected_size="$(stat -c %s "dist/$asset")"
+          published_digest="$(gh release view "$RELEASE_TAG" --json assets --jq ".assets[] | select(.name == \"$asset\") | .digest")"
+          test "$published_digest" = "sha256:$expected_hash"
+
+          mkdir -p dist/published
+          gh release download "$RELEASE_TAG" --pattern "$asset" --dir dist/published
+          test "$(stat -c %s "dist/published/$asset")" = "$expected_size"
+          echo "$expected_hash  dist/published/$asset" | sha256sum --check --strict

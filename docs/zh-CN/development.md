@@ -32,11 +32,19 @@ pnpm run verify
 
 ## 发布检查清单
 
-1. 更新 `package.json`、`pnpm-lock.yaml` 和 `addon/manifest.json` 中的版本号。
+1. 从干净检出或独立工作树开始，然后更新 `package.json`、`addon/manifest.json` 和 `tests/version.test.js` 中的版本号；依赖发生变化时同步更新 `pnpm-lock.yaml`。
 2. 更新 `CHANGELOG.md`，并同步修改受影响文档的中英文版本。
-3. 运行 `pnpm run verify`。
-4. 创建名为 `v<version>` 的 GitHub Release，并上传 `dist/zotero-annotation-markdown.xpi`。
-5. 提交并推送生成的 `updates.json`，使 Zotero 能够发现新版本。
+3. 运行 `pnpm run verify`、`pnpm audit --prod`、`pnpm run release:verify v<version>` 和 `git diff --exit-code -- updates.json`。
+4. 提交版本文件与生成的 `updates.json`，推送发布提交，并等待常规 CI 工作流通过。
+5. 在该提交上创建带注释的 `v<version>` 标签并推送。标签触发的 `Release` 工作流会重新执行全部验证、创建 GitHub Release、上传 XPI，并核对线上资产摘要。
+
+正常发布流程中不要手工运行 `gh release create`。可手工触发 dry-run，只验证当前检出内容而不发布：
+
+```powershell
+gh workflow run release.yml -f tag=v<version>
+```
+
+如果标签触发的工作流失败，标签会保留，但不会创建 GitHub Release。不要手工上传资产；应先在 `main` 修复原因，然后在确认不存在 Release 后删除失败且未发布的标签，或改用新的补丁版本。
 
 插件更新清单发布于：
 
@@ -44,4 +52,4 @@ pnpm run verify
 https://raw.githubusercontent.com/qrkks/zotero-annotation-markdown/main/updates.json
 ```
 
-更完整的发布和插件市场流程应使用仓库的 Zotero 插件发布工作流。
+更完整的插件市场流程应使用仓库的 Zotero 插件发布工作流。
