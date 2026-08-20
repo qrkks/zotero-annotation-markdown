@@ -6,12 +6,17 @@
     <checkbox id="annotation-markdown-enabled"
               preference="extensions.annotationMarkdown.enabled"
               label="Render annotation comments as Markdown"/>
-    <checkbox id="annotation-markdown-paste-as-plain-text"
-              preference="extensions.annotationMarkdown.pasteAsPlainText"
-              label="Paste clipboard content into annotation comments as plain text"/>
     <checkbox id="annotation-markdown-math-enabled"
               preference="extensions.annotationMarkdown.mathEnabled"
               label="Render LaTeX math formulas"/>
+    <checkbox id="annotation-markdown-paste-as-plain-text"
+              preference="extensions.annotationMarkdown.pasteAsPlainText"
+              label="Paste clipboard content into annotation comments as plain text"/>
+    <description class="annotation-markdown-preference-description">Recommended when pasting responses from AI tools. Keeps Markdown editable and avoids importing rich-text formatting or hidden HTML.</description>
+    <checkbox id="annotation-markdown-fast-editor"
+              preference="extensions.annotationMarkdown.fastEditor"
+              label="Use a faster editor instead of Zotero's native annotation comment editor"/>
+    <description class="annotation-markdown-preference-description">Recommended for books with many annotations. Changes save when you click elsewhere or press Esc. Uncheck to restore Zotero's native editor.</description>
   </groupbox>
 
   <groupbox>

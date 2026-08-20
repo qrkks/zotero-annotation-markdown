@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.6.0 - 2026-08-20
+
+### Added
+
+- Add a fast annotation comment editor that bypasses Zotero's increasingly slow native editor in books with many sidebar tags.
+- Enable the fast editor by default while retaining a preference that restores Zotero's native editor.
+- Fall back automatically to Zotero's native editor when the Reader annotation update capability is unavailable.
+
+### Changed
+
+- Save fast-editor changes on blur or Escape, matching Zotero's native editing workflow without separate Save or Cancel controls.
+- Grow the editor with its content and preserve the sidebar position of annotations that are already visible.
+- Retain declared Zotero 9.0 compatibility while validating this release primarily on the latest Zotero 10 release.
+
+### Fixed
+
+- Preserve Backspace, Delete, and arrow-key behavior inside fast comment editors.
+- Save and immediately render comments that were empty before editing.
+- Avoid briefly showing Zotero's native editor before the fast editor takes over.
+- Reduce sidebar scroll jumps when editing partially visible annotations in large books.
+
+### Further reading
+
+- User-facing rationale: [why the replacement editor can be faster](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster).
+- Developer details: [fast editor flow](docs/en/architecture.md#fast-editor-flow), [performance rationale and limits](docs/en/architecture.md#performance-rationale-and-limits), and the [implementation map](docs/en/architecture.md#fast-editor-implementation-map).
+- Chinese documentation: [使用指南](docs/zh-CN/user-guide.md#为什么替代编辑器可以更快) and [架构与实现索引](docs/zh-CN/architecture.md#快速编辑器实现索引).
+
 ## 0.5.4 - 2026-08-19
 
 ### Fixed

@@ -55,7 +55,7 @@ Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包�
 1. 打开 PDF 或 EPUB，等待标注侧栏稳定。
 2. 从上到下滚动标注侧栏。
 3. 点击页面标记，等待侧栏跳转到对应标注。
-4. 编辑一条较长的标注，连续输入几秒钟。
+4. 编辑一条较长的标注，连续输入几秒钟；先开启更快的替代编辑器，再关闭它进行对比。
 5. 折叠并展开较长标注，然后滚动离开并返回。
 6. 关闭阅读器。
 
@@ -69,7 +69,7 @@ Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包�
 | --- | --- |
 | `perf renderNow` | 同步 DOM 扫描和渲染调度。`durationMs` 不包含 eager 或 lazy 模式中之后执行的全部空闲任务。 |
 | `perf lazyRender` | 自适应空闲渲染批次，以及累计的渲染和缓存统计。 |
-| `edit pause` | Zotero 原生标注编辑器处于活动状态时，渲染观察器暂停。 |
+| `edit pause` | 标注评论编辑器处于活动状态时暂停渲染观察；这里既可能是更快的替代编辑器，也可能是 Zotero 原生编辑器。 |
 | `edit resume` | 编辑结束，插件重新协调受影响的标注。 |
 | `edit paused mutations` | 暂停编辑区间附近的 DOM 变更摘要，并不等于每次按键的计数。 |
 
@@ -102,7 +102,7 @@ Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包�
 | `commentNodes` | 开始编辑时存在的标注评论节点数。 |
 | `renderedPreviews`, `placeholders` | 编辑边界处已挂载的插件预览状态。 |
 | `batches`, `mutations` | 暂停区间附近汇总的 MutationObserver 活动。 |
-| `activeEditorMutations` | 与当前 Zotero 原生编辑器相关的 DOM 变更。 |
+| `activeEditorMutations` | 与当前标注评论编辑器相关的 DOM 变更。 |
 | `pluginOwnedMutations` | 与本插件所有 DOM 相关的变更。 |
 
 ## 解读常见模式
@@ -111,7 +111,7 @@ Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包�
 - `domMs` 很高，尤其伴随大量 `mountedPreviews` 时，通常指向 DOM 插入、样式或布局压力。
 - `cacheEntries` 增长但估算字节数稳定通常属于正常现象。如果关闭阅读器后仍持续增长，或多次干净复现之间不断增长，应使用真实内存分析器进一步调查。
 - `cachedNodes` 很高但仍能看到停顿，说明 HTML 转换缓存有效，但 DOM 重建或浏览器布局仍可能较慢。
-- 如果输入缓慢发生在 `edit pause` 和 `edit resume` 之间，同时没有渲染批次运行，应禁用插件后在同一标注中进行对比，从而区分 Zotero 原生编辑器行为和插件保留 DOM 或样式的影响。
+- 如果开启更快的替代编辑器后输入仍然缓慢，应取消勾选 **Use a faster editor instead of Zotero's native annotation comment editor**，并在同一标注中对比。两种模式差异很大，通常可以隔离 Zotero 原生编辑器的成本；两种模式表现相近，则更可能与保留 DOM、布局、其他插件或 Reader 本身有关。只有在第二轮对比时才需要禁用整个插件。
 - lazy 或 eager 模式下单次较慢的 `renderNow durationMs` 并不代表全部后台渲染时间，还需结合后续 `perf lazyRender` 条目判断。
 
 ## 分享诊断报告
@@ -120,6 +120,7 @@ Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包�
 
 - Zotero 版本、操作系统和插件版本；
 - 选择的渲染策略；
+- 是否开启更快的替代编辑器，以及关闭后的对比结果；
 - 大致标注数量，以及是否有评论跨越多个视窗；
 - 准确的复现步骤和大致时间；
 - 最小范围的相关日志片段；

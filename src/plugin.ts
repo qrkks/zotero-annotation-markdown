@@ -15,6 +15,7 @@ import type {
 import {
   createSettings,
   ENABLED_PREF_KEY,
+  FAST_EDITOR_PREF_KEY,
   FONT_SCALE_PERCENT_PREF_KEY,
   LIGHTWEIGHT_MODE_PREF_KEY,
   MATH_ENABLED_PREF_KEY,
@@ -29,6 +30,16 @@ interface ReaderLike {
   document?: Document | null;
   window?: Window | null;
   _iframeWindow?: Window | null;
+  _annotationManager?: AnnotationManagerLike | null;
+  _enableAnnotationDeletionFromComment?: boolean;
+  _internalReader?: {
+    _annotationManager?: AnnotationManagerLike | null;
+    _enableAnnotationDeletionFromComment?: boolean;
+  } | null;
+}
+
+interface AnnotationManagerLike {
+  updateAnnotations(annotations: Array<{ id: string; comment: string }>): void;
 }
 
 interface PluginRegistry {
@@ -97,6 +108,11 @@ interface Plugin {
 interface PluginGlobals {
   Zotero?: ZoteroApi;
   ZoteroAnnotationMarkdownDiagnostics?: Diagnostics;
+  Components?: {
+    utils?: {
+      cloneInto?(value: unknown, target: object): unknown;
+    };
+  };
 }
 
 const pluginGlobals = globalThis as unknown as PluginGlobals;
@@ -135,6 +151,13 @@ export function createPlugin({
           reader,
           adapter: createAnnotationSidebarAdapter({
             document: readerDocument,
+            isFastEditorEnabled: () => (
+              settings.isFastEditorEnabled() && canUseReaderFastEditor(reader)
+            ),
+            commitComment: (annotationID, comment) =>
+              commitReaderAnnotationComment(reader, annotationID, comment),
+            beginFastEditorKeyboardGuard: () =>
+              beginReaderFastEditorKeyboardGuard(reader),
             openLink: typeof launchURL === "function"
               ? (url) => launchURL.call(Zotero, url)
               : undefined
@@ -212,6 +235,7 @@ function registerPreferenceObservers(
   const observerIds: unknown[] = [];
   for (const key of [
     ENABLED_PREF_KEY,
+    FAST_EDITOR_PREF_KEY,
     FONT_SCALE_PERCENT_PREF_KEY,
     MATH_ENABLED_PREF_KEY,
     LIGHTWEIGHT_MODE_PREF_KEY,
@@ -340,6 +364,69 @@ function getReaderDocument(reader: ReaderLike): Document | null {
     reader?._iframeWindow?.document ??
     null
   );
+}
+
+/** Uses the same AnnotationManager entry point as Zotero's native editor. */
+export function canUseReaderFastEditor(reader: ReaderLike): boolean {
+  return Boolean(getReaderAnnotationManager(reader));
+}
+
+/** Uses the same AnnotationManager entry point as Zotero's native editor. */
+export function commitReaderAnnotationComment(
+  reader: ReaderLike,
+  annotationID: string,
+  comment: string
+): boolean {
+  try {
+    const manager = getReaderAnnotationManager(reader);
+    if (!manager || !annotationID) {
+      return false;
+    }
+
+    let updates: Array<{ id: string; comment: string }> = [{
+      id: annotationID,
+      comment
+    }];
+    const targetWindow = reader?._iframeWindow ?? reader?.window;
+    const cloneInto = pluginGlobals.Components?.utils?.cloneInto;
+    if (targetWindow && typeof cloneInto === "function") {
+      updates = cloneInto(updates, targetWindow) as Array<{ id: string; comment: string }>;
+    }
+
+    manager.updateAnnotations(updates);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Temporarily makes Zotero treat the fast textarea like a protected comment editor. */
+export function beginReaderFastEditorKeyboardGuard(reader: ReaderLike): () => void {
+  try {
+    const target = reader?._internalReader ?? reader;
+    const previous = target?._enableAnnotationDeletionFromComment;
+    target._enableAnnotationDeletionFromComment = false;
+    return () => {
+      try {
+        target._enableAnnotationDeletionFromComment = previous;
+      } catch {
+        // Reader teardown can invalidate private host objects before cleanup.
+      }
+    };
+  } catch {
+    // Key-event propagation guards still protect the textarea when this
+    // optional private host flag is unavailable.
+    return () => {};
+  }
+}
+
+function getReaderAnnotationManager(reader: ReaderLike): AnnotationManagerLike | null {
+  try {
+    const manager = reader?._annotationManager ?? reader?._internalReader?._annotationManager;
+    return typeof manager?.updateAnnotations === "function" ? manager : null;
+  } catch {
+    return null;
+  }
 }
 
 function describeError(error: unknown): string {

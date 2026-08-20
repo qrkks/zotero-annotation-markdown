@@ -4,7 +4,11 @@
  * The controller coordinates discovery, eager/lazy scheduling, editing pauses,
  * caches, diagnostics, styles, and cleanup through injected boundary objects.
  */
-import type { AnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
+import {
+  FAST_EDITOR_CLOSED_EVENT,
+  type FastEditorClosedDetail,
+  type AnnotationSidebarAdapter
+} from "./annotation-sidebar-adapter.js";
 import type { Settings } from "./settings.js";
 import type { MarkdownRenderer, ReaderController } from "./types.js";
 
@@ -116,6 +120,11 @@ export function createReaderController({
   let styleElement: HTMLStyleElement | undefined;
   let safetyTimer: number | undefined;
   let pasteHandler: EventListener | undefined;
+  let fastEditorEntryHandler: EventListener | undefined;
+  let fastEditorClosedHandler: EventListener | undefined;
+  let fastEditorExitHandler: EventListener | undefined;
+  let fastEditorWindowBlurHandler: EventListener | undefined;
+  let fastEditorFocusFrame: number | undefined;
   let focusInHandler: EventListener | undefined;
   let focusOutHandler: EventListener | undefined;
   let editingResumeTimer: number | undefined;
@@ -317,6 +326,34 @@ export function createReaderController({
       });
       pasteHandler = undefined;
       runShutdownStep(() => {
+        if (fastEditorEntryHandler) {
+          root?.removeEventListener?.("pointerdown", fastEditorEntryHandler, true);
+          root?.removeEventListener?.("mousedown", fastEditorEntryHandler, true);
+          root?.removeEventListener?.("click", fastEditorEntryHandler, true);
+          root?.removeEventListener?.("focusin", fastEditorEntryHandler, true);
+        }
+        if (fastEditorClosedHandler) {
+          root?.removeEventListener?.(FAST_EDITOR_CLOSED_EVENT, fastEditorClosedHandler);
+        }
+        if (fastEditorExitHandler) {
+          windowRef?.removeEventListener?.("pointerdown", fastEditorExitHandler, true);
+          windowRef?.removeEventListener?.("focusin", fastEditorExitHandler, true);
+        }
+        if (fastEditorWindowBlurHandler) {
+          windowRef?.removeEventListener?.("blur", fastEditorWindowBlurHandler);
+        }
+      });
+      fastEditorEntryHandler = undefined;
+      fastEditorClosedHandler = undefined;
+      fastEditorExitHandler = undefined;
+      fastEditorWindowBlurHandler = undefined;
+      runShutdownStep(() => {
+        if (fastEditorFocusFrame !== undefined) {
+          windowRef?.cancelAnimationFrame?.(fastEditorFocusFrame);
+        }
+      });
+      fastEditorFocusFrame = undefined;
+      runShutdownStep(() => {
         if (focusInHandler) {
           root?.removeEventListener?.("focusin", focusInHandler, true);
         }
@@ -429,6 +466,7 @@ export function createReaderController({
   function startNow(renderNow: () => void): void {
     injectStyles();
     registerPasteHandler();
+    registerFastEditorHandlers();
     registerEditingPauseHandlers();
     adapter.clearRenderedState?.(root);
     renderNow();
@@ -732,6 +770,111 @@ export function createReaderController({
     root.addEventListener("paste", pasteHandler, true);
   }
 
+  function registerFastEditorHandlers(): void {
+    if (
+      !root?.addEventListener ||
+      fastEditorEntryHandler ||
+      fastEditorClosedHandler ||
+      fastEditorExitHandler ||
+      fastEditorWindowBlurHandler
+    ) {
+      return;
+    }
+
+    fastEditorExitHandler = (event: Event) => {
+      if (adapter.isFastEditorTarget?.(event.target)) {
+        return;
+      }
+      if (!adapter.closeActiveFastEditor?.()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+    fastEditorWindowBlurHandler = () => {
+      adapter.closeActiveFastEditor?.();
+    };
+
+    fastEditorEntryHandler = (event: Event) => {
+      if (adapter.isFastEditorTarget?.(event.target)) {
+        return;
+      }
+
+      if (event.type === "focusin") {
+        const annotationID = adapter.getAnnotationIDForTarget?.(event.target);
+        if (annotationID) {
+          scheduleFastEditorAfterNativeFocus(annotationID);
+        }
+        // Zotero must finish its focus-driven state update before we add DOM.
+        return;
+      }
+
+      const mouseEvent = event as MouseEvent;
+      if (mouseEvent.button !== 0) {
+        return;
+      }
+
+      const comment = adapter.getCommentNodeForTarget?.(event.target);
+      const fastEditorOpen = Boolean(
+        comment?.querySelector?.("[data-annotation-markdown-fast-editor='true']")
+      );
+      if (!fastEditorOpen && !adapter.tryShowFastEditorForTarget?.(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    fastEditorClosedHandler = (event: Event) => {
+      const detail = getFastEditorClosedDetail(event);
+      const currentComment = detail?.committed
+        ? adapter.getCommentNodeForAnnotationID?.(detail.annotationID)
+        : null;
+      const comment = currentComment ??
+        adapter.getCommentNodeForTarget?.(event.target) ??
+        pausedComment;
+      if (comment) {
+        if (detail?.committed) {
+          adapter.setCommittedSource?.(comment, detail.source);
+          // A newly saved empty comment can be replaced by Zotero before this
+          // close event bubbles. Resume against the live node, not the detached
+          // editor node captured when rendering was paused.
+          pausedComment = comment;
+        }
+        scheduleEditingResume(comment);
+      }
+    };
+
+    root.addEventListener("pointerdown", fastEditorEntryHandler, true);
+    root.addEventListener("mousedown", fastEditorEntryHandler, true);
+    root.addEventListener("click", fastEditorEntryHandler, true);
+    root.addEventListener("focusin", fastEditorEntryHandler, true);
+    root.addEventListener(FAST_EDITOR_CLOSED_EVENT, fastEditorClosedHandler);
+    windowRef?.addEventListener?.("pointerdown", fastEditorExitHandler, true);
+    windowRef?.addEventListener?.("focusin", fastEditorExitHandler, true);
+    windowRef?.addEventListener?.("blur", fastEditorWindowBlurHandler);
+  }
+
+  function scheduleFastEditorAfterNativeFocus(annotationID: string): void {
+    if (!adapter.tryShowFastEditorForAnnotationID) {
+      return;
+    }
+
+    if (fastEditorFocusFrame !== undefined) {
+      windowRef?.cancelAnimationFrame?.(fastEditorFocusFrame);
+    }
+
+    const openCurrentEditor = () => {
+      fastEditorFocusFrame = undefined;
+      adapter.tryShowFastEditorForAnnotationID?.(annotationID);
+    };
+    if (typeof windowRef?.requestAnimationFrame === "function") {
+      fastEditorFocusFrame = windowRef.requestAnimationFrame(openCurrentEditor);
+      return;
+    }
+
+    Promise.resolve().then(openCurrentEditor);
+  }
+
   function registerEditingPauseHandlers(): void {
     if (!root?.addEventListener || focusInHandler || focusOutHandler) {
       return;
@@ -784,10 +927,12 @@ export function createReaderController({
     // Pause both discovery paths globally while Zotero owns an active editor.
     disconnectMutationObserverForEditing();
     disconnectVisibilityObserverForEditing();
-    if (adapter.restoreSourceDomForEditing) {
-      adapter.restoreSourceDomForEditing(comment);
-    } else {
-      adapter.restoreSourceText?.(comment);
+    if (!adapter.isFastEditorTarget?.(documentRef.activeElement)) {
+      if (adapter.restoreSourceDomForEditing) {
+        adapter.restoreSourceDomForEditing(comment);
+      } else {
+        adapter.restoreSourceText?.(comment);
+      }
     }
     logEditLifecycle("pause");
   }
@@ -1355,6 +1500,23 @@ function getElementTarget(target: EventTarget | null | undefined): Element | nul
   return node.nodeType === 1 ? node as Element : node.parentElement;
 }
 
+function getFastEditorClosedDetail(event: Event): FastEditorClosedDetail | null {
+  const detail = (event as CustomEvent<unknown>).detail;
+  if (!detail || typeof detail !== "object") {
+    return null;
+  }
+
+  const candidate = detail as Partial<FastEditorClosedDetail>;
+  if (
+    typeof candidate.annotationID !== "string" ||
+    typeof candidate.source !== "string" ||
+    typeof candidate.committed !== "boolean"
+  ) {
+    return null;
+  }
+  return candidate as FastEditorClosedDetail;
+}
+
 function isTextControl(
   element: Element
 ): element is HTMLInputElement | HTMLTextAreaElement {
@@ -1461,8 +1623,9 @@ function isPluginOwnedNode(node: Node | null): boolean {
   const element = getElementTarget(node);
   return Boolean(
     element?.getAttribute("data-annotation-markdown-preview") === "true" ||
+    element?.getAttribute("data-annotation-markdown-fast-editor") === "true" ||
     element?.getAttribute("data-annotation-markdown-source-node") === "true" ||
-    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-source-node='true']")
+    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-source-node='true']")
   );
 }
 

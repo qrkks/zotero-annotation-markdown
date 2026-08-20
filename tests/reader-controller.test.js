@@ -50,21 +50,28 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("keeps Zotero's add-comment control visible for an empty annotation comment", async () => {
+  test("opens the fast editor from Zotero's empty add-comment control and saves on blur", async () => {
     document.body.innerHTML = `
+      <button id="outside">outside</button>
       <div data-annotation-id="a1" class="annotation selected">
         <div class="comment">
           <div class="expandable-editor">
-            <div class="content" contenteditable="true"></div>
+            <div class="content" contenteditable="false"></div>
             <div class="renderer">Add comment</div>
           </div>
         </div>
       </div>
     `;
     const render = vi.fn((source) => `<p>${source}</p>`);
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
     const controller = createReaderController({
       reader: { document },
-      adapter: createAnnotationSidebarAdapter({ document }),
+      adapter,
       renderer: { render },
       settings: { isEnabled: () => true },
       MutationObserver: null,
@@ -79,7 +86,248 @@ describe("createReaderController", () => {
     expect(sourceShell.style.display).toBe("");
     expect(document.querySelector(".renderer")?.textContent).toBe("Add comment");
     expect(document.querySelector(".annotation-markdown-rendered")).toBeNull();
+
+    const hostClick = vi.fn();
+    document.querySelector(".annotation").addEventListener("click", hostClick);
+    const event = new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    });
+    document.querySelector(".renderer").dispatchEvent(event);
+    const textarea = document.querySelector("[data-annotation-markdown-fast-editor='true'] textarea");
+    expect(event.defaultPrevented).toBe(true);
+    expect(textarea).not.toBeNull();
+    document.querySelector(".renderer").dispatchEvent(new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+    expect(hostClick).not.toHaveBeenCalled();
+    textarea.value = "new comment";
+    textarea.focus();
+    document.querySelector("#outside").focus();
+
+    expect(commitComment).toHaveBeenCalledWith("a1", "new comment");
     controller.stop();
+  });
+
+  test("commits an empty-origin draft on outside pointerdown before Zotero removes its DOM", async () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: vi.fn() },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+    document.querySelector(".renderer").dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+    const textarea = document.querySelector("textarea");
+    textarea.value = "save before removal";
+    textarea.focus();
+    const comment = document.querySelector(".comment");
+    window.addEventListener("pointerdown", () => comment.remove(), {
+      capture: true,
+      once: true
+    });
+
+    document.querySelector("#outside").dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+
+    expect(commitComment).toHaveBeenCalledWith("a1", "save before removal");
+    controller.stop();
+  });
+
+  test("commits an empty-origin draft when Zotero removes the focused editor without blur", async () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: vi.fn() },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+    document.querySelector(".renderer").dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+    const textarea = document.querySelector("textarea");
+    textarea.value = "save detached draft";
+    textarea.focus();
+
+    document.querySelector(".comment").remove();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(commitComment).toHaveBeenCalledWith("a1", "save detached draft");
+    controller.stop();
+  });
+
+  test("renders the current comment after Zotero replaces a newly saved empty comment", async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const commitComment = vi.fn((_annotationID, source) => {
+      document.querySelector(".comment").replaceWith(
+        Object.assign(document.createElement("div"), {
+          className: "comment",
+          innerHTML: `<div class="expandable-editor"><div class="content">${source}</div></div>`
+        })
+      );
+      return true;
+    });
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+    document.querySelector(".renderer").dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+    const textarea = document.querySelector("textarea");
+    textarea.value = "**first save**";
+    textarea.focus();
+
+    document.querySelector("#outside").focus();
+    vi.runAllTimers();
+
+    const currentComment = document.querySelector(".comment");
+    expect(commitComment).toHaveBeenCalledWith("a1", "**first save**");
+    expect(render).toHaveBeenCalledWith("**first save**");
+    expect(currentComment.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
+      .toBe("<p>**first save**</p>");
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("replaces a newly focused native comment editor before the user starts typing", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const callbacks = [];
+    window.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor expanded">
+            <div class="editor-view"><div class="editor">
+              <div class="content" contenteditable="true" placeholder="Add comment"></div>
+              <div class="renderer"></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: vi.fn() },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+
+    const originalComment = document.querySelector(".comment");
+    document.querySelector(".content").focus();
+    expect(document.querySelector("[data-annotation-markdown-fast-editor='true']"))
+      .toBeNull();
+
+    originalComment.replaceWith(Object.assign(document.createElement("div"), {
+      className: "comment",
+      innerHTML: `
+        <div class="expandable-editor expanded">
+          <div class="editor-view"><div class="editor">
+            <div class="content" contenteditable="true" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div></div>
+        </div>
+      `
+    }));
+    callbacks.shift()(0);
+
+    expect(document.querySelector("[data-annotation-markdown-fast-editor='true'] textarea"))
+      .not.toBeNull();
+    expect(document.querySelector(".comment").classList)
+      .toContain("annotation-markdown-fast-editing");
+    const textarea = document.querySelector("textarea");
+    textarea.value = "saved after native refresh";
+    textarea.focus();
+    document.querySelector("#outside").focus();
+    expect(commitComment).toHaveBeenCalledWith("a1", "saved after native refresh");
+    controller.stop();
+    window.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
   test("waits for Zotero reader readiness before the first render pass", async () => {
@@ -992,6 +1240,61 @@ describe("createReaderController", () => {
 
     expect(otherComment.querySelector("[data-annotation-markdown-preview='true']")).toBe(otherPreview);
     expect(otherPreview.querySelector(".katex")).toBe(otherMath);
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("keeps the native editor dormant while a fast editor types and rerenders after one save", async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**old**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+    const comment = document.querySelector(".comment");
+    const content = document.querySelector(".content");
+    const preview = comment.querySelector("[data-annotation-markdown-preview='true']");
+    preview.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    vi.runAllTimers();
+
+    const editor = comment.querySelector("[data-annotation-markdown-fast-editor='true']");
+    const textarea = editor.querySelector("textarea");
+    expect(document.activeElement).toBe(textarea);
+    expect(document.querySelector(".expandable-editor").hidden).toBe(true);
+    expect(preview.isConnected).toBe(true);
+    textarea.value = "**new**";
+    expect(commitComment).not.toHaveBeenCalled();
+
+    document.querySelector("#outside").focus();
+    vi.runAllTimers();
+
+    expect(commitComment).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenLastCalledWith("**new**");
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    expect(comment.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML).toBe("<p>**new**</p>");
+
     controller.stop();
     vi.useRealTimers();
   });

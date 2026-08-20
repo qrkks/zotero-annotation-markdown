@@ -125,6 +125,101 @@ describe("createPlugin", () => {
     expect(source.hidden).toBe(false);
   });
 
+  test("commits fast editor comments through Zotero's annotation manager", async () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">old</div></div>
+      </div>
+    `;
+    const updateAnnotations = vi.fn();
+    const reader = {
+      document,
+      _annotationManager: { updateAnnotations }
+    };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({ Zotero });
+    await plugin.startup();
+
+    document.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    const textarea = document.querySelector("[data-annotation-markdown-fast-editor='true'] textarea");
+    textarea.value = "new";
+    textarea.focus();
+    document.querySelector("#outside").focus();
+
+    expect(updateAnnotations).toHaveBeenCalledWith([{ id: "a1", comment: "new" }]);
+    plugin.shutdown();
+  });
+
+  test("leaves Zotero's native editor in control when annotation updates are unavailable", async () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">old</div></div>
+      </div>
+    `;
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({ Zotero });
+    await plugin.startup();
+
+    const event = new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    });
+    document.querySelector(".annotation-markdown-rendered").dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(document.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    plugin.shutdown();
+  });
+
+  test("temporarily disables Zotero's empty-comment deletion shortcut while fast editing", async () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">old</div></div>
+      </div>
+    `;
+    const internalReader = {
+      _annotationManager: { updateAnnotations: vi.fn() },
+      _enableAnnotationDeletionFromComment: true
+    };
+    const reader = { document, _internalReader: internalReader };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({ Zotero });
+    await plugin.startup();
+
+    document.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    const textarea = document.querySelector("[data-annotation-markdown-fast-editor='true'] textarea");
+    expect(internalReader._enableAnnotationDeletionFromComment).toBe(false);
+    textarea.focus();
+    document.querySelector("#outside").focus();
+
+    expect(internalReader._enableAnnotationDeletionFromComment).toBe(true);
+    plugin.shutdown();
+  });
+
   test("passes numeric font scale preferences into reader styles", async () => {
     const reader = { document };
     const Zotero = {

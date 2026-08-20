@@ -21,10 +21,62 @@ flowchart LR
 
 控制器负责发现标注评论并决定何时渲染。适配器是唯一应该直接操作 Zotero 标注 DOM 的模块。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
 
+## 快速编辑器流程
+
+只有偏好设置已开启，并且当前 Reader 暴露了可调用的标注更新管理器时，快速编辑器才会替代 Zotero 原生标注评论编辑器：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant C as Reader 控制器
+    participant A as 侧栏适配器
+    participant P as Zotero 桥接层
+    participant Z as Zotero Reader
+    U->>C: 点击标注评论
+    C->>A: 尝试进入快速编辑
+    A->>P: 检查更新能力
+    alt 已开启且能力可用
+        A->>A: 挂载唯一文本框并保存视口锚点
+        U->>A: 点击其他位置或按 Escape
+        A->>P: 提交标注 ID 和源码文本
+        P->>Z: annotationManager.updateAnnotations
+        A->>C: 恢复并渲染已提交评论
+    else 已关闭或能力不可用
+        C-->>Z: 不阻止 Zotero 宿主事件
+    end
+```
+
+`src/plugin.ts` 是半内部标注管理器和可选删除键保护的宿主桥接层。`src/reader-controller.ts` 协调捕获阶段的进入和退出事件，但不持有编辑器 DOM。`src/annotation-sidebar-adapter.ts` 负责文本框、草稿会话、失焦或 Escape 保存、视口锚定和清理。如果缺少更新能力，适配器不会挂载快速编辑器，也不会阻止 Zotero 的事件。
+
+## 性能依据与边界
+
+观察到的问题取决于具体工作负载：在一本真实的重度标注书籍中，使用 Zotero 原生编辑器时编辑明显变慢，启用替代编辑器后同一本书又恢复流畅。该现象与侧栏中大量标注行和标签相关。这组 A/B 结果足以支持绕过原生编辑 UI，但不能证明标签是唯一原因，也不能据此指定 Zotero 内部某个确切瓶颈。
+
+替代编辑器通过以下方式减少输入路径上的工作：只保留一个普通文本框会话，让无关预览 DOM 继续挂载，暂停插件渲染观察，并在失焦或按 Escape 时只提交一次最终源码。持久化仍调用 Zotero 自己使用的 Reader 标注管理器；提交成功后，控制器只协调并渲染受影响的评论。视口锚定只补偿已经可见的编辑器打开时产生的布局移动。
+
+这项优化不会替换 Zotero 的标注存储，不会普遍加速标签管理，也不会改变 PDF 页面渲染器。它依赖半内部 Reader 集成，因此必须同时保留能力检测和由用户控制的原生编辑器回退。
+
+## 快速编辑器实现索引
+
+| 关注点 | 主要符号 | 契约 |
+| --- | --- | --- |
+| 宿主能力与持久化 | `src/plugin.ts` 中的 `canUseReaderFastEditor()`、`commitReaderAnnotationComment()` | 接管前检测可调用的 Reader 标注管理器；必要时复制跨 compartment 更新数据；提交失败时不丢弃草稿。 |
+| Reader 键盘安全 | `src/plugin.ts` 中的 `beginReaderFastEditorKeyboardGuard()`，以及适配器捕获的编辑器事件 | 能力可用时临时关闭 Zotero 的空评论删除快捷逻辑，并阻止文字编辑按键到达 Reader 层处理器。 |
+| 进入与退出协调 | `src/reader-controller.ts` 中的 `registerFastEditorHandlers()`、`scheduleFastEditorAfterNativeFocus()`、`scheduleEditingResume()` | 从指针事件尽早进入；焦点触发时等待 Zotero 状态稳定；在外部焦点或窗口失焦时关闭；只恢复刚刚编辑的评论。 |
+| 编辑器 DOM 与草稿所有权 | `src/annotation-sidebar-adapter.ts` 中的 `showFastEditor()`、`closeFastEditor()`、`FastEditorSession`、`fastEditorSessionByDocument` | 每个文档只持有一个文本框会话；Zotero 移除宿主 DOM 时仍保留已修改草稿；只有提交成功后才关闭。 |
+| 提交通知 | `FAST_EDITOR_CLOSED_EVENT` 和 `FastEditorClosedDetail` | 把标注 ID、已提交源码和提交状态传回控制器；即使原标注行已经脱离 DOM 也能通知。 |
+| 视口稳定 | `captureFastEditorViewportAnchor()` 和 `restoreFastEditorViewportAnchor()` | 只锚定已经与真实可滚动侧栏相交的标注，并修正 Gecko 可能在下一帧产生的焦点移动。 |
+| 原生回退 | 传给适配器的 `isFastEditorEnabled()` 与能力检查 | 偏好设置关闭或缺少所需管理器时，不挂载插件编辑器 DOM，也不阻止宿主事件。 |
+
+对应的回归测试位于 `tests/plugin.test.js`、`tests/reader-controller.test.js`、`tests/annotation-sidebar-adapter.test.js` 和 `tests/rendered-content-style.test.js`。任何生命周期修改都应先在最窄的适用测试中复现准确的 DOM、焦点、键盘、保存或滚动失败场景。
+
 ## 运行时约束
 
 - Zotero 原始标注源码始终保留在宿主 DOM 中。插件只添加带标记的同级预览节点，并在关闭时移除自己的节点。
 - 标注编辑器拥有焦点时暂停渲染；编辑结束后，只强制立即渲染刚刚编辑的评论。
+- 每个 Reader 文档最多存在一个快速编辑会话。只要草稿发生变化，就必须在关闭编辑器前提交；即使 Zotero 在失焦事件到达前替换宿主 DOM，也要保留并提交草稿。
+- 快速编辑器的键盘事件必须留在文本框内，避免 Backspace、Delete 和方向键触发 Reader 层面的标注操作。
+- 关闭偏好设置或缺少必要的标注更新能力时，由 Zotero 原生编辑器继续接管。
 - 每个打开的 Reader 最多只有一个控制器；即使启动是异步的，注册和关闭顺序也必须安全。
 - 禁用 Markdown 原始 HTML，并由 DOMPurify 对最终生成的 HTML 做最后清理。
 - 懒渲染限制视口附近和空闲时段内的工作量；性能诊断默认关闭。
@@ -34,10 +86,10 @@ flowchart LR
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/plugin.ts` | 插件组合入口和 Zotero 启动/关闭集成；注册 Reader 事件与偏好设置观察器。 |
+| `src/plugin.ts` | 插件组合入口和 Zotero 启动/关闭集成；注册 Reader 事件与偏好设置观察器，检测快速编辑能力，并把提交桥接到 Zotero 标注管理器。 |
 | `src/reader-registry.ts` | 每个 Reader 持有一个控制器，避免重复注册，并协调异步启动和停止。 |
-| `src/reader-controller.ts` | 协调 Reader 就绪、DOM 扫描、立即/懒渲染、编辑暂停、缓存、诊断、样式和清理。 |
-| `src/annotation-sidebar-adapter.ts` | 封装 Zotero Reader 选择器和“源码 + 预览”DOM 操作，并排除原生笔记编辑器。 |
+| `src/reader-controller.ts` | 协调 Reader 就绪、DOM 扫描、立即/懒渲染、快速编辑进入/退出事件、编辑暂停、缓存、诊断、样式和清理。 |
+| `src/annotation-sidebar-adapter.ts` | 封装 Zotero Reader 选择器、“源码 + 预览”DOM 操作和快速文本框会话，并排除原生笔记编辑器。 |
 | `src/markdown-renderer.ts` | 规范化标注文本，渲染 Markdown 和可选数学公式，清理输出，并提供纯文本回退。 |
 | `src/settings.ts` | 定义偏好键、默认值、规范化规则，以及运行模块使用的设置 API。 |
 | `src/types.ts` | 保存不依赖 Zotero 宿主对象形状的小型共享契约。 |
@@ -77,10 +129,10 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 
 | 测试文件 | 主要覆盖范围 |
 | --- | --- |
-| `tests/plugin.test.js` | 插件组合、Reader 事件、偏好设置和关闭。 |
+| `tests/plugin.test.js` | 插件组合、Reader 事件、偏好设置、快速编辑宿主能力与提交桥接，以及关闭。 |
 | `tests/reader-registry.test.js` | 控制器所有权和异步生命周期顺序。 |
-| `tests/reader-controller.test.js` | 渲染策略、观察器、编辑暂停、缓存、诊断和清理。 |
-| `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为和旧状态清理。 |
+| `tests/reader-controller.test.js` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
+| `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
 | `tests/settings.test.js` | 偏好默认值和规范化。 |
 | `tests/bootstrap.test.js` | Zotero 启动集成和诊断。 |

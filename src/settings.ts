@@ -8,6 +8,7 @@ import type { PreferenceStore } from "./types.js";
 export const ENABLED_PREF_KEY = "extensions.annotationMarkdown.enabled";
 export const FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.fontScalePercent";
 export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.pasteAsPlainText";
+export const FAST_EDITOR_PREF_KEY = "extensions.annotationMarkdown.fastEditor";
 export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled";
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
@@ -23,6 +24,8 @@ export interface Settings {
   setFontScale(fontScale: number): void;
   isPlainTextPasteEnabled(): boolean;
   setPlainTextPasteEnabled(enabled: boolean): void;
+  isFastEditorEnabled(): boolean;
+  setFastEditorEnabled(enabled: boolean): void;
   isMathEnabled(): boolean;
   setMathEnabled(enabled: boolean): void;
   isPerformanceDiagnosticsEnabled(): boolean;
@@ -38,6 +41,7 @@ interface CreateSettingsOptions {
   key?: string;
   fontScalePercentKey?: string;
   pasteAsPlainTextKey?: string;
+  fastEditorKey?: string;
   mathEnabledKey?: string;
   performanceDiagnosticsKey?: string;
   lightweightModeKey?: string;
@@ -58,6 +62,7 @@ export function createSettings({
   key = ENABLED_PREF_KEY,
   fontScalePercentKey = FONT_SCALE_PERCENT_PREF_KEY,
   pasteAsPlainTextKey = PASTE_AS_PLAIN_TEXT_PREF_KEY,
+  fastEditorKey = FAST_EDITOR_PREF_KEY,
   mathEnabledKey = MATH_ENABLED_PREF_KEY,
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
@@ -66,6 +71,7 @@ export function createSettings({
   let memoryEnabled = true;
   let memoryFontScale = DEFAULT_FONT_SCALE;
   let memoryPlainTextPaste = true;
+  let memoryFastEditor = true;
   let memoryMathEnabled = true;
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
@@ -124,6 +130,24 @@ export function createSettings({
       }
 
       memoryPlainTextPaste = value;
+    },
+
+    isFastEditorEnabled() {
+      if (prefs?.get) {
+        return Boolean(prefs.get(fastEditorKey, true));
+      }
+
+      return memoryFastEditor;
+    },
+
+    setFastEditorEnabled(enabled) {
+      const value = Boolean(enabled);
+
+      if (prefs?.set) {
+        prefs.set(fastEditorKey, value);
+      }
+
+      memoryFastEditor = value;
     },
 
     isMathEnabled() {

@@ -55,7 +55,7 @@ Record each interaction separately when possible:
 1. Open the PDF or EPUB and wait for the sidebar to settle.
 2. Scroll the annotation sidebar from top to bottom.
 3. Click a page highlight and wait for the sidebar to jump to its annotation.
-4. Edit a long annotation and type continuously for several seconds.
+4. Edit a long annotation and type continuously for several seconds, first with the faster replacement editor enabled and then with it disabled.
 5. Collapse and expand a long annotation, then scroll away and back.
 6. Close the reader.
 
@@ -69,7 +69,7 @@ Each line starts with an ISO timestamp. The most useful entry families are:
 | --- | --- |
 | `perf renderNow` | Synchronous DOM scan and render dispatch. `durationMs` does not include all later idle work in eager or lazy mode. |
 | `perf lazyRender` | Adaptive idle-render batch plus cumulative rendering and cache statistics. |
-| `edit pause` | Rendering observer was paused while a native annotation editor was active. |
+| `edit pause` | Rendering observation was paused while an annotation comment editor, either the faster replacement or Zotero's native editor, was active. |
 | `edit resume` | Editing ended and the add-on reconciled the affected annotations. |
 | `edit paused mutations` | Mutation summary around the paused editing interval. It is diagnostic context, not a count of every keystroke. |
 
@@ -102,7 +102,7 @@ Each line starts with an ISO timestamp. The most useful entry families are:
 | `commentNodes` | Annotation comment nodes present when editing began. |
 | `renderedPreviews`, `placeholders` | Mounted plugin preview state at the edit boundary. |
 | `batches`, `mutations` | Mutation-observer activity summarized around the paused interval. |
-| `activeEditorMutations` | Mutations associated with the active native Zotero editor. |
+| `activeEditorMutations` | Mutations associated with the active annotation comment editor. |
 | `pluginOwnedMutations` | Mutations associated with DOM owned by this add-on. |
 
 ## Interpret common patterns
@@ -111,7 +111,7 @@ Each line starts with an ISO timestamp. The most useful entry families are:
 - High `domMs`, especially with many `mountedPreviews`, points toward DOM insertion, style, or layout pressure.
 - A growing `cacheEntries` count with stable estimated bytes is expected. Continual growth across closed readers or repeated clean reproductions deserves investigation with a real memory profiler.
 - High `cachedNodes` with visible pauses means the HTML conversion cache is working, but DOM reconstruction or browser layout may still be expensive.
-- If typing remains slow between `edit pause` and `edit resume`, while no rendering batches are running, compare the same annotation with the add-on disabled. That helps separate native Zotero editor behavior from retained add-on DOM or styling costs.
+- If typing is slow with the faster replacement editor enabled, compare the same annotation after clearing **Use a faster editor instead of Zotero's native annotation comment editor**. A large difference isolates Zotero's native editor cost; similar behavior in both modes points toward retained DOM, layout, another extension, or the Reader itself. Disable the whole add-on only as a second comparison.
 - A single slow `renderNow durationMs` in `lazy` or `eager` mode does not describe the total background render time; use the following `perf lazyRender` entries as well.
 
 ## Share a diagnostic report
@@ -120,6 +120,7 @@ Include:
 
 - Zotero version, operating system, and add-on version;
 - selected rendering strategy;
+- whether the faster replacement editor was enabled, and the result with it disabled;
 - approximate annotation count and whether some comments span multiple viewports;
 - exact reproduction steps and approximate timestamps;
 - the smallest relevant log segment;

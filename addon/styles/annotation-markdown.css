@@ -49,6 +49,28 @@
     display: none !important;
 }
 
+.annotation-markdown-fast-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45em;
+    margin: 0.25em 0;
+    min-width: 0;
+}
+
+.annotation-markdown-fast-editing > .expandable-editor {
+    display: none !important;
+}
+
+.annotation-markdown-fast-editor-input {
+    box-sizing: border-box;
+    font: inherit;
+    line-height: 1.45;
+    min-height: 0;
+    overflow-y: hidden;
+    resize: none;
+    width: 100%;
+}
+
 .annotation-markdown-rendered p {
     margin: 0 0 0.45em;
 }

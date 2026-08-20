@@ -81,6 +81,26 @@ describe("createSettings", () => {
     expect(settings.isPlainTextPasteEnabled()).toBe(true);
   });
 
+  test("defaults the fast comment editor to enabled", () => {
+    const settings = createSettings();
+
+    expect(settings.isFastEditorEnabled()).toBe(true);
+  });
+
+  test("reads and writes the fast comment editor preference", () => {
+    const prefs = {
+      get: vi.fn(() => false),
+      set: vi.fn()
+    };
+    const settings = createSettings({ prefs });
+
+    expect(settings.isFastEditorEnabled()).toBe(false);
+    settings.setFastEditorEnabled(true);
+
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", true);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", true);
+  });
+
   test("reads and writes annotation plain text paste preference", () => {
     const prefs = {
       get: vi.fn(() => false),

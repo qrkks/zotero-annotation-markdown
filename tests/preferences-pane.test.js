@@ -11,9 +11,28 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.fastEditor\"");
+    expect(source).toContain(
+      "label=\"Use a faster editor instead of Zotero's native annotation comment editor\""
+    );
+    expect(source).toContain(
+      "Recommended for books with many annotations. Changes save when you click elsewhere or press Esc. Uncheck to restore Zotero's native editor."
+    );
     expect(source).toContain("label=\"Paste clipboard content into annotation comments as plain text\"");
+    expect(source).toContain(
+      "Recommended when pasting responses from AI tools. Keeps Markdown editable and avoids importing rich-text formatting or hidden HTML."
+    );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.renderStrategy\"");
+    expect(source.indexOf("id=\"annotation-markdown-enabled\"")).toBeLessThan(
+      source.indexOf("id=\"annotation-markdown-math-enabled\"")
+    );
+    expect(source.indexOf("id=\"annotation-markdown-math-enabled\"")).toBeLessThan(
+      source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")
+    );
+    expect(source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")).toBeLessThan(
+      source.indexOf("id=\"annotation-markdown-fast-editor\"")
+    );
     expect(source).not.toContain("preference=\"extensions.annotationMarkdown.lightweightMode\"");
     expect(source).not.toContain("preference=\"extensions.annotationMarkdown.performanceDiagnostics\"");
     expect(source).toContain("<menulist id=\"annotation-markdown-font-scale\"");
@@ -32,6 +51,7 @@ describe("preferences pane", () => {
     const enabledInput = createInput();
     const fontScaleSelect = createInput();
     const pasteAsPlainTextInput = createInput();
+    const fastEditorInput = createInput();
     const mathInput = createInput();
     const renderStrategySelect = createInput();
     const documentRef = {
@@ -40,6 +60,7 @@ describe("preferences pane", () => {
           "annotation-markdown-enabled": enabledInput,
           "annotation-markdown-font-scale": fontScaleSelect,
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
+          "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
           "annotation-markdown-render-strategy": renderStrategySelect
         }[id] ?? null;
@@ -51,6 +72,7 @@ describe("preferences pane", () => {
     expect(enabledInput.checked).toBe(true);
     expect(fontScaleSelect.value).toBe("100");
     expect(pasteAsPlainTextInput.checked).toBe(true);
+    expect(fastEditorInput.checked).toBe(true);
     expect(mathInput.checked).toBe(true);
     expect(renderStrategySelect.value).toBe("auto");
   });
@@ -68,6 +90,7 @@ describe("preferences pane", () => {
             "extensions.annotationMarkdown.enabled": true,
             "extensions.annotationMarkdown.fontScalePercent": 100,
             "extensions.annotationMarkdown.pasteAsPlainText": true,
+            "extensions.annotationMarkdown.fastEditor": true,
             "extensions.annotationMarkdown.mathEnabled": true,
             "extensions.annotationMarkdown.renderStrategy": "auto"
           }[key];
@@ -78,6 +101,7 @@ describe("preferences pane", () => {
     const enabledInput = createInput();
     const fontScaleSelect = createInput();
     const pasteAsPlainTextInput = createInput();
+    const fastEditorInput = createInput();
     const mathInput = createInput();
     const renderStrategySelect = createInput();
     const documentRef = {
@@ -86,6 +110,7 @@ describe("preferences pane", () => {
           "annotation-markdown-enabled": enabledInput,
           "annotation-markdown-font-scale": fontScaleSelect,
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
+          "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
           "annotation-markdown-render-strategy": renderStrategySelect
         }[id] ?? null;
@@ -99,6 +124,8 @@ describe("preferences pane", () => {
     fontScaleSelect.dispatch("command");
     pasteAsPlainTextInput.checked = false;
     pasteAsPlainTextInput.dispatch("command");
+    fastEditorInput.checked = false;
+    fastEditorInput.dispatch("command");
     mathInput.checked = false;
     mathInput.dispatch("command");
     renderStrategySelect.value = "lazy";
@@ -107,6 +134,7 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 120, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy", true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", expect.anything(), true);

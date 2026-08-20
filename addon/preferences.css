@@ -8,3 +8,10 @@
   justify-content: space-between;
   max-width: 24em;
 }
+
+.annotation-markdown-preference-description {
+  margin-inline-start: 2em;
+  max-width: 38em;
+  opacity: 0.75;
+  white-space: normal;
+}

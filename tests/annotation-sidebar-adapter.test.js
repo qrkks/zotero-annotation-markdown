@@ -3,6 +3,555 @@ import { describe, expect, test, vi } from "vitest";
 import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.ts";
 
 describe("createAnnotationSidebarAdapter", () => {
+  test("commits a fast editor draft on blur through the annotation update callback", () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**old**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const content = document.querySelector(".content");
+    const input = vi.fn();
+    const commitComment = vi.fn(() => true);
+    content.addEventListener("input", input);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const comment = document.querySelector(".comment");
+
+    adapter.applyRenderedHtml(comment, "<strong>old</strong>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    const editor = comment.querySelector("[data-annotation-markdown-fast-editor='true']");
+    const textarea = editor.querySelector("textarea");
+    textarea.value = "**new**\n\nsecond line";
+    textarea.focus();
+    document.querySelector("#outside").focus();
+
+    expect(content.textContent).toBe("**old**");
+    expect(input).not.toHaveBeenCalled();
+    expect(commitComment).toHaveBeenCalledWith("a1", "**new**\n\nsecond line");
+    expect(comment.getAttribute("data-annotation-markdown-source")).toBe("**new**\n\nsecond line");
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    expect(editor.querySelector("button")).toBeNull();
+  });
+
+  test("saves a fast editor draft when Escape is pressed", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**old**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const content = document.querySelector(".content");
+    const input = vi.fn();
+    const commitComment = vi.fn(() => true);
+    content.addEventListener("input", input);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const comment = document.querySelector(".comment");
+
+    adapter.applyRenderedHtml(comment, "<strong>old</strong>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const editor = comment.querySelector("[data-annotation-markdown-fast-editor='true']");
+    const textarea = editor.querySelector("textarea");
+    textarea.value = "save me";
+    textarea.dispatchEvent(new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "Escape"
+    }));
+
+    expect(content.textContent).toBe("**old**");
+    expect(input).not.toHaveBeenCalled();
+    expect(commitComment).toHaveBeenCalledWith("a1", "save me");
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+  });
+
+  test.each(["Backspace", "Delete"])(
+    "keeps %s inside the fast editor despite Zotero's window capture shortcut",
+    (key) => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content">draft</div></div>
+      </div>
+    `;
+    let nativeCommentDeletionEnabled = true;
+    const deleteAnnotation = vi.fn();
+    const hostKeyDown = (event) => {
+      if (!["Backspace", "Delete"].includes(event.key)) {
+        return;
+      }
+      if (event.target.closest(".content") && !nativeCommentDeletionEnabled) {
+        return;
+      }
+      deleteAnnotation();
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", hostKeyDown, true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true),
+      beginFastEditorKeyboardGuard: () => {
+        const previous = nativeCommentDeletionEnabled;
+        nativeCommentDeletionEnabled = false;
+        return () => { nativeCommentDeletionEnabled = previous; };
+      }
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>draft</p>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const textarea = comment.querySelector("textarea");
+    textarea.focus();
+    const event = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key
+    });
+
+    textarea.dispatchEvent(event);
+
+    expect(textarea.classList).toContain("content");
+    expect(deleteAnnotation).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+    textarea.blur();
+    expect(nativeCommentDeletionEnabled).toBe(true);
+    window.removeEventListener("keydown", hostKeyDown, true);
+  });
+
+  test.each(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"])(
+    "keeps %s available for textarea caret movement",
+    (key) => {
+      document.body.innerHTML = `
+        <button id="outside">outside</button>
+        <div data-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content">draft</div></div>
+        </div>
+      `;
+      const navigateReader = vi.fn();
+      const hostKeyDown = (event) => {
+        const content = document.activeElement?.closest(".comment .content");
+        if (key === event.key && content && !content.innerText) {
+          navigateReader();
+          document.querySelector("#outside").focus();
+        }
+        if (
+          key === event.key &&
+          !event.target.closest('[contenteditable], input[type="text"], .preview-popup')
+        ) {
+          event.preventDefault();
+        }
+      };
+      window.addEventListener("keydown", hostKeyDown, true);
+      const adapter = createAnnotationSidebarAdapter({
+        document,
+        isFastEditorEnabled: () => true,
+        commitComment: vi.fn(() => true)
+      });
+      const comment = document.querySelector(".comment");
+      adapter.applyRenderedHtml(comment, "<p>draft</p>");
+      comment.querySelector(".annotation-markdown-rendered")
+        .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      const textarea = comment.querySelector("textarea");
+      textarea.focus();
+      const event = new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key
+      });
+
+      textarea.dispatchEvent(event);
+
+      expect(navigateReader).not.toHaveBeenCalled();
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(textarea);
+      window.removeEventListener("keydown", hostKeyDown, true);
+    }
+  );
+
+  test("keeps the annotation identity when Zotero refreshes an empty editor while it is open", () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const row = document.querySelector(".annotation");
+    const comment = document.querySelector(".comment");
+
+    adapter.tryShowFastEditorForTarget(document.querySelector(".renderer"));
+    const textarea = comment.querySelector("textarea");
+    textarea.value = "saved after refresh";
+    textarea.focus();
+
+    row.removeAttribute("data-sidebar-annotation-id");
+    comment.querySelector(".expandable-editor").replaceWith(
+      Object.assign(document.createElement("div"), {
+        className: "expandable-editor",
+        innerHTML: '<div class="content" placeholder="Add comment"></div><div class="renderer"></div>'
+      })
+    );
+    document.querySelector("#outside").focus();
+
+    expect(commitComment).toHaveBeenCalledWith("a1", "saved after refresh");
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+  });
+
+  test("uses a taller auto-growing editor for existing text but keeps an empty draft compact", () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content">existing text</div></div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>existing text</p>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    expect(comment.querySelector("textarea").rows).toBe(3);
+
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a2" class="annotation selected">
+        <div class="comment"><div class="expandable-editor"><div class="content" placeholder="Add comment"></div><div class="renderer"></div></div></div>
+      </div>
+    `;
+    const emptyAdapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    emptyAdapter.tryShowFastEditorForTarget(document.querySelector(".renderer"));
+
+    expect(document.querySelector("textarea").rows).toBe(1);
+  });
+
+  test("does not notify Zotero when a fast editor closes without changes", () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">unchanged</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const content = document.querySelector(".content");
+    const input = vi.fn();
+    content.addEventListener("input", input);
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>unchanged</p>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    comment.querySelector("textarea").focus();
+    document.querySelector("#outside").focus();
+
+    expect(input).not.toHaveBeenCalled();
+    expect(commitComment).not.toHaveBeenCalled();
+    expect(content.textContent).toBe("unchanged");
+  });
+
+  test("stops selected preview pointerdown before Zotero can open its native editor", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**old**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const hostPointerDown = vi.fn();
+    document.querySelector(".annotation").addEventListener("pointerdown", hostPointerDown);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<strong>old</strong>");
+
+    const event = new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    });
+    comment.querySelector(".annotation-markdown-rendered").dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(hostPointerDown).not.toHaveBeenCalled();
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).not.toBeNull();
+  });
+
+  test("does not open the fast editor before Zotero selects the annotation row", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**old**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+
+    adapter.applyRenderedHtml(comment, "<strong>old</strong>");
+    document.querySelector(".annotation").classList.remove("selected");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+  });
+
+  test("cleans a fast editor and restores Zotero source on plugin reset", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="true">**old**</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+
+    adapter.applyRenderedHtml(comment, "<strong>old</strong>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    adapter.clearRenderedState(document);
+
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    expect(document.querySelector(".content").hidden).toBe(false);
+    expect(comment.classList.contains("annotation-markdown-editing")).toBe(false);
+  });
+
+  test("opens before Zotero marks the native content as editable", () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false">early hook</div>
+            <div class="renderer">early hook</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>early hook</p>");
+
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).not.toBeNull();
+    expect(document.querySelector(".content").getAttribute("contenteditable")).toBe("false");
+  });
+
+  test("grows the fast editor with its content instead of fixing its height", () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">text</div></div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>text</p>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const textarea = comment.querySelector("textarea");
+    Object.defineProperty(textarea, "scrollHeight", { configurable: true, value: 120 });
+
+    textarea.dispatchEvent(new InputEvent("input", { bubbles: true, data: "more" }));
+
+    expect(textarea.style.height).toBe("120px");
+  });
+
+  test("keeps a visible sidebar annotation fixed when direct editing changes its layout", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const callbacks = [];
+    window.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+    document.body.innerHTML = `
+      <div id="annotationsView" style="height: 200px; overflow-y: auto">
+        <div id="annotations" style="height: 100px; overflow-y: hidden">
+          <div data-sidebar-annotation-id="a1" class="annotation selected">
+            <div class="comment">
+              <div class="expandable-editor">
+                <div class="content" contenteditable="false">a long comment</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const scroller = document.querySelector("#annotationsView");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 2000 }
+    });
+    scroller.scrollTop = 420;
+    scroller.scrollLeft = 0;
+    scroller.scrollTo = vi.fn(({ top, left }) => {
+      scroller.scrollTop = top;
+      scroller.scrollLeft = left;
+    });
+    const hiddenWrapper = document.querySelector("#annotations");
+    Object.defineProperties(hiddenWrapper, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 2000 }
+    });
+    hiddenWrapper.scrollTo = vi.fn(({ top, left }) => {
+      hiddenWrapper.scrollTop = top;
+      hiddenWrapper.scrollLeft = left;
+    });
+    const row = document.querySelector(".annotation");
+    let rowTop = -40;
+    row.getBoundingClientRect = () => ({
+      top: rowTop,
+      bottom: rowTop + 60,
+      left: 0,
+      right: 200,
+      width: 200,
+      height: 60,
+      x: 0,
+      y: rowTop,
+      toJSON: () => ({})
+    });
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+
+    try {
+      adapter.tryShowFastEditorForTarget(document.querySelector(".content"));
+      callbacks.shift()(0);
+      // In a heavy sidebar, native focus/layout anchoring can move the row one
+      // frame after the fast editor itself has finished layout.
+      rowTop = -120;
+      scroller.scrollTop = 500;
+      callbacks.shift()(16);
+
+      expect(scroller.scrollTo).toHaveBeenCalledWith({
+        behavior: "instant",
+        left: 0,
+        top: 420
+      });
+      expect(scroller.scrollTop).toBe(420);
+    } finally {
+      adapter.clearRenderedState(document);
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
+
+  test("does not block Zotero from locating an offscreen annotation", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const callbacks = [];
+    window.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+    document.body.innerHTML = `
+      <div id="annotationsView" style="height: 200px; overflow-y: auto">
+        <div data-sidebar-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content" contenteditable="true">offscreen</div></div>
+        </div>
+      </div>
+    `;
+    const scroller = document.querySelector("#annotationsView");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 2000 }
+    });
+    scroller.scrollTo = vi.fn();
+    const row = document.querySelector(".annotation");
+    row.getBoundingClientRect = () => ({
+      top: 500,
+      bottom: 560,
+      left: 0,
+      right: 200,
+      width: 200,
+      height: 60,
+      x: 0,
+      y: 500,
+      toJSON: () => ({})
+    });
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+
+    try {
+      adapter.tryShowFastEditorForAnnotationID("a1");
+      callbacks.shift()(0);
+
+      expect(scroller.scrollTo).not.toHaveBeenCalled();
+    } finally {
+      adapter.clearRenderedState(document);
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
+
   test("finds candidate annotation comment display nodes", () => {
     document.body.innerHTML = `
       <div id="root">

@@ -10,7 +10,7 @@ const COMMENT_SELECTORS: string[] = [
   ".comment"
 ];
 
-const ANNOTATION_ROW_SELECTOR = "[data-annotation-id], .annotation, .annotation-row";
+const ANNOTATION_ROW_SELECTOR = "[data-sidebar-annotation-id], [data-annotation-id], .annotation, .annotation-row";
 const NATIVE_NOTE_EDITOR_SELECTOR = [
   ".note-editor",
   ".zotero-note-editor",
@@ -26,10 +26,24 @@ const PREVIEW_HIDDEN_ATTRIBUTE = "data-annotation-markdown-preview-hidden";
 const SOURCE_WRAPPER_ATTRIBUTE = "data-annotation-markdown-source-node";
 const SOURCE_HIDDEN_ATTRIBUTE = "data-annotation-markdown-source-hidden";
 const EDITING_CLASS = "annotation-markdown-editing";
+const FAST_EDITING_CLASS = "annotation-markdown-fast-editing";
+const FAST_EDITOR_ATTRIBUTE = "data-annotation-markdown-fast-editor";
+const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-closing";
+const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
+export const FAST_EDITOR_CLOSED_EVENT = "annotation-markdown-fast-editor-closed";
+
+export interface FastEditorClosedDetail {
+  annotationID: string;
+  source: string;
+  committed: boolean;
+}
 
 interface CreateAnnotationSidebarAdapterOptions {
   document?: Document | null;
   openLink?(url: string): void;
+  isFastEditorEnabled?(): boolean;
+  commitComment?(annotationID: string, comment: string): boolean;
+  beginFastEditorKeyboardGuard?(): (() => void) | void;
 }
 
 /** Operations the controller may perform without knowing Zotero's DOM shape. */
@@ -49,7 +63,14 @@ export interface AnnotationSidebarAdapter {
   restoreSourceText(node: HTMLElement | null | undefined): void;
   restoreSourceDomForEditing(node: HTMLElement | null | undefined): void;
   clearRenderedState(root?: Node | null): void;
-  showSourceForEditing(node: HTMLElement): void;
+  showSourceForEditing(node: HTMLElement): boolean;
+  tryShowFastEditorForTarget(target: EventTarget | null | undefined): boolean;
+  tryShowFastEditorForAnnotationID(annotationID: string): boolean;
+  getAnnotationIDForTarget(target: EventTarget | null | undefined): string | null;
+  getCommentNodeForAnnotationID(annotationID: string): HTMLElement | null;
+  setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
+  closeActiveFastEditor(): boolean;
+  commitComment(annotationID: string, comment: string): boolean;
   suppressRendering(node: HTMLElement | null | undefined, durationMs?: number): void;
   isSuppressed(node: HTMLElement | null | undefined): boolean;
   isRendered(node: HTMLElement | null | undefined): boolean;
@@ -57,6 +78,7 @@ export interface AnnotationSidebarAdapter {
   finishEditing(node: HTMLElement | null | undefined): void;
   getCommentNodeForTarget(target: EventTarget | null | undefined): HTMLElement | null;
   isCommentEditorTarget(target: EventTarget | null | undefined): boolean;
+  isFastEditorTarget(target: EventTarget | null | undefined): boolean;
   openLink: ((url: string) => void) | null;
 }
 
@@ -68,7 +90,10 @@ export interface AnnotationSidebarAdapter {
  */
 export function createAnnotationSidebarAdapter({
   document: documentRef = globalThis.document,
-  openLink
+  openLink,
+  isFastEditorEnabled = () => false,
+  commitComment,
+  beginFastEditorKeyboardGuard
 }: CreateAnnotationSidebarAdapterOptions = {}): AnnotationSidebarAdapter {
   return {
     findCommentNodes(root: Node | null = documentRef) {
@@ -258,6 +283,19 @@ export function createAnnotationSidebarAdapter({
       }
 
       // Remove only plugin-owned DOM so disable/re-enable restores the host view.
+      for (const editor of queryHtmlElements(
+        queryRoot,
+        `[${FAST_EDITOR_ATTRIBUTE}='true']`
+      )) {
+        const session = fastEditorSessionByDocument.get(editor.ownerDocument);
+        if (session?.editor === editor) {
+          session.removalObserver?.disconnect();
+          fastEditorSessionByDocument.delete(editor.ownerDocument);
+        }
+        endFastEditorKeyboardGuard(editor);
+        editor.remove();
+      }
+
       for (const preview of queryHtmlElements(
         queryRoot,
         `[${PREVIEW_ATTRIBUTE}='true'], .annotation-markdown-rendered`
@@ -267,12 +305,14 @@ export function createAnnotationSidebarAdapter({
 
       for (const node of queryHtmlElements(
         queryRoot,
-        `[${RENDERED_ATTRIBUTE}], [${SOURCE_ATTRIBUTE}], [${SUPPRESS_UNTIL_ATTRIBUTE}], .${EDITING_CLASS}`
+        `[${RENDERED_ATTRIBUTE}], [${SOURCE_ATTRIBUTE}], [${SUPPRESS_UNTIL_ATTRIBUTE}], [${FAST_EDITOR_COMMITTED_ATTRIBUTE}], .${EDITING_CLASS}, .${FAST_EDITING_CLASS}`
       )) {
         node.classList.remove(EDITING_CLASS);
+        node.classList.remove(FAST_EDITING_CLASS);
         node.removeAttribute(RENDERED_ATTRIBUTE);
         node.removeAttribute(SOURCE_ATTRIBUTE);
         node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
+        node.removeAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE);
 
         showSourceNode(getSourceContainer(node));
         showSourceNode(getSourceNode(node));
@@ -286,7 +326,12 @@ export function createAnnotationSidebarAdapter({
 
     showSourceForEditing(node: HTMLElement) {
       if (!canEnterEditing(node)) {
-        return;
+        return false;
+      }
+
+      if (isFastEditorEnabled() && canUseFastEditor(node, commitComment)) {
+        showFastEditor(node, this, beginFastEditorKeyboardGuard);
+        return true;
       }
 
       const sourceNode = getSourceNode(node);
@@ -310,6 +355,78 @@ export function createAnnotationSidebarAdapter({
         placeCaretAtEnd(focusTarget);
         focusTarget?.addEventListener?.("focusout", () => finishEditing(node), { once: true });
       });
+      return false;
+    },
+
+    tryShowFastEditorForTarget(target: EventTarget | null | undefined) {
+      if (!isFastEditorEnabled()) {
+        return false;
+      }
+
+      const targetElement = getElementTarget(target);
+      if (targetElement?.closest("a[href]")) {
+        return false;
+      }
+      const nativeEntry = targetElement?.closest(
+        `.content, .expandable-editor .renderer, [${PREVIEW_ATTRIBUTE}='true']`
+      );
+      const comment = this.getCommentNodeForTarget(target);
+      if (
+        !nativeEntry ||
+        !comment ||
+        !canEnterEditing(comment) ||
+        !canUseFastEditor(comment, commitComment)
+      ) {
+        return false;
+      }
+
+      showFastEditor(comment, this, beginFastEditorKeyboardGuard);
+      return true;
+    },
+
+    tryShowFastEditorForAnnotationID(annotationID: string) {
+      if (!isFastEditorEnabled() || !annotationID) {
+        return false;
+      }
+
+      const comment = this.getCommentNodeForAnnotationID(annotationID);
+      if (
+        !comment ||
+        !canEnterEditing(comment) ||
+        !canUseFastEditor(comment, commitComment)
+      ) {
+        return false;
+      }
+
+      showFastEditor(comment, this, beginFastEditorKeyboardGuard);
+      return true;
+    },
+
+    getAnnotationIDForTarget(target: EventTarget | null | undefined) {
+      const comment = this.getCommentNodeForTarget(target);
+      return comment ? getAnnotationID(comment) : null;
+    },
+
+    getCommentNodeForAnnotationID(annotationID: string) {
+      const queryRoot = getQueryRoot(documentRef);
+      const candidates = queryRoot
+        ? queryHtmlElements(queryRoot, COMMENT_SELECTORS.join(","))
+          .filter((candidate) => (
+            getAnnotationID(candidate) === annotationID &&
+            !isInsideNativeNoteEditor(candidate)
+          ))
+        : [];
+      return candidates.find((candidate) => (
+        candidate.closest("[data-sidebar-annotation-id]")
+      )) ?? candidates[0] ?? null;
+    },
+
+    setCommittedSource(node: HTMLElement | null | undefined, source: string) {
+      if (!node) {
+        return;
+      }
+      node.setAttribute(SOURCE_ATTRIBUTE, source);
+      node.setAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE, "true");
     },
 
     suppressRendering(node: HTMLElement | null | undefined, durationMs = 1500) {
@@ -368,8 +485,307 @@ export function createAnnotationSidebarAdapter({
       return Boolean(comment);
     },
 
+    isFastEditorTarget(target: EventTarget | null | undefined) {
+      return Boolean(getElementTarget(target)?.closest(`[${FAST_EDITOR_ATTRIBUTE}='true']`));
+    },
+
+    closeActiveFastEditor() {
+      if (!documentRef) {
+        return true;
+      }
+
+      const session = fastEditorSessionByDocument.get(documentRef);
+      return session ? session.close() : true;
+    },
+
+    commitComment(annotationID: string, comment: string) {
+      return Boolean(commitComment?.(annotationID, comment));
+    },
+
     openLink: typeof openLink === "function" ? openLink : null
   };
+}
+
+function showFastEditor(
+  node: HTMLElement,
+  adapter: AnnotationSidebarAdapter,
+  beginFastEditorKeyboardGuard?: () => (() => void) | void
+): void {
+  const existingEditor = node.querySelector(`[${FAST_EDITOR_ATTRIBUTE}='true']`);
+  if (isHTMLElement(existingEditor)) {
+    focusFastEditor(existingEditor);
+    return;
+  }
+
+  const annotationID = getAnnotationID(node);
+  if (!annotationID) {
+    return;
+  }
+  const originalSource = adapter.getSourceText(node);
+  const viewportAnchor = captureFastEditorViewportAnchor(node);
+
+  const documentRef = node.ownerDocument;
+  const editor = documentRef.createElement("div");
+  editor.className = "annotation-markdown-fast-editor";
+  editor.setAttribute(FAST_EDITOR_ATTRIBUTE, "true");
+
+  const textarea = documentRef.createElement("textarea");
+  textarea.className = "annotation-markdown-fast-editor-input content";
+  // Zotero's window-capture keyboard managers only exempt contenteditable
+  // targets and move focus away from empty `.content` nodes on arrow keys.
+  textarea.setAttribute("contenteditable", "false");
+  textarea.innerText = "\u200b";
+  textarea.value = originalSource;
+  textarea.setAttribute("aria-label", "Edit annotation comment as Markdown");
+  textarea.title = "Blur or press Escape to save";
+  textarea.spellcheck = true;
+  textarea.rows = originalSource.trim() ? 3 : 1;
+  editor.append(textarea);
+  const endKeyboardGuard = beginFastEditorKeyboardGuard?.();
+  if (typeof endKeyboardGuard === "function") {
+    fastEditorCleanupByEditor.set(editor, endKeyboardGuard);
+  }
+  const commitAndClose = () => closeFastEditor(
+    node,
+    editor,
+    adapter,
+    annotationID,
+    originalSource
+  );
+  const session: FastEditorSession = {
+    editor,
+    close: commitAndClose
+  };
+  const MutationObserverRef = documentRef.defaultView?.MutationObserver;
+  if (MutationObserverRef && documentRef.body) {
+    session.removalObserver = new MutationObserverRef(() => {
+      if (!editor.isConnected) {
+        session.close();
+      }
+    });
+    session.removalObserver.observe(documentRef.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+  fastEditorSessionByDocument.set(documentRef, session);
+  editor.addEventListener("mousedown", stopHostEventPropagation);
+  editor.addEventListener("click", stopHostEventPropagation);
+  editor.addEventListener("keydown", stopHostEventPropagation);
+  editor.addEventListener("keyup", stopHostEventPropagation);
+  editor.addEventListener("keypress", stopHostEventPropagation);
+  editor.addEventListener("beforeinput", stopHostEventPropagation);
+  textarea.addEventListener("input", () => resizeFastEditor(textarea));
+  textarea.addEventListener("blur", commitAndClose);
+  textarea.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      commitAndClose();
+    }
+  });
+
+  const sourceNode = getSourceNode(node);
+  hideSourceNode(node);
+  hidePreviewNode(getPreviewNode(node));
+  getSourceContainer(node, sourceNode).after(editor);
+  node.classList.add(EDITING_CLASS, FAST_EDITING_CLASS);
+  adapter.suppressRendering(node, 60_000);
+
+  runAfterLayout(node, () => {
+    resizeFastEditor(textarea);
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    restoreFastEditorViewportAnchor(viewportAnchor);
+    if (viewportAnchor) {
+      // Gecko can apply focus/scroll anchoring one frame after the textarea's
+      // own layout, especially in a large annotation sidebar.
+      runAfterLayout(node, () => restoreFastEditorViewportAnchor(viewportAnchor));
+    }
+  });
+}
+
+function closeFastEditor(
+  node: HTMLElement,
+  editor: HTMLElement,
+  adapter: AnnotationSidebarAdapter,
+  annotationID: string,
+  originalSource: string
+): boolean {
+  if (editor.getAttribute(FAST_EDITOR_CLOSING_ATTRIBUTE) === "true") {
+    return false;
+  }
+  editor.setAttribute(FAST_EDITOR_CLOSING_ATTRIBUTE, "true");
+
+  const textarea = editor.querySelector("textarea");
+  const source = textarea?.value ?? "";
+  const committed = source !== originalSource;
+
+  textarea?.blur();
+  if (committed) {
+    if (!adapter.commitComment(annotationID, source)) {
+      editor.removeAttribute(FAST_EDITOR_CLOSING_ATTRIBUTE);
+      runAfterLayout(node, () => textarea?.focus({ preventScroll: true }));
+      return false;
+    }
+    node.setAttribute(SOURCE_ATTRIBUTE, source);
+    node.setAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE, "true");
+  }
+  hidePreviewNode(getPreviewNode(node));
+
+  node.classList.remove(EDITING_CLASS, FAST_EDITING_CLASS);
+  node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
+  const session = fastEditorSessionByDocument.get(editor.ownerDocument);
+  if (session?.editor === editor) {
+    session.removalObserver?.disconnect();
+    fastEditorSessionByDocument.delete(editor.ownerDocument);
+  }
+  dispatchFastEditorClosed(node, { annotationID, source, committed });
+  endFastEditorKeyboardGuard(editor);
+  editor.remove();
+  return true;
+}
+
+function focusFastEditor(editor: HTMLElement): void {
+  const textarea = editor.querySelector("textarea");
+  textarea?.focus({ preventScroll: true });
+}
+
+function canUseFastEditor(
+  node: HTMLElement,
+  commitComment: ((annotationID: string, comment: string) => boolean) | undefined
+): boolean {
+  return typeof commitComment === "function" && Boolean(getAnnotationID(node));
+}
+
+function getAnnotationID(node: HTMLElement): string | null {
+  const annotation = node.closest("[data-sidebar-annotation-id], [data-annotation-id]");
+  return annotation?.getAttribute("data-sidebar-annotation-id") ??
+    annotation?.getAttribute("data-annotation-id") ??
+    getSourceNode(node)?.id ??
+    null;
+}
+
+const fastEditorCleanupByEditor = new WeakMap<HTMLElement, () => void>();
+interface FastEditorSession {
+  editor: HTMLElement;
+  close(): boolean;
+  removalObserver?: MutationObserver;
+}
+
+const fastEditorSessionByDocument = new WeakMap<Document, FastEditorSession>();
+
+function endFastEditorKeyboardGuard(editor: HTMLElement): void {
+  const cleanup = fastEditorCleanupByEditor.get(editor);
+  fastEditorCleanupByEditor.delete(editor);
+  cleanup?.();
+}
+
+function resizeFastEditor(textarea: HTMLTextAreaElement): void {
+  textarea.style.height = "auto";
+  if (textarea.scrollHeight > 0) {
+    textarea.style.height = `${textarea.scrollHeight}px`;
+    return;
+  }
+  textarea.style.removeProperty("height");
+}
+
+interface FastEditorViewportAnchor {
+  row: HTMLElement;
+  scroller: HTMLElement;
+  viewportTop: number;
+}
+
+function captureFastEditorViewportAnchor(
+  node: HTMLElement
+): FastEditorViewportAnchor | null {
+  const scroller = findFastEditorScrollContainer(node);
+  const row = node.closest(ANNOTATION_ROW_SELECTOR);
+  if (!scroller || !isHTMLElement(row)) {
+    return null;
+  }
+
+  const rowRect = row.getBoundingClientRect();
+  const scrollerRect = scroller.getBoundingClientRect();
+  const viewportTop = scrollerRect.top;
+  const viewportBottom = viewportTop + scroller.clientHeight;
+  if (rowRect.bottom <= viewportTop || rowRect.top >= viewportBottom) {
+    // Let Zotero perform its initial page-to-sidebar location when the row is
+    // genuinely outside the sidebar viewport.
+    return null;
+  }
+
+  return {
+    row,
+    scroller,
+    viewportTop: rowRect.top
+  };
+}
+
+function findFastEditorScrollContainer(node: HTMLElement): HTMLElement | null {
+  const windowRef = node.ownerDocument.defaultView;
+  let current = node.parentElement;
+  while (current && current !== node.ownerDocument.body) {
+    const overflowY = windowRef?.getComputedStyle?.(current)?.overflowY ?? "";
+    if (
+      /^(auto|scroll|overlay)$/.test(overflowY) &&
+      current.scrollHeight > current.clientHeight
+    ) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
+
+function restoreFastEditorViewportAnchor(
+  anchor: FastEditorViewportAnchor | null
+): void {
+  if (!anchor || !anchor.scroller.isConnected || !anchor.row.isConnected) {
+    return;
+  }
+
+  const currentViewportTop = anchor.row.getBoundingClientRect().top;
+  const delta = currentViewportTop - anchor.viewportTop;
+  setFastEditorScrollPosition(
+    anchor.scroller,
+    anchor.scroller.scrollTop + delta,
+    anchor.scroller.scrollLeft
+  );
+}
+
+function setFastEditorScrollPosition(
+  scroller: HTMLElement,
+  top: number,
+  left: number
+): void {
+  try {
+    scroller.scrollTo({ top, left, behavior: "instant" });
+  } catch {
+    scroller.scrollTop = top;
+    scroller.scrollLeft = left;
+  }
+}
+
+function dispatchFastEditorClosed(
+  node: HTMLElement,
+  detail: FastEditorClosedDetail
+): void {
+  const EventRef = node.ownerDocument.defaultView?.CustomEvent ?? globalThis.CustomEvent;
+  // A detached node cannot bubble to the Reader root. Dispatch from the live
+  // body after Zotero replaces/removes the edited comment so the controller
+  // still receives the committed draft lifecycle event.
+  const target: EventTarget = node.isConnected
+    ? node
+    : node.ownerDocument.body ?? node.ownerDocument;
+  target.dispatchEvent(new EventRef(FAST_EDITOR_CLOSED_EVENT, {
+    bubbles: true,
+    detail
+  }));
+}
+
+function stopHostEventPropagation(event: Event): void {
+  event.stopPropagation();
 }
 
 type QueryRoot = Node & ParentNode;
@@ -403,6 +819,15 @@ function createPreviewNode(
   const preview = sourceNode.ownerDocument.createElement("div");
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
+  preview.addEventListener("pointerdown", (event) => {
+    if (getElementTarget(event.target)?.closest("a[href]")) {
+      return;
+    }
+    if (adapter.showSourceForEditing(sourceNode)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, { capture: true });
   preview.addEventListener("mousedown", (event) => {
     const link = getElementTarget(event.target)?.closest("a[href]");
     if (link) {
@@ -416,7 +841,10 @@ function createPreviewNode(
       }
       return;
     }
-    adapter.showSourceForEditing(sourceNode);
+    if (adapter.showSourceForEditing(sourceNode)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }, { capture: true });
   preview.addEventListener("click", (event) => {
     const link = getElementTarget(event.target)?.closest("a[href]");
@@ -450,8 +878,17 @@ function createPreviewPlaceholder(
   placeholder.setAttribute(PREVIEW_ATTRIBUTE, "true");
   placeholder.setAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE, "true");
   placeholder.textContent = adapter.getSourceText(sourceNode);
-  placeholder.addEventListener("mousedown", () => {
-    adapter.showSourceForEditing(sourceNode);
+  placeholder.addEventListener("pointerdown", (event) => {
+    if (adapter.showSourceForEditing(sourceNode)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, { capture: true });
+  placeholder.addEventListener("mousedown", (event) => {
+    if (adapter.showSourceForEditing(sourceNode)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }, { capture: true });
   return placeholder;
 }
@@ -519,8 +956,10 @@ function getSourceNode(
     return directContent;
   }
 
-  const nestedContent = node.querySelector(".content");
-  if (isHTMLElement(nestedContent)) {
+  const nestedContent = Array.from(node.querySelectorAll(".content"))
+    .filter(isHTMLElement)
+    .find((candidate) => !candidate.closest(`[${FAST_EDITOR_ATTRIBUTE}='true']`));
+  if (nestedContent) {
     return nestedContent;
   }
 
@@ -632,6 +1071,7 @@ function restoreSourceDom(node: HTMLElement | null | undefined): void {
   getPreviewNode(node)?.remove();
   unwrapSourceNode(node);
   node.classList?.remove(EDITING_CLASS);
+  node.classList?.remove(FAST_EDITING_CLASS);
   node.removeAttribute(RENDERED_ATTRIBUTE);
   node.removeAttribute(SOURCE_ATTRIBUTE);
   node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
@@ -677,8 +1117,12 @@ function placeCaretAtEnd(node: HTMLElement | null): void {
 }
 
 function finishEditing(node: HTMLElement | null | undefined): void {
-  node?.setAttribute(SOURCE_ATTRIBUTE, readSourceText(getSourceNode(node)));
+  if (node?.getAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE) !== "true") {
+    node?.setAttribute(SOURCE_ATTRIBUTE, readSourceText(getSourceNode(node)));
+  }
+  node?.removeAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE);
   node?.classList.remove(EDITING_CLASS);
+  node?.classList.remove(FAST_EDITING_CLASS);
   node?.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
 }
 

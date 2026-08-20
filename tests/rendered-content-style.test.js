@@ -57,6 +57,14 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("text-decoration: underline");
   });
 
+  test("keeps Zotero's refreshed native comment shell hidden while the fast editor is open", async () => {
+    const addonCss = await readAddonCss();
+
+    expect(addonCss).toMatch(
+      /\.annotation-markdown-fast-editing\s*>\s*\.expandable-editor\s*\{[^}]*display:\s*none\s*!important;/
+    );
+  });
+
   test("keeps fenced code blocks readable in narrow previews", async () => {
     const addonCss = await readAddonCss();
 
