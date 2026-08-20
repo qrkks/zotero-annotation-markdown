@@ -7,6 +7,7 @@ import { BlobWriter, Uint8ArrayReader, ZipWriter } from "@zip.js/zip.js";
 import {
   createUpdateManifest,
   deterministicZipEntryOptions,
+  deterministicZipWriterOptions,
   releaseAssetName
 } from "./release-config.mjs";
 
@@ -14,7 +15,10 @@ const root = process.cwd();
 const addonDir = path.join(root, "dist", "addon");
 const outFile = path.join(root, "dist", releaseAssetName);
 
-const writer = new ZipWriter(new BlobWriter("application/zip"));
+const writer = new ZipWriter(
+  new BlobWriter("application/zip"),
+  deterministicZipWriterOptions
+);
 
 for (const file of await listFiles(addonDir)) {
   const bytes = await readFile(file);

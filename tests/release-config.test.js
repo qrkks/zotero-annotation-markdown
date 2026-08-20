@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 import {
   createUpdateManifest,
   deterministicZipEntryOptions,
+  deterministicZipWriterOptions,
   releaseAssetName,
   updateManifestUrl
 } from "../scripts/release-config.mjs";
@@ -48,6 +49,10 @@ describe("release configuration", () => {
   });
 
   test("uses deterministic zip entry timestamps for stable release hashes", () => {
+    expect(deterministicZipWriterOptions).toEqual({
+      useCompressionStream: false,
+      useWebWorkers: false
+    });
     expect(deterministicZipEntryOptions).toEqual({
       lastModDate: new Date("2026-01-01T00:00:00.000Z"),
       lastAccessDate: new Date("2026-01-01T00:00:00.000Z"),
