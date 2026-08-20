@@ -2,7 +2,7 @@ export const releaseAssetName = "zotero-annotation-markdown.xpi";
 export const releaseRepository = "qrkks/zotero-annotation-markdown";
 export const updateManifestUrl =
   `https://raw.githubusercontent.com/${releaseRepository}/main/updates.json`;
-export const deterministicZipDate = new Date("2026-01-01T00:00:00.000Z");
+export const deterministicZipDate = new Date(2026, 0, 1, 0, 0, 0, 0);
 export const deterministicZipWriterOptions = {
   useCompressionStream: false,
   useWebWorkers: false

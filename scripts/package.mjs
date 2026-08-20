@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { BlobWriter, Uint8ArrayReader, ZipWriter } from "@zip.js/zip.js/index-native.js";
+import { BlobWriter, Uint8ArrayReader, ZipWriter } from "@zip.js/zip.js";
 
 import {
   createUpdateManifest,

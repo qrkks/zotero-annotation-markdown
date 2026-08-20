@@ -54,9 +54,9 @@ describe("release configuration", () => {
       useWebWorkers: false
     });
     expect(deterministicZipEntryOptions).toEqual({
-      lastModDate: new Date("2026-01-01T00:00:00.000Z"),
-      lastAccessDate: new Date("2026-01-01T00:00:00.000Z"),
-      creationDate: new Date("2026-01-01T00:00:00.000Z"),
+      lastModDate: new Date(2026, 0, 1, 0, 0, 0, 0),
+      lastAccessDate: new Date(2026, 0, 1, 0, 0, 0, 0),
+      creationDate: new Date(2026, 0, 1, 0, 0, 0, 0),
       extendedTimestamp: false
     });
   });
