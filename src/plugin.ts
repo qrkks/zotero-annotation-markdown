@@ -31,9 +31,11 @@ interface ReaderLike {
   window?: Window | null;
   _iframeWindow?: Window | null;
   _annotationManager?: AnnotationManagerLike | null;
+  _annotationSelectionTriggeredFromView?: boolean;
   _enableAnnotationDeletionFromComment?: boolean;
   _internalReader?: {
     _annotationManager?: AnnotationManagerLike | null;
+    _annotationSelectionTriggeredFromView?: boolean;
     _enableAnnotationDeletionFromComment?: boolean;
   } | null;
 }
@@ -400,22 +402,52 @@ export function commitReaderAnnotationComment(
   }
 }
 
-/** Temporarily makes Zotero treat the fast textarea like a protected comment editor. */
+/** Temporarily makes Zotero treat the fast textarea like a sidebar-origin comment editor. */
 export function beginReaderFastEditorKeyboardGuard(reader: ReaderLike): () => void {
   try {
     const target = reader?._internalReader ?? reader;
-    const previous = target?._enableAnnotationDeletionFromComment;
-    target._enableAnnotationDeletionFromComment = false;
+    const restoreDeletionShortcut = temporarilySetReaderBoolean(
+      target,
+      "_enableAnnotationDeletionFromComment",
+      false
+    );
+    const restorePageSelectionOrigin = temporarilySetReaderBoolean(
+      target,
+      "_annotationSelectionTriggeredFromView",
+      false
+    );
+    return () => {
+      restorePageSelectionOrigin();
+      restoreDeletionShortcut();
+    };
+  } catch {
+    // Key-event propagation guards still protect the textarea when this
+    // optional private host state is unavailable.
+    return () => {};
+  }
+}
+
+function temporarilySetReaderBoolean(
+  target: ReaderLike,
+  key: "_annotationSelectionTriggeredFromView" | "_enableAnnotationDeletionFromComment",
+  value: boolean
+): () => void {
+  try {
+    const hadOwnValue = Object.prototype.hasOwnProperty.call(target, key);
+    const previous = target[key];
+    target[key] = value;
     return () => {
       try {
-        target._enableAnnotationDeletionFromComment = previous;
+        if (hadOwnValue) {
+          target[key] = previous;
+        } else {
+          delete target[key];
+        }
       } catch {
         // Reader teardown can invalidate private host objects before cleanup.
       }
     };
   } catch {
-    // Key-event propagation guards still protect the textarea when this
-    // optional private host flag is unavailable.
     return () => {};
   }
 }

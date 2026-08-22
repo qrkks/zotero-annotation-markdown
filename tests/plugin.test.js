@@ -187,7 +187,7 @@ describe("createPlugin", () => {
     plugin.shutdown();
   });
 
-  test("temporarily disables Zotero's empty-comment deletion shortcut while fast editing", async () => {
+  test("temporarily neutralizes Zotero's page-origin comment shortcuts while fast editing", async () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>
       <div data-sidebar-annotation-id="a1" class="annotation selected">
@@ -196,8 +196,20 @@ describe("createPlugin", () => {
     `;
     const internalReader = {
       _annotationManager: { updateAnnotations: vi.fn() },
-      _enableAnnotationDeletionFromComment: true
+      _enableAnnotationDeletionFromComment: true,
+      _annotationSelectionTriggeredFromView: true
     };
+    const returnFocusToView = vi.fn(() => document.querySelector("#outside").focus());
+    const hostKeyDown = (event) => {
+      if (
+        ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) &&
+        internalReader._annotationSelectionTriggeredFromView &&
+        event.target.closest(".comment .content")
+      ) {
+        returnFocusToView();
+      }
+    };
+    window.addEventListener("keydown", hostKeyDown, true);
     const reader = { document, _internalReader: internalReader };
     const Zotero = {
       Reader: {
@@ -213,11 +225,22 @@ describe("createPlugin", () => {
       .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
     const textarea = document.querySelector("[data-annotation-markdown-fast-editor='true'] textarea");
     expect(internalReader._enableAnnotationDeletionFromComment).toBe(false);
+    expect(internalReader._annotationSelectionTriggeredFromView).toBe(false);
     textarea.focus();
+    textarea.dispatchEvent(new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "ArrowLeft"
+    }));
+
+    expect(returnFocusToView).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(textarea);
     document.querySelector("#outside").focus();
 
     expect(internalReader._enableAnnotationDeletionFromComment).toBe(true);
+    expect(internalReader._annotationSelectionTriggeredFromView).toBe(true);
     plugin.shutdown();
+    window.removeEventListener("keydown", hostKeyDown, true);
   });
 
   test("passes numeric font scale preferences into reader styles", async () => {
