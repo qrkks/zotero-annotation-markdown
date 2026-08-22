@@ -95,6 +95,8 @@ export function createAnnotationSidebarAdapter({
   commitComment,
   beginFastEditorKeyboardGuard
 }: CreateAnnotationSidebarAdapterOptions = {}): AnnotationSidebarAdapter {
+  const pendingCommittedSourceByAnnotationID = new Map<string, string>();
+
   return {
     findCommentNodes(root: Node | null = documentRef) {
       const queryRoot = getQueryRoot(root);
@@ -173,7 +175,16 @@ export function createAnnotationSidebarAdapter({
     },
 
     getSourceText(node: HTMLElement | null | undefined) {
-      return node?.getAttribute(SOURCE_ATTRIBUTE) ?? readSourceText(getSourceNode(node));
+      const source = readSourceText(getSourceNode(node));
+      const annotationID = node ? getAnnotationID(node) : null;
+      if (annotationID && pendingCommittedSourceByAnnotationID.has(annotationID)) {
+        const committedSource = pendingCommittedSourceByAnnotationID.get(annotationID) ?? "";
+        if (source === committedSource) {
+          pendingCommittedSourceByAnnotationID.delete(annotationID);
+        }
+        return committedSource;
+      }
+      return node?.getAttribute(SOURCE_ATTRIBUTE) ?? source;
     },
 
     applyRenderedHtml(node: HTMLElement | null | undefined, html: string) {
@@ -183,7 +194,7 @@ export function createAnnotationSidebarAdapter({
 
       // Keep Zotero's source DOM intact; the attribute is only a render cache.
       if (!this.isRendered(node)) {
-        node.setAttribute(SOURCE_ATTRIBUTE, readSourceText(getSourceNode(node)));
+        node.setAttribute(SOURCE_ATTRIBUTE, this.getSourceText(node));
       }
 
       const preview = getPreviewNode(node) ?? createPreviewNode(node, this);
@@ -281,6 +292,7 @@ export function createAnnotationSidebarAdapter({
       if (!queryRoot) {
         return;
       }
+      pendingCommittedSourceByAnnotationID.clear();
 
       // Remove only plugin-owned DOM so disable/re-enable restores the host view.
       for (const editor of queryHtmlElements(
@@ -425,6 +437,10 @@ export function createAnnotationSidebarAdapter({
       if (!node) {
         return;
       }
+      const annotationID = getAnnotationID(node);
+      if (annotationID) {
+        pendingCommittedSourceByAnnotationID.set(annotationID, source);
+      }
       node.setAttribute(SOURCE_ATTRIBUTE, source);
       node.setAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE, "true");
     },
@@ -499,7 +515,11 @@ export function createAnnotationSidebarAdapter({
     },
 
     commitComment(annotationID: string, comment: string) {
-      return Boolean(commitComment?.(annotationID, comment));
+      const committed = Boolean(commitComment?.(annotationID, comment));
+      if (committed) {
+        pendingCommittedSourceByAnnotationID.set(annotationID, comment);
+      }
+      return committed;
     },
 
     openLink: typeof openLink === "function" ? openLink : null

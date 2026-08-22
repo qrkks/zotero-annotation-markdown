@@ -224,6 +224,56 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
   });
 
+  test("reopens a newly committed empty-origin comment after Zotero replaces its DOM", () => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+
+    adapter.tryShowFastEditorForAnnotationID("a1");
+    const firstTextarea = document.querySelector("textarea");
+    firstTextarea.value = "saved source";
+    firstTextarea.focus();
+    document.querySelector("#outside").focus();
+
+    document.querySelector(".comment").replaceWith(
+      Object.assign(document.createElement("div"), {
+        className: "comment",
+        innerHTML: `
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false" placeholder="Add comment"></div>
+            <div class="renderer"></div>
+          </div>
+        `
+      })
+    );
+    adapter.tryShowFastEditorForAnnotationID("a1");
+
+    const reopenedTextarea = document.querySelector("textarea");
+    expect(reopenedTextarea.value).toBe("saved source");
+
+    reopenedTextarea.focus();
+    document.querySelector("#outside").focus();
+    const refreshedContent = document.querySelector(".comment .content");
+    refreshedContent.textContent = "saved source";
+    expect(adapter.getSourceText(document.querySelector(".comment"))).toBe("saved source");
+
+    refreshedContent.textContent = "remote source";
+    expect(adapter.getSourceText(document.querySelector(".comment"))).toBe("remote source");
+  });
+
   test("uses a taller auto-growing editor for existing text but keeps an empty draft compact", () => {
     document.body.innerHTML = `
       <div data-sidebar-annotation-id="a1" class="annotation selected">
