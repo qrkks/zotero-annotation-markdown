@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1 - 2026-08-23
+
+### Fixed
+
+- Keep newly saved fast-editor comments synchronized when Zotero refreshes the annotation DOM, so reopening an annotation immediately shows its source.
+- Preserve the annotation's sidebar position after large pastes and reduce paste-related visual jumps.
+- Restore native Ctrl/Cmd+A, Ctrl/Cmd+Z, and arrow-key behavior in fast comment editors, including annotations selected directly from the document page.
+- Prevent rendered links from also opening the fast editor, including on repeated clicks.
+- Preserve Weavero handling for supported `zotero://select`, `zotero://open`, `zotero://open-pdf`, and `zotero://note` links in rendered comments.
+
 ## 0.6.0 - 2026-08-20
 
 ### Added
