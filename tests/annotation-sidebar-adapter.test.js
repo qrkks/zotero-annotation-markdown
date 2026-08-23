@@ -473,6 +473,178 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(textarea.style.height).toBe("120px");
   });
 
+  test("does not shrink-remeasure the fast editor while text is inserted", () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">text</div></div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>text</p>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const textarea = comment.querySelector("textarea");
+    textarea.style.height = "120px";
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      get: () => textarea.style.height === "auto" ? 60 : 120
+    });
+
+    textarea.value += " more";
+    textarea.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      data: " more",
+      inputType: "insertText"
+    }));
+
+    expect(textarea.style.height).toBe("120px");
+  });
+
+  test("remeasures the fast editor when text is deleted", () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">long text</div></div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>long text</p>");
+    comment.querySelector(".annotation-markdown-rendered")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    const textarea = comment.querySelector("textarea");
+    textarea.style.height = "120px";
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      get: () => textarea.style.height === "auto" ? 60 : 120
+    });
+
+    textarea.value = "short";
+    textarea.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      inputType: "deleteContentBackward"
+    }));
+
+    expect(textarea.style.height).toBe("60px");
+  });
+
+  test("restores a fast editor pushed to the bottom after a large paste", () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const callbacks = [];
+    window.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+    document.body.innerHTML = `
+      <div id="annotationsView" style="height: 200px; overflow-y: auto">
+        <div data-sidebar-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content" contenteditable="false">text</div></div>
+        </div>
+      </div>
+    `;
+    const scroller = document.querySelector("#annotationsView");
+    Object.defineProperties(scroller, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 2000 }
+    });
+    scroller.scrollTop = 420;
+    scroller.scrollLeft = 0;
+    scroller.getBoundingClientRect = () => ({
+      top: 0,
+      bottom: 200,
+      left: 0,
+      right: 200,
+      width: 200,
+      height: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({})
+    });
+    scroller.scrollTo = vi.fn(({ top, left }) => {
+      scroller.scrollTop = top;
+      scroller.scrollLeft = left;
+    });
+    const row = document.querySelector(".annotation");
+    row.getBoundingClientRect = () => {
+      const top = 480 - scroller.scrollTop;
+      return {
+        top,
+        bottom: top + 60,
+        left: 0,
+        right: 200,
+        width: 200,
+        height: 60,
+        x: 0,
+        y: top,
+        toJSON: () => ({})
+      };
+    };
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+
+    try {
+      adapter.tryShowFastEditorForTarget(document.querySelector(".content"));
+      callbacks.shift()(0);
+      callbacks.shift()(16);
+      scroller.scrollTo.mockClear();
+      const textarea = document.querySelector("textarea");
+      textarea.style.height = "40px";
+      Object.defineProperty(textarea, "scrollHeight", {
+        configurable: true,
+        value: 300
+      });
+      textarea.getBoundingClientRect = () => {
+        const top = 510 - scroller.scrollTop;
+        const height = Number.parseFloat(textarea.style.height);
+        return {
+          top,
+          bottom: top + height,
+          left: 0,
+          right: 200,
+          width: 200,
+          height,
+          x: 0,
+          y: top,
+          toJSON: () => ({})
+        };
+      };
+
+      textarea.value += "\n".repeat(40);
+      textarea.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        data: "\n".repeat(40),
+        inputType: "insertFromPaste"
+      }));
+      // Simulate the host/layout anchoring that moves an editor from the middle
+      // of the viewport to the bottom after its height changes.
+      scroller.scrollTop = 340;
+      callbacks.shift()(32);
+      callbacks.shift()(48);
+
+      expect(textarea.style.height).toBe("300px");
+      expect(scroller.scrollTo).toHaveBeenLastCalledWith({
+        behavior: "instant",
+        left: 0,
+        top: 420
+      });
+      expect(scroller.scrollTop).toBe(420);
+    } finally {
+      adapter.clearRenderedState(document);
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
+
   test("keeps a visible sidebar annotation fixed when direct editing changes its layout", () => {
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const callbacks = [];

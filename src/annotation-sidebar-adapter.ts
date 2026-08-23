@@ -595,7 +595,22 @@ function showFastEditor(
   editor.addEventListener("keyup", stopHostEventPropagation);
   editor.addEventListener("keypress", stopHostEventPropagation);
   editor.addEventListener("beforeinput", stopHostEventPropagation);
-  textarea.addEventListener("input", () => resizeFastEditor(textarea));
+  let previousValueLength = textarea.value.length;
+  textarea.addEventListener("input", (event) => {
+    const pasted = isPasteInputEvent(event);
+    const viewportAnchor = pasted
+      ? captureFastEditorViewportAnchor(textarea)
+      : null;
+    const allowShrink = textarea.value.length < previousValueLength;
+    previousValueLength = textarea.value.length;
+    resizeFastEditor(textarea, allowShrink);
+    if (pasted) {
+      // Keep the editor where it was before the large layout change. Gecko and
+      // Zotero can apply their own anchoring one frame later, so repeat the same
+      // bounded correction after that frame has settled.
+      restoreFastEditorAfterPaste(textarea, viewportAnchor);
+    }
+  });
   textarea.addEventListener("blur", commitAndClose);
   textarea.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -701,13 +716,81 @@ function endFastEditorKeyboardGuard(editor: HTMLElement): void {
   cleanup?.();
 }
 
-function resizeFastEditor(textarea: HTMLTextAreaElement): void {
+function resizeFastEditor(
+  textarea: HTMLTextAreaElement,
+  allowShrink = true
+): void {
+  const currentHeight = Number.parseFloat(textarea.style.height);
+  if (!allowShrink && Number.isFinite(currentHeight) && currentHeight > 0) {
+    const scrollHeight = textarea.scrollHeight;
+    if (scrollHeight > currentHeight) {
+      textarea.style.height = `${scrollHeight}px`;
+    }
+    return;
+  }
+
   textarea.style.height = "auto";
   if (textarea.scrollHeight > 0) {
     textarea.style.height = `${textarea.scrollHeight}px`;
     return;
   }
   textarea.style.removeProperty("height");
+}
+
+function isPasteInputEvent(event: Event): boolean {
+  return (event as InputEvent).inputType === "insertFromPaste";
+}
+
+function restoreFastEditorAfterPaste(
+  textarea: HTMLTextAreaElement,
+  viewportAnchor: FastEditorViewportAnchor | null
+): void {
+  runAfterLayout(textarea, () => {
+    restoreFastEditorViewportAnchor(viewportAnchor);
+    ensureFastEditorVisibleAfterPaste(textarea);
+    runAfterLayout(textarea, () => {
+      restoreFastEditorViewportAnchor(viewportAnchor);
+      ensureFastEditorVisibleAfterPaste(textarea);
+    });
+  });
+}
+
+function ensureFastEditorVisibleAfterPaste(textarea: HTMLTextAreaElement): void {
+  const scroller = findFastEditorScrollContainer(textarea);
+  if (!scroller) {
+    return;
+  }
+
+  const textareaRect = textarea.getBoundingClientRect();
+  const scrollerRect = scroller.getBoundingClientRect();
+  const viewportTop = scrollerRect.top;
+  const viewportBottom = viewportTop + scroller.clientHeight;
+  const desiredVisibleHeight = Math.min(
+    textareaRect.height,
+    scroller.clientHeight / 2,
+    240
+  );
+  if (desiredVisibleHeight <= 0) {
+    return;
+  }
+
+  const visibleHeight = Math.max(
+    0,
+    Math.min(textareaRect.bottom, viewportBottom) -
+      Math.max(textareaRect.top, viewportTop)
+  );
+  if (visibleHeight >= desiredVisibleHeight) {
+    return;
+  }
+
+  const delta = textareaRect.top >= viewportTop
+    ? textareaRect.top - (viewportBottom - desiredVisibleHeight)
+    : textareaRect.bottom - (viewportTop + desiredVisibleHeight);
+  setFastEditorScrollPosition(
+    scroller,
+    scroller.scrollTop + delta,
+    scroller.scrollLeft
+  );
 }
 
 interface FastEditorViewportAnchor {
