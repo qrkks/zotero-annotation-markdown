@@ -1982,6 +1982,43 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("leaves fast editor textarea paste native so Gecko can record undo", async () => {
+    document.body.innerHTML = "";
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: {
+        isEnabled: () => true,
+        isPlainTextPasteEnabled: () => true
+      },
+      MutationObserver: undefined
+    });
+
+    await controller.start();
+    document.body.innerHTML = `
+      <div data-annotation-id="a1">
+        <div class="comment">
+          <div data-annotation-markdown-fast-editor="true">
+            <textarea class="content">before</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    const textarea = document.querySelector("textarea");
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    const paste = createPasteEvent(" pasted");
+
+    textarea.dispatchEvent(paste);
+
+    expect(paste.defaultPrevented).toBe(false);
+    // jsdom does not perform the browser's default paste. An unchanged value
+    // proves the plugin did not replace it with a synthetic, non-undoable edit.
+    expect(textarea.value).toBe("before");
+
+    controller.stop();
+  });
+
   test("does not intercept annotation paste when plain text paste is disabled", async () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1">

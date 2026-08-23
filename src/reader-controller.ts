@@ -1390,6 +1390,12 @@ function handlePlainTextPaste(
     return;
   }
 
+  if (adapter.isFastEditorTarget?.(event.target)) {
+    // A textarea already accepts plain text only. Keep its native paste so
+    // Gecko records the operation in the textarea undo history.
+    return;
+  }
+
   const text = event.clipboardData?.getData("text/plain");
   if (typeof text !== "string" || text.length === 0) {
     return;

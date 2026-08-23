@@ -551,9 +551,11 @@ function showFastEditor(
 
   const textarea = documentRef.createElement("textarea");
   textarea.className = "annotation-markdown-fast-editor-input content";
-  // Zotero's window-capture keyboard managers only exempt contenteditable
-  // targets and move focus away from empty `.content` nodes on arrow keys.
-  textarea.setAttribute("contenteditable", "false");
+  // Zotero's Reader isTextBox() omits TEXTAREA and recognizes only text inputs
+  // or contenteditable="true". This compatibility marker keeps shortcuts such
+  // as Ctrl/Cmd+A native; the element itself remains a normal textarea.
+  textarea.setAttribute("contenteditable", "true");
+  // Zotero also moves focus away from empty `.content` nodes on arrow keys.
   textarea.innerText = "\u200b";
   textarea.value = originalSource;
   textarea.setAttribute("aria-label", "Edit annotation comment as Markdown");

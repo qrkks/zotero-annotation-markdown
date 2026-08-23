@@ -185,6 +185,53 @@ describe("createAnnotationSidebarAdapter", () => {
     }
   );
 
+  test("marks the fast textarea as a Zotero text box for Ctrl+A", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content">select me</div></div>
+      </div>
+    `;
+    const selectAnnotations = vi.fn();
+    const hostKeyDown = (event) => {
+      const isZoteroTextBox = (
+        event.target.nodeName === "INPUT" && event.target.type === "text"
+      ) || event.target.getAttribute("contenteditable") === "true";
+      if (event.ctrlKey && event.key === "a" && !isZoteroTextBox) {
+        event.preventDefault();
+        selectAnnotations();
+      }
+    };
+    window.addEventListener("keydown", hostKeyDown, true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    adapter.applyRenderedHtml(comment, "<p>select me</p>");
+
+    try {
+      comment.querySelector(".annotation-markdown-rendered")
+        .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      const textarea = comment.querySelector("textarea");
+      const event = new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        ctrlKey: true,
+        key: "a"
+      });
+
+      textarea.dispatchEvent(event);
+
+      expect(textarea.getAttribute("contenteditable")).toBe("true");
+      expect(event.defaultPrevented).toBe(false);
+      expect(selectAnnotations).not.toHaveBeenCalled();
+    } finally {
+      adapter.clearRenderedState(document);
+      window.removeEventListener("keydown", hostKeyDown, true);
+    }
+  });
+
   test("keeps the annotation identity when Zotero refreshes an empty editor while it is open", () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>
