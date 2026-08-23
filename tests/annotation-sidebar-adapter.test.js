@@ -1197,30 +1197,71 @@ describe("createAnnotationSidebarAdapter", () => {
   });
 
   test("first click on a link opens it without selecting or editing the annotation", () => {
-    document.body.innerHTML = `<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content" tabindex="0">https://example.com</div></div></div>`;
+    const url = "zotero://open/library/items/9X3PTDDP?annotation=NXKFRI46";
+    document.body.innerHTML = `<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content" tabindex="0">${url}</div></div></div>`;
     const row = document.querySelector(".annotation");
     const node = document.querySelector(".comment");
     const content = node.querySelector(".content");
     const openLink = vi.fn();
+    const hostPointerDown = vi.fn(() => {
+      row.classList.add("selected");
+      adapter.showSourceForEditing(node);
+    });
     const hostMouseDown = vi.fn();
     const hostClick = vi.fn();
+    row.addEventListener("pointerdown", hostPointerDown);
     row.addEventListener("mousedown", hostMouseDown);
     row.addEventListener("click", hostClick);
-    const adapter = createAnnotationSidebarAdapter({ document, openLink });
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      openLink,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
 
-    adapter.applyRenderedHtml(node, '<p><a href="https://example.com">https://example.com</a></p>');
+    adapter.applyRenderedHtml(node, `<p><a href="${url}">${url}</a></p>`);
     const link = node.querySelector(".annotation-markdown-rendered a");
+    const pointerDown = new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    });
     const mouseDown = new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 });
     const click = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, detail: 1 });
 
+    expect(link.dispatchEvent(pointerDown)).toBe(true);
+    expect(hostPointerDown).not.toHaveBeenCalled();
     expect(link.dispatchEvent(mouseDown)).toBe(false);
     expect(hostMouseDown).not.toHaveBeenCalled();
     expect(openLink).toHaveBeenCalledOnce();
-    expect(openLink).toHaveBeenCalledWith("https://example.com");
+    expect(openLink).toHaveBeenCalledWith(url);
     expect(link.dispatchEvent(click)).toBe(false);
     expect(hostClick).not.toHaveBeenCalled();
     expect(openLink).toHaveBeenCalledOnce();
+
+    expect(link.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }))).toBe(true);
+    expect(link.dispatchEvent(new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }))).toBe(false);
+    expect(link.dispatchEvent(new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      detail: 1
+    }))).toBe(false);
+
+    expect(hostPointerDown).not.toHaveBeenCalled();
+    expect(hostMouseDown).not.toHaveBeenCalled();
+    expect(hostClick).not.toHaveBeenCalled();
+    expect(openLink).toHaveBeenCalledTimes(2);
     expect(node.classList.contains("annotation-markdown-editing")).toBe(false);
+    expect(node.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
     expect(content.hidden).toBe(true);
     expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(false);
   });

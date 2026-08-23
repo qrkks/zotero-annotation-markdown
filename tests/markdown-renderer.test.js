@@ -23,6 +23,42 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("<a href=\"https://example.com\">https://example.com</a>");
   });
 
+  test("preserves and linkifies Zotero links handled by Weavero", () => {
+    const renderer = createMarkdownRenderer();
+    const url = "zotero://open/library/items/9X3PTDDP?annotation=NXKFRI46";
+
+    const bareHtml = renderer.render(url);
+    const markdownHtml = renderer.render(`[open annotation](${url})`);
+
+    expect(bareHtml).toContain(`<a href="${url}">${url}</a>`);
+    expect(markdownHtml).toContain(`<a href="${url}">open annotation</a>`);
+    expect(renderer.render("zotero://select/library/items/9X3PTDDP"))
+      .toContain('href="zotero://select/library/items/9X3PTDDP"');
+    expect(renderer.render("zotero://open-pdf/library/items/9X3PTDDP?page=2"))
+      .toContain('href="zotero://open-pdf/library/items/9X3PTDDP?page=2"');
+    expect(renderer.render("zotero://note/u/9X3PTDDP"))
+      .toContain('href="zotero://note/u/9X3PTDDP"');
+  });
+
+  test("continues to remove unsafe link protocols", () => {
+    const renderer = createMarkdownRenderer({
+      markdown: {
+        render: () => (
+          '<p><a href="javascript:alert(1)">unsafe</a>' +
+          '<a href="zotero://debug/library/items/9X3PTDDP">unsupported</a></p>'
+        ),
+        use: vi.fn()
+      }
+    });
+
+    const html = renderer.render("ignored");
+
+    expect(html).toContain("<a>unsafe</a>");
+    expect(html).toContain("<a>unsupported</a>");
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("zotero://debug/");
+  });
+
   test("does not trust raw HTML from annotation comments", () => {
     const renderer = createMarkdownRenderer();
 

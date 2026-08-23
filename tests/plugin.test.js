@@ -158,6 +158,52 @@ describe("createPlugin", () => {
     plugin.shutdown();
   });
 
+  test("delegates rendered Zotero links to Weavero without entering fast edit", async () => {
+    const url = "zotero://open/library/items/9X3PTDDP?annotation=NXKFRI46";
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">${url}</div></div>
+      </div>
+    `;
+    const handleZoteroURI = vi.fn();
+    const launchURL = vi.fn();
+    const reader = {
+      document,
+      _annotationManager: { updateAnnotations: vi.fn() }
+    };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {},
+      Weavero: { plugin: { handleZoteroURI } },
+      launchURL
+    };
+    const plugin = createPlugin({ Zotero });
+    await plugin.startup();
+
+    const link = document.querySelector(".annotation-markdown-rendered a");
+    link.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+    link.dispatchEvent(new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+
+    expect(handleZoteroURI).toHaveBeenCalledOnce();
+    expect(handleZoteroURI).toHaveBeenCalledWith(url);
+    expect(launchURL).not.toHaveBeenCalled();
+    expect(document.querySelector("[data-annotation-markdown-fast-editor='true']"))
+      .toBeNull();
+
+    plugin.shutdown();
+  });
+
   test("leaves Zotero's native editor in control when annotation updates are unavailable", async () => {
     document.body.innerHTML = `
       <div data-sidebar-annotation-id="a1" class="annotation selected">

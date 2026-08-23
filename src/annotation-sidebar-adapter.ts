@@ -926,6 +926,9 @@ function createPreviewNode(
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
   preview.addEventListener("pointerdown", (event) => {
     if (getElementTarget(event.target)?.closest("a[href]")) {
+      // Keep Zotero's pointer-driven row selection/focus path from replacing
+      // the preview before the following mousedown opens the link.
+      event.stopPropagation();
       return;
     }
     if (adapter.showSourceForEditing(sourceNode)) {

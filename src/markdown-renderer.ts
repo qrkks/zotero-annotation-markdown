@@ -39,6 +39,10 @@ const DEFAULT_MARKDOWN_OPTIONS = {
   typographer: false
 };
 
+// Keep DOMPurify's default safe schemes and preserve the read/navigation URI
+// families handled by Weavero. Other zotero: actions remain plain text.
+const SAFE_URI_PATTERN = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix):|zotero:\/\/(?:select|open(?:-pdf)?|note)\/|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+
 /**
  * Creates a renderer with separate plain and math-capable Markdown engines so
  * toggling math never leaves texmath rules attached to the plain path.
@@ -51,10 +55,12 @@ export function createMarkdownRenderer({
   isMathEnabled = () => true,
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
-  const plainMarkdown = markdown ?? new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
+  const plainMarkdown = markdown ?? createDefaultMarkdownEngine();
   // Separate default engines let math be disabled again after the plugin has
   // been loaded without leaving texmath rules attached to the plain renderer.
-  const mathCapableMarkdown = mathMarkdown ?? (markdown ? plainMarkdown : new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS));
+  const mathCapableMarkdown = mathMarkdown ?? (
+    markdown ? plainMarkdown : createDefaultMarkdownEngine()
+  );
   const purifier = createPurifier(windowRef);
   let mathPluginLoaded = false;
 
@@ -64,7 +70,9 @@ export function createMarkdownRenderer({
 
       try {
         const html = getMarkdownForSource(text).render(text);
-        return purifier ? purifier.sanitize(html) : html;
+        return purifier
+          ? purifier.sanitize(html, { ALLOWED_URI_REGEXP: SAFE_URI_PATTERN })
+          : html;
       } catch {
         // A malformed plugin input must not break Zotero's reader lifecycle.
         return escapePlainText(text);
@@ -90,6 +98,12 @@ export function createMarkdownRenderer({
 
     return mathCapableMarkdown;
   }
+}
+
+function createDefaultMarkdownEngine(): MarkdownIt {
+  const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
+  markdown.linkify.add("zotero:", "http:");
+  return markdown;
 }
 
 function createPurifier(windowRef: Window | null): ReturnType<typeof createDOMPurify> | null {

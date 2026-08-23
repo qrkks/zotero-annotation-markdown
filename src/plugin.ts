@@ -80,6 +80,11 @@ interface ZoteroPrefsApi {
 interface ZoteroApi {
   Reader?: ZoteroReaderApi;
   Prefs?: ZoteroPrefsApi;
+  Weavero?: {
+    plugin?: {
+      handleZoteroURI?(url: string): unknown;
+    } | null;
+  };
   debug?(message: string): void;
   launchURL?(url: string): void;
 }
@@ -148,7 +153,6 @@ export function createPlugin({
       controllerFactory(reader) {
         const readerWindow = getReaderWindow(reader) ?? windowRef;
         const readerDocument = getReaderDocument(reader) ?? readerWindow?.document;
-        const launchURL = Zotero?.launchURL;
         return createReaderController({
           reader,
           adapter: createAnnotationSidebarAdapter({
@@ -160,8 +164,8 @@ export function createPlugin({
               commitReaderAnnotationComment(reader, annotationID, comment),
             beginFastEditorKeyboardGuard: () =>
               beginReaderFastEditorKeyboardGuard(reader),
-            openLink: typeof launchURL === "function"
-              ? (url) => launchURL.call(Zotero, url)
+            openLink: Zotero
+              ? (url) => openReaderLink(Zotero, url)
               : undefined
           }),
           renderer: createMarkdownRenderer({
@@ -224,6 +228,29 @@ export function createPlugin({
       }
     }
   };
+}
+
+function openReaderLink(Zotero: ZoteroApi, url: string): void {
+  const weaveroPlugin = Zotero.Weavero?.plugin;
+  const handleZoteroURI = weaveroPlugin?.handleZoteroURI;
+  if (
+    isWeaveroZoteroURI(url) &&
+    typeof handleZoteroURI === "function"
+  ) {
+    try {
+      handleZoteroURI.call(weaveroPlugin, url);
+      return;
+    } catch {
+      // A partially initialized Weavero must not leave an otherwise usable
+      // rendered link inert. Zotero's normal launcher remains the fallback.
+    }
+  }
+
+  Zotero.launchURL?.call(Zotero, url);
+}
+
+function isWeaveroZoteroURI(url: string): boolean {
+  return /^zotero:\/\/(?:select|open(?:-pdf)?|note)\//i.test(url);
 }
 
 function registerPreferenceObservers(
