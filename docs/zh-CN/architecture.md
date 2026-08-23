@@ -70,6 +70,24 @@ sequenceDiagram
 
 对应的回归测试位于 `tests/plugin.test.js`、`tests/reader-controller.test.js`、`tests/annotation-sidebar-adapter.test.js` 和 `tests/rendered-content-style.test.js`。任何生命周期修改都应先在最窄的适用测试中复现准确的 DOM、焦点、键盘、保存或滚动失败场景。
 
+## 第三方 Reader 插件互操作
+
+标注卡片和 `.comment` 容器仍归 Zotero 所有，但可见的评论正文不一定是 Zotero 原生展示。本插件保留 Zotero 的 `.content` 作为源码，并添加同级 `.annotation-markdown-rendered`；Weavero 也可以独立添加同级 `.wv-md-preview`。每个插件只能修改和移除自己的预览节点。
+
+快速编辑会间接影响这条展示边界。触发 `annotation-markdown-fast-editor-closed` 后，控制器通过 `handleCommentNodes([comment], { force: true })` 恢复渲染。因此，即使替代编辑器本身只持有一个文本框，编辑后的评论也可能重新切换为本插件的预览。插件间 MutationObserver 的执行顺序不是互操作契约，不能用它决定切换后保留哪一方的行为或样式。
+
+当前 Weavero 桥接采用明确入口，并为各层保留独立回退：
+
+| 关注点 | 互操作契约 |
+| --- | --- |
+| 源码所有权 | Zotero 的 `.content` 始终作为共享源码边界保留；两个插件都不应向其中注入格式化链接节点。 |
+| 预览所有权 | 本插件拥有 `[data-annotation-markdown-preview="true"]`；Weavero 拥有 `.wv-md-preview`。清理必须限制在各自拥有的节点内。 |
+| Zotero 链接行为 | 支持的 `zotero://select`、`zotero://open`、`zotero://open-pdf` 和 `zotero://note` 链接，在能力可用时优先调用 `Zotero.Weavero.plugin.handleZoteroURI()`，否则回退 `Zotero.launchURL()`。 |
+| Zotero 链接颜色 | 渲染后的 `zotero://` 锚点读取 `var(--wv-link-zotero, LinkText)`。Weavero 负责其明暗主题变量值；变量不存在时继续使用 Zotero 的普通链接颜色。 |
+| 事件顺序 | 渲染链接的主指针/鼠标事件会在 Zotero 的标注行选择路径替换预览或进入编辑前停止。其他插件应使用明确的行为桥接，而不是依赖观察器时序。 |
+
+新增其他 Reader 集成时，行为优先使用可调用的宿主或插件 API，主题值优先使用带命名空间的 CSS 自定义属性。不要复制其他插件的固定颜色、修改其预览 DOM，或根据最后运行的观察器推断所有权。
+
 ## 运行时约束
 
 - Zotero 原始标注源码始终保留在宿主 DOM 中。插件只添加带标记的同级预览节点，并在关闭时移除自己的节点。
@@ -86,7 +104,7 @@ sequenceDiagram
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/plugin.ts` | 插件组合入口和 Zotero 启动/关闭集成；注册 Reader 事件与偏好设置观察器，检测快速编辑能力，并把提交桥接到 Zotero 标注管理器。 |
+| `src/plugin.ts` | 插件组合入口和 Zotero 启动/关闭集成；注册 Reader 事件与偏好设置观察器，检测快速编辑能力，把提交桥接到 Zotero 标注管理器，并在 Weavero 可用时委托受支持的 Zotero 链接。 |
 | `src/reader-registry.ts` | 每个 Reader 持有一个控制器，避免重复注册，并协调异步启动和停止。 |
 | `src/reader-controller.ts` | 协调 Reader 就绪、DOM 扫描、立即/懒渲染、快速编辑进入/退出事件、编辑暂停、缓存、诊断、样式和清理。 |
 | `src/annotation-sidebar-adapter.ts` | 封装 Zotero Reader 选择器、“源码 + 预览”DOM 操作和快速文本框会话，并排除原生笔记编辑器。 |
@@ -107,7 +125,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/preferences.xhtml` | 偏好设置面板结构。 |
 | `addon/preferences.js` | 偏好设置面板事件处理，并写入 `Zotero.Prefs`。 |
 | `addon/preferences.css` | 偏好设置面板布局样式。 |
-| `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式。 |
+| `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括可选的 Weavero Zotero 链接颜色变量。 |
 | `addon/icons/annotation-markdown.svg` | 插件和偏好设置面板图标。 |
 
 这些 JavaScript 文件有意保留为 JavaScript，因为 Zotero 会直接执行它们。`src/` 下的 TypeScript 会被打包为 `dist/addon/plugin.js`。

@@ -70,6 +70,24 @@ This optimization does not replace Zotero's annotation storage, speed up tag man
 
 The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-controller.test.js`, `tests/annotation-sidebar-adapter.test.js`, and `tests/rendered-content-style.test.js`. Any lifecycle change should start with the exact failing DOM, focus, keyboard, save, or scroll case in the narrowest applicable suite.
 
+## Third-party Reader plugin interoperability
+
+The annotation card and `.comment` container remain Zotero-owned, but the visible comment body is not necessarily Zotero's native presentation. This plugin preserves Zotero's `.content` as the source and adds an `.annotation-markdown-rendered` sibling; Weavero can independently add a `.wv-md-preview` sibling. Each plugin must modify and remove only its own preview nodes.
+
+Fast editing affects this display boundary indirectly. When `annotation-markdown-fast-editor-closed` fires, the controller resumes rendering with `handleCommentNodes([comment], { force: true })`. The edited comment can therefore switch back to this plugin's preview even though the replacement editor itself only owns a textarea. MutationObserver order between plugins is not an interoperability contract and must not decide which behavior or styling survives that transition.
+
+The current Weavero bridge is explicit and has independent fallbacks:
+
+| Concern | Interoperability contract |
+| --- | --- |
+| Source ownership | Zotero's `.content` remains intact as the shared source boundary. Neither plugin should inject formatted link spans into it. |
+| Preview ownership | This plugin owns `[data-annotation-markdown-preview="true"]`; Weavero owns `.wv-md-preview`. Cleanup must remain scoped to those owned nodes. |
+| Zotero link behavior | Supported `zotero://select`, `zotero://open`, `zotero://open-pdf`, and `zotero://note` links prefer `Zotero.Weavero.plugin.handleZoteroURI()` when available, then fall back to `Zotero.launchURL()`. |
+| Zotero link color | Rendered `zotero://` anchors consume `var(--wv-link-zotero, LinkText)`. Weavero owns its light/dark variable value; without that variable, Zotero's normal link color remains in use. |
+| Event ordering | Primary pointer/mouse events on rendered links are stopped before Zotero's row-selection path can replace the preview or enter editing. Other plugins should use an explicit behavior bridge rather than depend on observer timing. |
+
+When adding another Reader integration, prefer a callable host/plugin API for behavior and a namespaced CSS custom property for theme values. Do not copy another plugin's fixed colors, mutate its preview DOM, or infer ownership from which observer ran last.
+
 ## Runtime invariants
 
 - Zotero's original annotation source remains in the host DOM. The plugin adds a marked sibling preview and removes its own nodes during shutdown.
@@ -86,7 +104,7 @@ The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-co
 
 | File | Responsibility |
 | --- | --- |
-| `src/plugin.ts` | Plugin composition root and Zotero startup/shutdown integration. Registers Reader events and preference observers, detects fast-editor capability, and bridges commits to Zotero's annotation manager. |
+| `src/plugin.ts` | Plugin composition root and Zotero startup/shutdown integration. Registers Reader events and preference observers, detects fast-editor capability, bridges commits to Zotero's annotation manager, and delegates supported Zotero links to Weavero when available. |
 | `src/reader-registry.ts` | Owns one controller per Reader, deduplicates registration, and coordinates asynchronous start/stop. |
 | `src/reader-controller.ts` | Orchestrates Reader readiness, DOM discovery, eager/lazy rendering, fast-editor entry/exit events, editing pauses, caches, diagnostics, styles, and cleanup. |
 | `src/annotation-sidebar-adapter.ts` | Encapsulates Zotero Reader selectors, source-plus-preview DOM operations, and the fast textarea session. Excludes native note editors. |
@@ -107,7 +125,7 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/preferences.xhtml` | Preference-pane markup. |
 | `addon/preferences.js` | Preference-pane event handling and writes to `Zotero.Prefs`. |
 | `addon/preferences.css` | Preference-pane layout styles. |
-| `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles. |
+| `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including the optional Weavero Zotero-link color variable. |
 | `addon/icons/annotation-markdown.svg` | Add-on and preference-pane icon. |
 
 These JavaScript files intentionally remain JavaScript because Zotero executes them directly. TypeScript under `src/` is bundled into `dist/addon/plugin.js`.

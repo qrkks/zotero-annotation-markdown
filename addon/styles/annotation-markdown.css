@@ -85,6 +85,10 @@
     text-decoration: underline;
 }
 
+.annotation-markdown-rendered a[href^="zotero://"] {
+    color: var(--wv-link-zotero, LinkText);
+}
+
 .annotation-markdown-rendered h1,
 .annotation-markdown-rendered h2 {
     font-weight: 600;

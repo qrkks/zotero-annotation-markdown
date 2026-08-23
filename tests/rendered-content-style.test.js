@@ -53,6 +53,9 @@ describe("rendered annotation styles", () => {
 
     expect(addonCss).toContain(".annotation-markdown-rendered a");
     expect(addonCss).toContain("color: LinkText");
+    expect(addonCss).toMatch(
+      /\.annotation-markdown-rendered a\[href\^="zotero:\/\/"\]\s*\{[^}]*color:\s*var\(--wv-link-zotero, LinkText\);/
+    );
     expect(addonCss).toContain("cursor: pointer");
     expect(addonCss).toContain("text-decoration: underline");
   });
