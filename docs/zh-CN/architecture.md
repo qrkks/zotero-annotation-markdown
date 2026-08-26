@@ -83,7 +83,7 @@ sequenceDiagram
 | 源码所有权 | Zotero 的 `.content` 始终作为共享源码边界保留；两个插件都不应向其中注入格式化链接节点。 |
 | 预览所有权 | 本插件拥有 `[data-annotation-markdown-preview="true"]`；Weavero 拥有 `.wv-md-preview`。清理必须限制在各自拥有的节点内。 |
 | Zotero 链接行为 | 支持的 `zotero://select`、`zotero://open`、`zotero://open-pdf` 和 `zotero://note` 链接，在能力可用时优先调用 `Zotero.Weavero.plugin.handleZoteroURI()`，否则回退 `Zotero.launchURL()`。 |
-| Zotero 链接颜色 | 渲染后的 `zotero://` 锚点读取 `var(--wv-link-zotero, LinkText)`。Weavero 负责其明暗主题变量值；变量不存在时继续使用 Zotero 的普通链接颜色。 |
+| 链接颜色 | Weavero 可用且其 `recolorAmLinks` 颜色设置开启时，本插件预览分别用 `--wv-link-http`、`--wv-link-zotero` 和 `--wv-link-app` 为 HTTP(S)、Zotero 与其他链接配色。关闭该设置后，链接使用 Zotero 的 `LinkText`；缺少 Weavero 变量时也会回退到 `LinkText`。 |
 | 事件顺序 | 渲染链接的主指针/鼠标事件会在 Zotero 的标注行选择路径替换预览或进入编辑前停止。其他插件应使用明确的行为桥接，而不是依赖观察器时序。 |
 
 新增其他 Reader 集成时，行为优先使用可调用的宿主或插件 API，主题值优先使用带命名空间的 CSS 自定义属性。不要复制其他插件的固定颜色、修改其预览 DOM，或根据最后运行的观察器推断所有权。
@@ -125,7 +125,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/preferences.xhtml` | 偏好设置面板结构。 |
 | `addon/preferences.js` | 偏好设置面板事件处理，并写入 `Zotero.Prefs`。 |
 | `addon/preferences.css` | 偏好设置面板布局样式。 |
-| `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括可选的 Weavero Zotero 链接颜色变量。 |
+| `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括受偏好开关控制的 Weavero 链接颜色变量。 |
 | `addon/icons/annotation-markdown.svg` | 插件和偏好设置面板图标。 |
 
 这些 JavaScript 文件有意保留为 JavaScript，因为 Zotero 会直接执行它们。`src/` 下的 TypeScript 会被打包为 `dist/addon/plugin.js`。

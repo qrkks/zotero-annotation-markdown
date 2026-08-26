@@ -25,6 +25,7 @@ import {
 
 export const PLUGIN_ID = "annotation-markdown@local";
 const READER_EVENT = "renderSidebarAnnotationHeader";
+const WEAVERO_RECOLOR_AM_LINKS_PREF_KEY = "weavero.recolorAmLinks";
 
 interface ReaderLike {
   document?: Document | null;
@@ -67,12 +68,12 @@ interface ZoteroReaderApi {
 }
 
 interface ZoteroPrefsApi {
-  get?(key: string, global: boolean): unknown;
+  get?(key: string, global?: boolean): unknown;
   set?(key: string, value: PreferenceValue, global: boolean): void;
   registerObserver?(
     key: string,
     refresh: () => void,
-    global: boolean
+    global?: boolean
   ): unknown;
   unregisterObserver?(observerId: unknown): void;
 }
@@ -164,6 +165,7 @@ export function createPlugin({
               commitReaderAnnotationComment(reader, annotationID, comment),
             beginFastEditorKeyboardGuard: () =>
               beginReaderFastEditorKeyboardGuard(reader),
+            useWeaveroLinkColors: () => useWeaveroLinkColors(Zotero),
             openLink: Zotero
               ? (url) => openReaderLink(Zotero, url)
               : undefined
@@ -253,6 +255,18 @@ function isWeaveroZoteroURI(url: string): boolean {
   return /^zotero:\/\/(?:select|open(?:-pdf)?|note)\//i.test(url);
 }
 
+function useWeaveroLinkColors(Zotero: ZoteroApi | undefined): boolean {
+  if (!Zotero?.Weavero?.plugin) {
+    return false;
+  }
+
+  try {
+    return Zotero.Prefs?.get?.(WEAVERO_RECOLOR_AM_LINKS_PREF_KEY) !== false;
+  } catch {
+    return false;
+  }
+}
+
 function registerPreferenceObservers(
   Zotero: ZoteroApi | undefined,
   refresh: () => void
@@ -262,16 +276,20 @@ function registerPreferenceObservers(
   }
 
   const observerIds: unknown[] = [];
-  for (const key of [
-    ENABLED_PREF_KEY,
-    FAST_EDITOR_PREF_KEY,
-    FONT_SCALE_PERCENT_PREF_KEY,
-    MATH_ENABLED_PREF_KEY,
-    LIGHTWEIGHT_MODE_PREF_KEY,
-    PERFORMANCE_DIAGNOSTICS_PREF_KEY,
-    RENDER_STRATEGY_PREF_KEY
-  ]) {
-    const observerId = Zotero.Prefs.registerObserver(key, refresh, true);
+  const preferenceKeys: Array<[string, boolean?]> = [
+    [ENABLED_PREF_KEY, true],
+    [FAST_EDITOR_PREF_KEY, true],
+    [FONT_SCALE_PERCENT_PREF_KEY, true],
+    [MATH_ENABLED_PREF_KEY, true],
+    [LIGHTWEIGHT_MODE_PREF_KEY, true],
+    [PERFORMANCE_DIAGNOSTICS_PREF_KEY, true],
+    [RENDER_STRATEGY_PREF_KEY, true],
+    [WEAVERO_RECOLOR_AM_LINKS_PREF_KEY]
+  ];
+  for (const [key, global] of preferenceKeys) {
+    const observerId = global === undefined
+      ? Zotero.Prefs.registerObserver(key, refresh)
+      : Zotero.Prefs.registerObserver(key, refresh, global);
     if (observerId) {
       observerIds.push(observerId);
     }

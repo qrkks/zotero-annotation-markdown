@@ -30,6 +30,7 @@ const FAST_EDITING_CLASS = "annotation-markdown-fast-editing";
 const FAST_EDITOR_ATTRIBUTE = "data-annotation-markdown-fast-editor";
 const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-closing";
 const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
+const WEAVERO_LINK_COLORS_CLASS = "annotation-markdown-weavero-link-colors";
 export const FAST_EDITOR_CLOSED_EVENT = "annotation-markdown-fast-editor-closed";
 
 export interface FastEditorClosedDetail {
@@ -44,6 +45,7 @@ interface CreateAnnotationSidebarAdapterOptions {
   isFastEditorEnabled?(): boolean;
   commitComment?(annotationID: string, comment: string): boolean;
   beginFastEditorKeyboardGuard?(): (() => void) | void;
+  useWeaveroLinkColors?(): boolean;
 }
 
 /** Operations the controller may perform without knowing Zotero's DOM shape. */
@@ -93,7 +95,8 @@ export function createAnnotationSidebarAdapter({
   openLink,
   isFastEditorEnabled = () => false,
   commitComment,
-  beginFastEditorKeyboardGuard
+  beginFastEditorKeyboardGuard,
+  useWeaveroLinkColors = () => false
 }: CreateAnnotationSidebarAdapterOptions = {}): AnnotationSidebarAdapter {
   const pendingCommittedSourceByAnnotationID = new Map<string, string>();
 
@@ -201,13 +204,14 @@ export function createAnnotationSidebarAdapter({
 
       preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
 
-      if (preview.innerHTML === html) {
-        hideSourceNode(node);
-        showPreviewNode(preview);
-        return;
+      if (preview.innerHTML !== html) {
+        preview.innerHTML = html;
       }
 
-      preview.innerHTML = html;
+      preview.classList.toggle(
+        WEAVERO_LINK_COLORS_CLASS,
+        safelyUseWeaveroLinkColors(useWeaveroLinkColors)
+      );
       hideSourceNode(node);
       showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
@@ -900,6 +904,16 @@ function getQueryRoot(root: Node | null | undefined): QueryRoot | null {
     return null;
   }
   return root as QueryRoot;
+}
+
+function safelyUseWeaveroLinkColors(
+  useWeaveroLinkColors: () => boolean
+): boolean {
+  try {
+    return Boolean(useWeaveroLinkColors());
+  } catch {
+    return false;
+  }
 }
 
 function queryHtmlElements(root: QueryRoot, selector: string): HTMLElement[] {

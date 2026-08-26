@@ -85,7 +85,16 @@
     text-decoration: underline;
 }
 
-.annotation-markdown-rendered a[href^="zotero://"] {
+.annotation-markdown-weavero-link-colors a {
+    color: var(--wv-link-app, LinkText);
+}
+
+.annotation-markdown-weavero-link-colors a[href^="http://" i],
+.annotation-markdown-weavero-link-colors a[href^="https://" i] {
+    color: var(--wv-link-http, LinkText);
+}
+
+.annotation-markdown-weavero-link-colors a[href^="zotero://" i] {
     color: var(--wv-link-zotero, LinkText);
 }
 

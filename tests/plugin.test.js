@@ -204,6 +204,83 @@ describe("createPlugin", () => {
     plugin.shutdown();
   });
 
+  test("uses Weavero link colors only while its master recoloring preference is enabled", async () => {
+    let recolorAmLinks = true;
+    const observers = new Map();
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">[web](https://example.com) [zotero](zotero://open/library/items/9X3PTDDP) [mail](mailto:test@example.com)</div></div>
+      </div>
+    `;
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {
+        get: vi.fn((key) => key === "weavero.recolorAmLinks"
+          ? recolorAmLinks
+          : undefined),
+        registerObserver: vi.fn((key, handler) => {
+          observers.set(key, handler);
+          return `observer:${key}`;
+        }),
+        unregisterObserver: vi.fn()
+      },
+      Weavero: { plugin: { handleZoteroURI: vi.fn() } }
+    };
+    const plugin = createPlugin({ Zotero });
+    await plugin.startup();
+
+    const previewUsesWeaveroColors = () => document
+      .querySelector(".annotation-markdown-rendered")
+      ?.classList.contains("annotation-markdown-weavero-link-colors");
+    expect(previewUsesWeaveroColors()).toBe(true);
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith(
+      "weavero.recolorAmLinks",
+      expect.any(Function)
+    );
+    expect(Zotero.Prefs.registerObserver).not.toHaveBeenCalledWith(
+      "weavero.enableInlineUrls",
+      expect.any(Function)
+    );
+
+    recolorAmLinks = false;
+    observers.get("weavero.recolorAmLinks")();
+    expect(previewUsesWeaveroColors()).toBe(false);
+
+    plugin.shutdown();
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:weavero.recolorAmLinks"
+    );
+  });
+
+  test("does not enable Weavero link colors when Weavero is unavailable", async () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content" contenteditable="false">https://example.com</div></div>
+      </div>
+    `;
+    const reader = { document };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {
+        get: vi.fn((key) => key === "weavero.recolorAmLinks" ? true : undefined)
+      }
+    };
+    const plugin = createPlugin({ Zotero });
+    await plugin.startup();
+
+    expect(document.querySelector(".annotation-markdown-rendered")?.classList
+      .contains("annotation-markdown-weavero-link-colors")).toBe(false);
+
+    plugin.shutdown();
+  });
+
   test("leaves Zotero's native editor in control when annotation updates are unavailable", async () => {
     document.body.innerHTML = `
       <div data-sidebar-annotation-id="a1" class="annotation selected">

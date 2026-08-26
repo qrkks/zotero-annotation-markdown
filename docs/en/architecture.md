@@ -83,7 +83,7 @@ The current Weavero bridge is explicit and has independent fallbacks:
 | Source ownership | Zotero's `.content` remains intact as the shared source boundary. Neither plugin should inject formatted link spans into it. |
 | Preview ownership | This plugin owns `[data-annotation-markdown-preview="true"]`; Weavero owns `.wv-md-preview`. Cleanup must remain scoped to those owned nodes. |
 | Zotero link behavior | Supported `zotero://select`, `zotero://open`, `zotero://open-pdf`, and `zotero://note` links prefer `Zotero.Weavero.plugin.handleZoteroURI()` when available, then fall back to `Zotero.launchURL()`. |
-| Zotero link color | Rendered `zotero://` anchors consume `var(--wv-link-zotero, LinkText)`. Weavero owns its light/dark variable value; without that variable, Zotero's normal link color remains in use. |
+| Link color | When Weavero is available and its `recolorAmLinks` preference is enabled, this plugin's preview consumes `--wv-link-http`, `--wv-link-zotero`, and `--wv-link-app` for HTTP(S), Zotero, and other links respectively. When the preference is disabled, links use Zotero's `LinkText`; missing Weavero variables also fall back to `LinkText`. |
 | Event ordering | Primary pointer/mouse events on rendered links are stopped before Zotero's row-selection path can replace the preview or enter editing. Other plugins should use an explicit behavior bridge rather than depend on observer timing. |
 
 When adding another Reader integration, prefer a callable host/plugin API for behavior and a namespaced CSS custom property for theme values. Do not copy another plugin's fixed colors, mutate its preview DOM, or infer ownership from which observer ran last.
@@ -125,7 +125,7 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/preferences.xhtml` | Preference-pane markup. |
 | `addon/preferences.js` | Preference-pane event handling and writes to `Zotero.Prefs`. |
 | `addon/preferences.css` | Preference-pane layout styles. |
-| `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including the optional Weavero Zotero-link color variable. |
+| `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including preference-gated Weavero link-color variables. |
 | `addon/icons/annotation-markdown.svg` | Add-on and preference-pane icon. |
 
 These JavaScript files intentionally remain JavaScript because Zotero executes them directly. TypeScript under `src/` is bundled into `dist/addon/plugin.js`.
