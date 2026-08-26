@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-08-26
+
+### Fixed
+
+- Preserve Weavero link colors in this plugin's rendered annotation previews, respect Weavero's `recolorAmLinks` setting, and retain Zotero's native link color as a fallback.
+
 ## 0.6.1 - 2026-08-23
 
 ### Fixed

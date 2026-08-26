@@ -8,7 +8,7 @@ describe("package version", () => {
     const packageJson = JSON.parse(await readFile(path.join(process.cwd(), "package.json"), "utf8"));
     const manifest = JSON.parse(await readFile(path.join(process.cwd(), "addon", "manifest.json"), "utf8"));
 
-    expect(packageJson.version).toBe("0.6.1");
+    expect(packageJson.version).toBe("0.6.2");
     expect(manifest.version).toBe(packageJson.version);
   });
 });
