@@ -123,7 +123,10 @@ export function createReaderController({
   let fastEditorEntryHandler: EventListener | undefined;
   let fastEditorClosedHandler: EventListener | undefined;
   let fastEditorExitHandler: EventListener | undefined;
+  let fastEditorContextMenuHandler: EventListener | undefined;
   let fastEditorWindowBlurHandler: EventListener | undefined;
+  let fastEditorWindowFocusHandler: EventListener | undefined;
+  let skipNextFastEditorWindowBlur = false;
   let fastEditorFocusFrame: number | undefined;
   let focusInHandler: EventListener | undefined;
   let focusOutHandler: EventListener | undefined;
@@ -339,14 +342,23 @@ export function createReaderController({
           windowRef?.removeEventListener?.("pointerdown", fastEditorExitHandler, true);
           windowRef?.removeEventListener?.("focusin", fastEditorExitHandler, true);
         }
+        if (fastEditorContextMenuHandler) {
+          root?.removeEventListener?.("contextmenu", fastEditorContextMenuHandler, true);
+        }
         if (fastEditorWindowBlurHandler) {
           windowRef?.removeEventListener?.("blur", fastEditorWindowBlurHandler);
+        }
+        if (fastEditorWindowFocusHandler) {
+          windowRef?.removeEventListener?.("focus", fastEditorWindowFocusHandler);
         }
       });
       fastEditorEntryHandler = undefined;
       fastEditorClosedHandler = undefined;
       fastEditorExitHandler = undefined;
+      fastEditorContextMenuHandler = undefined;
       fastEditorWindowBlurHandler = undefined;
+      fastEditorWindowFocusHandler = undefined;
+      skipNextFastEditorWindowBlur = false;
       runShutdownStep(() => {
         if (fastEditorFocusFrame !== undefined) {
           windowRef?.cancelAnimationFrame?.(fastEditorFocusFrame);
@@ -776,13 +788,21 @@ export function createReaderController({
       fastEditorEntryHandler ||
       fastEditorClosedHandler ||
       fastEditorExitHandler ||
-      fastEditorWindowBlurHandler
+      fastEditorContextMenuHandler ||
+      fastEditorWindowBlurHandler ||
+      fastEditorWindowFocusHandler
     ) {
       return;
     }
 
     fastEditorExitHandler = (event: Event) => {
       if (adapter.isFastEditorTarget?.(event.target)) {
+        const mouseEvent = event as MouseEvent;
+        if (event.type === "pointerdown" && mouseEvent.button === 2) {
+          // Arm before Gecko transfers focus to its native context menu. The
+          // later contextmenu event can arrive after the Reader blur.
+          skipNextFastEditorWindowBlur = true;
+        }
         return;
       }
       if (!adapter.closeActiveFastEditor?.()) {
@@ -791,7 +811,22 @@ export function createReaderController({
       }
     };
     fastEditorWindowBlurHandler = () => {
+      if (skipNextFastEditorWindowBlur) {
+        skipNextFastEditorWindowBlur = false;
+        return;
+      }
       adapter.closeActiveFastEditor?.();
+    };
+    fastEditorWindowFocusHandler = () => {
+      skipNextFastEditorWindowBlur = false;
+    };
+    fastEditorContextMenuHandler = (event: Event) => {
+      if (adapter.isFastEditorTarget?.(event.target)) {
+        // Opening Gecko's native context menu briefly blurs the Reader window.
+        // That is not an editing exit: keep the textarea mounted so the menu's
+        // cut/copy/paste commands still target it.
+        skipNextFastEditorWindowBlur = true;
+      }
     };
 
     fastEditorEntryHandler = (event: Event) => {
@@ -848,10 +883,12 @@ export function createReaderController({
     root.addEventListener("mousedown", fastEditorEntryHandler, true);
     root.addEventListener("click", fastEditorEntryHandler, true);
     root.addEventListener("focusin", fastEditorEntryHandler, true);
+    root.addEventListener("contextmenu", fastEditorContextMenuHandler, true);
     root.addEventListener(FAST_EDITOR_CLOSED_EVENT, fastEditorClosedHandler);
     windowRef?.addEventListener?.("pointerdown", fastEditorExitHandler, true);
     windowRef?.addEventListener?.("focusin", fastEditorExitHandler, true);
     windowRef?.addEventListener?.("blur", fastEditorWindowBlurHandler);
+    windowRef?.addEventListener?.("focus", fastEditorWindowFocusHandler);
   }
 
   function scheduleFastEditorAfterNativeFocus(annotationID: string): void {

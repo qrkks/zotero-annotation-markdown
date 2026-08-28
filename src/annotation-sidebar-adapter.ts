@@ -571,6 +571,9 @@ function showFastEditor(
   if (typeof endKeyboardGuard === "function") {
     fastEditorCleanupByEditor.set(editor, endKeyboardGuard);
   }
+  let contextMenuFocusTransfer = false;
+  let contextMenuSelectionStart = 0;
+  let contextMenuSelectionEnd = 0;
   const commitAndClose = () => closeFastEditor(
     node,
     editor,
@@ -597,6 +600,34 @@ function showFastEditor(
   fastEditorSessionByDocument.set(documentRef, session);
   editor.addEventListener("mousedown", stopHostEventPropagation);
   editor.addEventListener("click", stopHostEventPropagation);
+  editor.addEventListener("contextmenu", () => {
+    // Zotero 10 allows its text-editing menu only when the event target is
+    // inside the focused div[contenteditable="true"]. Briefly present this
+    // plugin-owned wrapper as that editor, then restore the textarea before
+    // Gecko performs the native context-menu command.
+    contextMenuFocusTransfer = true;
+    contextMenuSelectionStart = textarea.selectionStart;
+    contextMenuSelectionEnd = textarea.selectionEnd;
+    editor.setAttribute("contenteditable", "true");
+    editor.setAttribute("tabindex", "-1");
+
+    const restoreTextareaFocus = () => {
+      if (!contextMenuFocusTransfer || !editor.isConnected) {
+        return;
+      }
+      textarea.focus({ preventScroll: true });
+      textarea.setSelectionRange(contextMenuSelectionStart, contextMenuSelectionEnd);
+      editor.removeAttribute("contenteditable");
+      editor.removeAttribute("tabindex");
+      contextMenuFocusTransfer = false;
+    };
+    documentRef.defaultView?.addEventListener(
+      "contextmenu",
+      restoreTextareaFocus,
+      { once: true }
+    );
+    editor.focus({ preventScroll: true });
+  });
   editor.addEventListener("keydown", stopHostEventPropagation);
   editor.addEventListener("keyup", stopHostEventPropagation);
   editor.addEventListener("keypress", stopHostEventPropagation);
@@ -617,7 +648,11 @@ function showFastEditor(
       restoreFastEditorAfterPaste(textarea, viewportAnchor);
     }
   });
-  textarea.addEventListener("blur", commitAndClose);
+  textarea.addEventListener("blur", () => {
+    if (!contextMenuFocusTransfer) {
+      commitAndClose();
+    }
+  });
   textarea.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       event.preventDefault();

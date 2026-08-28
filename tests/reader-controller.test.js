@@ -112,6 +112,83 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("keeps the fast editor open for its native context menu and paste", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment">
+          <div class="expandable-editor">
+            <div class="content" contenteditable="false">old comment</div>
+          </div>
+        </div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: {
+        isEnabled: () => true,
+        isPlainTextPasteEnabled: () => true
+      },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+    document.querySelector(".annotation-markdown-rendered").dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })
+    );
+    const textarea = document.querySelector("textarea");
+    textarea.value = "new comment";
+    textarea.focus();
+    const hostContextMenu = vi.fn();
+    let hostRecognizedTextEditor = false;
+    document.querySelector(".annotation").addEventListener("contextmenu", (event) => {
+      hostContextMenu();
+      const editorNode = event.target.closest('div[contenteditable="true"]');
+      hostRecognizedTextEditor = Boolean(
+        editorNode && document.activeElement === editorNode
+      );
+    });
+
+    const contextMenu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2
+    });
+    const rightPointerDown = new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 2
+    });
+    textarea.dispatchEvent(rightPointerDown);
+    window.dispatchEvent(new Event("blur"));
+    expect(document.querySelector("textarea")).toBe(textarea);
+
+    textarea.dispatchEvent(contextMenu);
+    const paste = createPasteEvent(" pasted");
+    textarea.dispatchEvent(paste);
+
+    expect(contextMenu.defaultPrevented).toBe(false);
+    expect(hostContextMenu).toHaveBeenCalledTimes(1);
+    expect(hostRecognizedTextEditor).toBe(true);
+    expect(document.activeElement).toBe(textarea);
+    expect(paste.defaultPrevented).toBe(false);
+    expect(document.querySelector("textarea")).toBe(textarea);
+    expect(commitComment).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new Event("blur"));
+    expect(commitComment).toHaveBeenCalledWith("a1", "new comment");
+    expect(document.querySelector("textarea")).toBeNull();
+    controller.stop();
+  });
+
   test("commits an empty-origin draft on outside pointerdown before Zotero removes its DOM", async () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>
