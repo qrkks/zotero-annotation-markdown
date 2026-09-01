@@ -189,6 +189,90 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("keeps the fast editor open when the annotation sidebar scrollbar is used", async () => {
+    document.body.innerHTML = `
+      <div id="annotations-view" style="overflow-y: auto">
+        <div data-annotation-id="a1" class="annotation selected">
+          <div class="comment">
+            <div class="expandable-editor">
+              <div class="content" contenteditable="false">old comment</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button id="outside">outside</button>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+    document.querySelector(".annotation-markdown-rendered").dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })
+    );
+    const textarea = document.querySelector("textarea");
+    textarea.value = "new comment";
+    textarea.focus();
+
+    const sidebar = document.querySelector("#annotations-view");
+    Object.defineProperties(sidebar, {
+      // Gecko can render the native scrollbar as an overlay, so it occupies
+      // no measured layout width even though its visible thumb is clickable.
+      clientWidth: { configurable: true, value: 217 },
+      offsetWidth: { configurable: true, value: 217 },
+      clientHeight: { configurable: true, value: 300 },
+      offsetHeight: { configurable: true, value: 300 },
+      scrollHeight: { configurable: true, value: 1_000 },
+      scrollWidth: { configurable: true, value: 217 }
+    });
+    sidebar.getBoundingClientRect = () => ({
+      bottom: 300,
+      height: 300,
+      left: 0,
+      right: 217,
+      top: 0,
+      width: 217,
+      x: 0,
+      y: 0,
+      toJSON: () => ({})
+    });
+
+    document.querySelector(".annotation").dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: 210,
+      clientY: 100
+    }));
+    window.dispatchEvent(new Event("blur"));
+    textarea.blur();
+    document.querySelector(".annotation").dispatchEvent(new FocusEvent("focusin", {
+      bubbles: true
+    }));
+
+    expect(document.querySelector("textarea")).toBe(textarea);
+    expect(commitComment).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(document.activeElement).toBe(textarea));
+
+    document.querySelector("#outside").dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0
+    }));
+    expect(commitComment).toHaveBeenCalledWith("a1", "new comment");
+    controller.stop();
+  });
+
   test("commits an empty-origin draft on outside pointerdown before Zotero removes its DOM", async () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>

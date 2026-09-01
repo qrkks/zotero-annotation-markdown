@@ -31,6 +31,7 @@ const FAST_EDITOR_ATTRIBUTE = "data-annotation-markdown-fast-editor";
 const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-closing";
 const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
 const WEAVERO_LINK_COLORS_CLASS = "annotation-markdown-weavero-link-colors";
+const OVERLAY_SCROLLBAR_HIT_WIDTH_PX = 16;
 export const FAST_EDITOR_CLOSED_EVENT = "annotation-markdown-fast-editor-closed";
 
 export interface FastEditorClosedDetail {
@@ -72,6 +73,7 @@ export interface AnnotationSidebarAdapter {
   getCommentNodeForAnnotationID(annotationID: string): HTMLElement | null;
   setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
   closeActiveFastEditor(): boolean;
+  preserveActiveFastEditorForScrollbar(event: Event): boolean;
   commitComment(annotationID: string, comment: string): boolean;
   suppressRendering(node: HTMLElement | null | undefined, durationMs?: number): void;
   isSuppressed(node: HTMLElement | null | undefined): boolean;
@@ -518,6 +520,46 @@ export function createAnnotationSidebarAdapter({
       return session ? session.close() : true;
     },
 
+    preserveActiveFastEditorForScrollbar(event: Event) {
+      if (!documentRef) {
+        return false;
+      }
+
+      const session = fastEditorSessionByDocument.get(documentRef);
+      if (!session) {
+        return false;
+      }
+
+      // Gecko can transfer focus to Reader chrome during the same native
+      // scrollbar interaction. Preserve that focusin as part of the scroll.
+      if (event.type === "focusin" || event.type === "blur") {
+        return Boolean(session.preserveScrollbarInteraction);
+      }
+      if (event.type !== "pointerdown") {
+        return false;
+      }
+
+      const pointerEvent = event as PointerEvent;
+      const scroller = findFastEditorScrollContainer(session.editor);
+      if (
+        pointerEvent.button !== 0 ||
+        !scroller ||
+        !isPointerInNativeScrollbar(pointerEvent, scroller)
+      ) {
+        return false;
+      }
+
+      session.preserveScrollbarInteraction = true;
+      if (session.preserveScrollbarTimer !== undefined) {
+        documentRef.defaultView?.clearTimeout(session.preserveScrollbarTimer);
+      }
+      session.preserveScrollbarTimer = documentRef.defaultView?.setTimeout(() => {
+        session.preserveScrollbarInteraction = false;
+        session.preserveScrollbarTimer = undefined;
+      }, 0);
+      return true;
+    },
+
     commitComment(annotationID: string, comment: string) {
       const committed = Boolean(commitComment?.(annotationID, comment));
       if (committed) {
@@ -649,9 +691,20 @@ function showFastEditor(
     }
   });
   textarea.addEventListener("blur", () => {
-    if (!contextMenuFocusTransfer) {
-      commitAndClose();
+    if (contextMenuFocusTransfer) {
+      return;
     }
+
+    if (session.preserveScrollbarInteraction) {
+      runAfterLayout(node, () => {
+        if (editor.isConnected) {
+          textarea.focus({ preventScroll: true });
+        }
+      });
+      return;
+    }
+
+    commitAndClose();
   });
   textarea.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -714,6 +767,9 @@ function closeFastEditor(
   const session = fastEditorSessionByDocument.get(editor.ownerDocument);
   if (session?.editor === editor) {
     session.removalObserver?.disconnect();
+    if (session.preserveScrollbarTimer !== undefined) {
+      editor.ownerDocument.defaultView?.clearTimeout(session.preserveScrollbarTimer);
+    }
     fastEditorSessionByDocument.delete(editor.ownerDocument);
   }
   dispatchFastEditorClosed(node, { annotationID, source, committed });
@@ -747,6 +803,8 @@ interface FastEditorSession {
   editor: HTMLElement;
   close(): boolean;
   removalObserver?: MutationObserver;
+  preserveScrollbarInteraction?: boolean;
+  preserveScrollbarTimer?: number;
 }
 
 const fastEditorSessionByDocument = new WeakMap<Document, FastEditorSession>();
@@ -880,6 +938,42 @@ function findFastEditorScrollContainer(node: HTMLElement): HTMLElement | null {
     current = current.parentElement;
   }
   return null;
+}
+
+function isPointerInNativeScrollbar(
+  event: PointerEvent,
+  scroller: HTMLElement
+): boolean {
+  const rect = scroller.getBoundingClientRect();
+  const scaleX = scroller.offsetWidth > 0 ? rect.width / scroller.offsetWidth : 1;
+  const scaleY = scroller.offsetHeight > 0 ? rect.height / scroller.offsetHeight : 1;
+  const measuredScrollbarWidth = Math.max(0, scroller.offsetWidth - scroller.clientWidth) * scaleX;
+  const measuredScrollbarHeight = Math.max(0, scroller.offsetHeight - scroller.clientHeight) * scaleY;
+  // Gecko may paint overlay scrollbars without subtracting their width from
+  // clientWidth/clientHeight. Keep a narrow edge hit area for that native UI.
+  const scrollbarWidth = Math.max(measuredScrollbarWidth, OVERLAY_SCROLLBAR_HIT_WIDTH_PX);
+  const scrollbarHeight = Math.max(measuredScrollbarHeight, OVERLAY_SCROLLBAR_HIT_WIDTH_PX);
+  const computedStyle = scroller.ownerDocument.defaultView?.getComputedStyle?.(scroller);
+  const direction = computedStyle?.direction ?? "ltr";
+  const hasVerticalScrollbar =
+    scroller.scrollHeight > scroller.clientHeight &&
+    scrollbarWidth > 0;
+  const hasHorizontalScrollbar =
+    scroller.scrollWidth > scroller.clientWidth &&
+    scrollbarHeight > 0;
+  const inVerticalScrollbar = hasVerticalScrollbar &&
+    event.clientY >= rect.top &&
+    event.clientY < rect.bottom &&
+    (direction === "rtl"
+      ? event.clientX >= rect.left && event.clientX < rect.left + scrollbarWidth
+      : event.clientX > rect.right - scrollbarWidth && event.clientX <= rect.right);
+  const inHorizontalScrollbar = hasHorizontalScrollbar &&
+    event.clientX >= rect.left &&
+    event.clientX < rect.right &&
+    event.clientY > rect.bottom - scrollbarHeight &&
+    event.clientY <= rect.bottom;
+
+  return inVerticalScrollbar || inHorizontalScrollbar;
 }
 
 function restoreFastEditorViewportAnchor(

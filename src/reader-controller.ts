@@ -805,12 +805,20 @@ export function createReaderController({
         }
         return;
       }
+      if (adapter.preserveActiveFastEditorForScrollbar?.(event)) {
+        // A scrollbar manipulates the current editing viewport; it does not
+        // express intent to leave the editor or commit the draft.
+        return;
+      }
       if (!adapter.closeActiveFastEditor?.()) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
     };
-    fastEditorWindowBlurHandler = () => {
+    fastEditorWindowBlurHandler = (event: Event) => {
+      if (adapter.preserveActiveFastEditorForScrollbar?.(event)) {
+        return;
+      }
       if (skipNextFastEditorWindowBlur) {
         skipNextFastEditorWindowBlur = false;
         return;
