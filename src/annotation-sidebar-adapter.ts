@@ -11,6 +11,12 @@ const COMMENT_SELECTORS: string[] = [
 ];
 
 const ANNOTATION_ROW_SELECTOR = "[data-sidebar-annotation-id], [data-annotation-id], .annotation, .annotation-row";
+const SELECTED_ANNOTATION_ROW_SELECTOR = [
+  ".annotation.selected", ".annotation-row.selected",
+  "[data-sidebar-annotation-id].selected", "[data-annotation-id].selected",
+  ".annotation[aria-selected='true']", ".annotation-row[aria-selected='true']",
+  "[data-sidebar-annotation-id][aria-selected='true']", "[data-annotation-id][aria-selected='true']"
+].join(",");
 const NATIVE_NOTE_EDITOR_SELECTOR = [
   ".note-editor",
   ".zotero-note-editor",
@@ -73,6 +79,7 @@ export interface AnnotationSidebarAdapter {
   getCommentNodeForAnnotationID(annotationID: string): HTMLElement | null;
   setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
   closeActiveFastEditor(): boolean;
+  getSelectedAnnotationScrollbar(event: PointerEvent): HTMLElement | null;
   preserveActiveFastEditorForScrollbar(event: Event): boolean;
   commitComment(annotationID: string, comment: string): boolean;
   suppressRendering(node: HTMLElement | null | undefined, durationMs?: number): void;
@@ -518,6 +525,44 @@ export function createAnnotationSidebarAdapter({
 
       const session = fastEditorSessionByDocument.get(documentRef);
       return session ? session.close() : true;
+    },
+
+    getSelectedAnnotationScrollbar(event: PointerEvent) {
+      if (
+        !documentRef || event.button !== 0 || event.pointerType === "touch" ||
+        fastEditorSessionByDocument.has(documentRef) ||
+        this.isCommentEditorTarget(documentRef.activeElement)
+      ) {
+        return null;
+      }
+      const target = getElementTarget(event.target);
+      if (
+        !target || isInsideNativeNoteEditor(target) ||
+        target.closest(".annotation-popup, button, a[href], input, textarea, select, [contenteditable='true']")
+      ) {
+        return null;
+      }
+
+      // Locate the selected row's actual scrollable ancestor instead of
+      // assuming the event target is the scrollbar (Gecko can retarget it).
+      const checkedScrollers = new Set<HTMLElement>();
+      for (const row of queryHtmlElements(documentRef, SELECTED_ANNOTATION_ROW_SELECTOR)) {
+        if (isInsideNativeNoteEditor(row) || row.closest(".annotation-popup")) {
+          continue;
+        }
+        const scroller = findFastEditorScrollContainer(row);
+        if (!scroller || checkedScrollers.has(scroller)) {
+          continue;
+        }
+        checkedScrollers.add(scroller);
+        if (
+          (scroller.contains(target) || target.contains(scroller)) &&
+          isPointerInNativeScrollbar(event, scroller)
+        ) {
+          return scroller;
+        }
+      }
+      return null;
     },
 
     preserveActiveFastEditorForScrollbar(event: Event) {

@@ -93,6 +93,9 @@ const AUTO_EAGER_MAX_ANNOTATIONS = 30;
 const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
+const ANNOTATION_SCROLLBAR_EVENTS = [
+  "pointerdown", "pointerup", "pointercancel", "dragend", "focusin", "keydown"
+] as const;
 
 /**
  * Creates one controller for one Reader.
@@ -120,6 +123,9 @@ export function createReaderController({
   let styleElement: HTMLStyleElement | undefined;
   let safetyTimer: number | undefined;
   let pasteHandler: EventListener | undefined;
+  let annotationScrollbarHandler: EventListener | undefined;
+  let selectedAnnotationScroller: HTMLElement | null = null;
+  let annotationScrollbarReleaseTimer: number | undefined;
   let fastEditorEntryHandler: EventListener | undefined;
   let fastEditorClosedHandler: EventListener | undefined;
   let fastEditorExitHandler: EventListener | undefined;
@@ -292,6 +298,7 @@ export function createReaderController({
     },
 
     refresh() {
+      clearAnnotationScrollbarInteraction();
       injectStyles();
       cancelQueuedRendering();
       visibilityObserver?.disconnect?.();
@@ -328,6 +335,15 @@ export function createReaderController({
         }
       });
       pasteHandler = undefined;
+      runShutdownStep(() => {
+        if (annotationScrollbarHandler) {
+          for (const type of ANNOTATION_SCROLLBAR_EVENTS) {
+            windowRef?.removeEventListener?.(type, annotationScrollbarHandler, true);
+          }
+        }
+      });
+      annotationScrollbarHandler = undefined;
+      runShutdownStep(clearAnnotationScrollbarInteraction);
       runShutdownStep(() => {
         if (fastEditorEntryHandler) {
           root?.removeEventListener?.("pointerdown", fastEditorEntryHandler, true);
@@ -478,6 +494,7 @@ export function createReaderController({
   function startNow(renderNow: () => void): void {
     injectStyles();
     registerPasteHandler();
+    registerAnnotationScrollbarHandlers();
     registerFastEditorHandlers();
     registerEditingPauseHandlers();
     adapter.clearRenderedState?.(root);
@@ -780,6 +797,57 @@ export function createReaderController({
       handlePlainTextPaste(event as ClipboardEvent, adapter, settings, documentRef);
     };
     root.addEventListener("paste", pasteHandler, true);
+  }
+
+  function clearAnnotationScrollbarInteraction(): void {
+    if (annotationScrollbarReleaseTimer !== undefined) {
+      windowRef?.clearTimeout(annotationScrollbarReleaseTimer);
+      annotationScrollbarReleaseTimer = undefined;
+    }
+    selectedAnnotationScroller = null;
+  }
+
+  function registerAnnotationScrollbarHandlers(): void {
+    if (!windowRef?.addEventListener || annotationScrollbarHandler) {
+      return;
+    }
+    annotationScrollbarHandler = (event: Event) => {
+      if (!settings.isEnabled()) {
+        clearAnnotationScrollbarInteraction();
+        return;
+      }
+      if (event.type === "pointerdown") {
+        clearAnnotationScrollbarInteraction();
+        selectedAnnotationScroller = adapter.getSelectedAnnotationScrollbar?.(event as PointerEvent) ?? null;
+        // Do not cancel native pointer events: the scrollbar must still drag.
+        return;
+      }
+      if (!selectedAnnotationScroller) {
+        return;
+      }
+      if (event.type === "focusin") {
+        const target = getElementTarget(event.target);
+        if (selectedAnnotationScroller.isConnected && target?.contains(selectedAnnotationScroller)) {
+          // Zotero's bubbling FocusManager focusin handler deselects rows when
+          // focus moves to the scroller. Keep its selection/expansion untouched
+          // without restoring DOM focus or calling selection/scroll APIs.
+          event.stopImmediatePropagation();
+          return;
+        }
+        // A real control or another row must remain free to receive focus.
+        clearAnnotationScrollbarInteraction();
+      } else if (event.type === "pointerup") {
+        // Cover focus transitions triggered by release, then discard the guard.
+        if (annotationScrollbarReleaseTimer === undefined) {
+          annotationScrollbarReleaseTimer = windowRef.setTimeout(clearAnnotationScrollbarInteraction, 0);
+        }
+      } else {
+        clearAnnotationScrollbarInteraction();
+      }
+    };
+    for (const type of ANNOTATION_SCROLLBAR_EVENTS) {
+      windowRef.addEventListener(type, annotationScrollbarHandler, true);
+    }
   }
 
   function registerFastEditorHandlers(): void {

@@ -70,6 +70,12 @@ sequenceDiagram
 
 对应的回归测试位于 `tests/plugin.test.js`、`tests/reader-controller.test.js`、`tests/annotation-sidebar-adapter.test.js` 和 `tests/rendered-content-style.test.js`。任何生命周期修改都应先在最窄的适用测试中复现准确的 DOM、焦点、键盘、保存或滚动失败场景。
 
+## 侧栏滚动与标注选中状态
+
+`getSelectedAnnotationScrollbar()` 为已选中、非编辑状态的标注复用编辑器的滚动容器与滚动条命中判断。`registerAnnotationScrollbarHandlers()` 跟踪该指针交互，直到释放或取消。在此期间，只拦截目标为滚动容器或其祖先的 `focusin`，避免 Zotero 冒泡阶段的 `FocusManager` 清除选中状态。原生指针事件不被取消；这条路径不会重新选中标注、恢复标注焦点，也不会调用滚动 API。
+
+选中与展开状态仍由宿主持有，包括多选。键盘输入、新的外部指针操作、焦点进入真实控件或另一条标注、刷新与关闭都会清除临时保护。原生笔记编辑器和标注弹窗被排除；活跃快速编辑会话沿用已有的失焦保护路径。`tests/annotation-scrollbar.test.js` 按本机安装的 Reader 取消选中规则建模，覆盖持续拖动、覆盖式滚动条、清理和正常选中切换。真实 Zotero 验证还应确认：把一条很长的已选中标注滚出视野再滚回来，不会使它折叠，也不会把视口拉回该标注。
+
 ## 第三方 Reader 插件互操作
 
 标注卡片和 `.comment` 容器仍归 Zotero 所有，但可见的评论正文不一定是 Zotero 原生展示。本插件保留 Zotero 的 `.content` 作为源码，并添加同级 `.annotation-markdown-rendered`；Weavero 也可以独立添加同级 `.wv-md-preview`。每个插件只能修改和移除自己的预览节点。
@@ -151,6 +157,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/reader-registry.test.js` | 控制器所有权和异步生命周期顺序。 |
 | `tests/reader-controller.test.js` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
+| `tests/annotation-scrollbar.test.js` | 已选中标注的滚动条焦点、持续拖动、视口与预览保持，以及交互保护清理。 |
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
 | `tests/settings.test.js` | 偏好默认值和规范化。 |
 | `tests/bootstrap.test.js` | Zotero 启动集成和诊断。 |

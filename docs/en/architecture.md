@@ -70,6 +70,12 @@ This optimization does not replace Zotero's annotation storage, speed up tag man
 
 The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-controller.test.js`, `tests/annotation-sidebar-adapter.test.js`, and `tests/rendered-content-style.test.js`. Any lifecycle change should start with the exact failing DOM, focus, keyboard, save, or scroll case in the narrowest applicable suite.
 
+## Sidebar scrolling and annotation selection
+
+`getSelectedAnnotationScrollbar()` reuses the editor's scroll-container and scrollbar hit testing for selected, non-editing annotations. `registerAnnotationScrollbarHandlers()` tracks that pointer interaction until release or cancellation. During the interaction, only a `focusin` targeting the scroller (or its ancestor) is stopped before Zotero's bubbling `FocusManager` handler can clear the selection. Native pointer events are not cancelled; the plugin never reselects a row, restores its focus, or calls a scrolling API for this path.
+
+Selection and expansion remain host-owned, including multi-selection. Keyboard input, a new outside pointer action, focus entering a real control or another annotation, refresh, and shutdown clear the temporary guard. Native note editors and annotation popups are excluded; active fast-editor sessions retain their existing blur-preservation path. `tests/annotation-scrollbar.test.js` models the installed Reader's deselection rule and covers sustained drags, overlay scrollbars, cleanup, and normal selection changes. Real Zotero verification should also check that scrolling a long selected annotation out of view and back does not fold it or pull the viewport back to the row.
+
 ## Third-party Reader plugin interoperability
 
 The annotation card and `.comment` container remain Zotero-owned, but the visible comment body is not necessarily Zotero's native presentation. This plugin preserves Zotero's `.content` as the source and adds an `.annotation-markdown-rendered` sibling; Weavero can independently add a `.wv-md-preview` sibling. Each plugin must modify and remove only its own preview nodes.
@@ -151,6 +157,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/reader-registry.test.js` | Controller ownership and asynchronous lifecycle ordering. |
 | `tests/reader-controller.test.js` | Rendering strategies, observers, fast-editor event lifecycle, editing pauses, caches, diagnostics, and cleanup. |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM selection, source extraction, preview/edit behavior, fast-editor save and viewport behavior, and stale-state cleanup. |
+| `tests/annotation-scrollbar.test.js` | Selected annotation scrollbar focus, sustained drags, unchanged viewport/preview, and guard cleanup. |
 | `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |
 | `tests/settings.test.js` | Preference defaults and normalization. |
 | `tests/bootstrap.test.js` | Zotero bootstrap integration and diagnostics. |
