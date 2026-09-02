@@ -12,6 +12,7 @@ import {
 import type { Settings } from "./settings.js";
 import type { MarkdownRenderer, ReaderController } from "./types.js";
 import { trackAnnotationScrollTarget } from "./annotation-scroll-target.js";
+import { createAnnotationEscapeRecovery, type EscapeScrollRecovery } from "./annotation-escape-scroll.js";
 
 interface ReaderLike {
   document?: Document | null;
@@ -125,6 +126,7 @@ export function createReaderController({
 }: CreateReaderControllerOptions): ReaderController {
   let observer: MutationObserver | undefined;
   let stopScrollTargetTracking: (() => void) | undefined;
+  let escapeScrollRecovery: { comment: HTMLElement; recovery: EscapeScrollRecovery } | undefined;
   let visibilityObserver: IntersectionObserver | undefined;
   let styleElement: HTMLStyleElement | undefined;
   let safetyTimer: number | undefined;
@@ -305,6 +307,7 @@ export function createReaderController({
     },
 
     refresh() {
+      clearEscapeScrollRecovery();
       stopScrollTargetTracking?.();
       stopScrollTargetTracking = undefined;
       clearAnnotationScrollbarInteraction();
@@ -329,6 +332,7 @@ export function createReaderController({
 
     stop() {
       shutdownCleanupFailures = [];
+      runShutdownStep(clearEscapeScrollRecovery);
       runShutdownStep(() => stopScrollTargetTracking?.());
       stopScrollTargetTracking = undefined;
       runShutdownStep(() => observer?.disconnect());
@@ -1000,6 +1004,7 @@ export function createReaderController({
       event.stopImmediatePropagation();
     };
     fastEditorClosedHandler = (event: Event) => {
+      clearEscapeScrollRecovery();
       const detail = getFastEditorClosedDetail(event);
       const currentComment = detail?.committed
         ? adapter.getCommentNodeForAnnotationID?.(detail.annotationID)
@@ -1014,6 +1019,16 @@ export function createReaderController({
           // close event bubbles. Resume against the live node, not the detached
           // editor node captured when rendering was paused.
           pausedComment = comment;
+        }
+        if (detail?.reason === "escape") {
+          escapeScrollRecovery = {
+            comment,
+            recovery: createAnnotationEscapeRecovery({
+              document: documentRef,
+              getComment: () => adapter.getCommentNodeForAnnotationID?.(detail.annotationID) ?? comment,
+              isEnabled: () => settings.isEnabled()
+            })
+          };
         }
         scheduleEditingResume(comment);
       }
@@ -1084,6 +1099,7 @@ export function createReaderController({
   }
 
   function pauseRenderingForEditing(comment: HTMLElement): void {
+    clearEscapeScrollRecovery();
     if (pausedComment === comment) {
       return;
     }
@@ -1133,6 +1149,7 @@ export function createReaderController({
 
   function resumeRenderingAfterEditing(comment: HTMLElement): void {
     if (adapter.hasActiveFastEditor?.()) {
+      clearEscapeScrollRecovery();
       return;
     }
     const activeComment = adapter.getCommentNodeForTarget?.(documentRef?.activeElement);
@@ -1142,6 +1159,7 @@ export function createReaderController({
     }
 
     if (pausedComment !== comment) {
+      clearEscapeScrollRecovery();
       return;
     }
 
@@ -1151,6 +1169,7 @@ export function createReaderController({
     adapter.finishEditing?.(comment);
     const startedAt = isPerformanceDiagnosticsEnabled() ? nowRef() : 0;
     const result = handleCommentNodes([comment], { force: true });
+    if (escapeScrollRecovery?.comment === comment) escapeScrollRecovery.recovery.afterRender();
     if (isPerformanceDiagnosticsEnabled()) {
       logger?.log?.(
         `[annotation-markdown] edit resume pausedForMs=${pausedForMs} ` +
@@ -1163,6 +1182,11 @@ export function createReaderController({
 
   function isRenderingPaused(): boolean {
     return Boolean(pausedComment);
+  }
+
+  function clearEscapeScrollRecovery(): void {
+    escapeScrollRecovery?.recovery.stop();
+    escapeScrollRecovery = undefined;
   }
 
   function filterLightweightNodes(

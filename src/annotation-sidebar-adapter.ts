@@ -44,6 +44,7 @@ export interface FastEditorClosedDetail {
   annotationID: string;
   source: string;
   committed: boolean;
+  reason?: "escape";
 }
 
 interface CreateAnnotationSidebarAdapterOptions {
@@ -694,12 +695,13 @@ function showFastEditor(
   let contextMenuFocusTransfer = false;
   let contextMenuSelectionStart = 0;
   let contextMenuSelectionEnd = 0;
-  const commitAndClose = () => closeFastEditor(
+  const commitAndClose = (reason?: "escape") => closeFastEditor(
     node,
     editor,
     adapter,
     annotationID,
-    originalSource
+    originalSource,
+    reason
   );
   const session: FastEditorSession = {
     editor,
@@ -788,7 +790,7 @@ function showFastEditor(
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      commitAndClose();
+      commitAndClose("escape");
     }
   });
 
@@ -817,7 +819,8 @@ function closeFastEditor(
   editor: HTMLElement,
   adapter: AnnotationSidebarAdapter,
   annotationID: string,
-  originalSource: string
+  originalSource: string,
+  reason?: "escape"
 ): boolean {
   if (editor.getAttribute(FAST_EDITOR_CLOSING_ATTRIBUTE) === "true") {
     return false;
@@ -848,7 +851,7 @@ function closeFastEditor(
     clearFastEditorScrollbarInteraction(session);
     fastEditorSessionByDocument.delete(editor.ownerDocument);
   }
-  dispatchFastEditorClosed(node, { annotationID, source, committed });
+  dispatchFastEditorClosed(node, { annotationID, source, committed, ...(reason ? { reason } : {}) });
   endFastEditorKeyboardGuard(editor);
   editor.remove();
   return true;
