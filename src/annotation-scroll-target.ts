@@ -51,7 +51,8 @@ export function trackAnnotationScrollTarget({
     // Negative bottom margin shrinks only the scroll target, not layout. Its
     // height equals the scrollport, so nearest aligns its start from either
     // direction. No second scroll, scroll snap, or native method replacement.
-    const bottom = `${viewport - height}px`;
+    // Include the 2px scroll-margin-top declared in the stylesheet.
+    const bottom = `${viewport - height - 2}px`;
     if (row.style.getPropertyValue(MARGIN) !== bottom) row.style.setProperty(MARGIN, bottom);
     if (!row.hasAttribute(MARKER)) row.setAttribute(MARKER, "true");
   }

@@ -33,7 +33,7 @@ test("prepares only the selected row and gives native nearest a viewport-sized t
   const { rows, prepareRow, observed } = setup();
   expect(prepareRow).toHaveBeenCalledExactlyOnceWith(rows[0]);
   expect(rows[0].hasAttribute(marker)).toBe(true);
-  expect(rows[0].style.getPropertyValue(margin)).toBe("-600px");
+  expect(rows[0].style.getPropertyValue(margin)).toBe("-602px");
   expect(rows[1].hasAttribute(marker)).toBe(false);
   expect(observed.size).toBe(2);
 });
@@ -54,9 +54,9 @@ test("switches selection before the native timer, without scrolling or changing 
 test("remeasures row and viewport sizes, and leaves short rows native", () => {
   const { rows, scroller, resize, prepareRow } = setup();
   rows[0].getBoundingClientRect = () => ({ height: 1100 }); resize();
-  expect(rows[0].style.getPropertyValue(margin)).toBe("-800px");
+  expect(rows[0].style.getPropertyValue(margin)).toBe("-802px");
   Object.defineProperty(scroller, "clientHeight", { value: 500 }); resize();
-  expect(rows[0].style.getPropertyValue(margin)).toBe("-600px");
+  expect(rows[0].style.getPropertyValue(margin)).toBe("-602px");
   rows[0].getBoundingClientRect = () => ({ height: 200 }); resize();
   expect(rows[0].hasAttribute(marker)).toBe(false);
   expect(prepareRow).toHaveBeenCalledTimes(1);
@@ -132,7 +132,7 @@ test("finishes selected lazy rendering before measuring, without rendering its n
     expect(render).not.toHaveBeenCalled();
     rows[0].classList.add("selected"); await Promise.resolve();
     expect(render).toHaveBeenCalledExactlyOnceWith("a");
-    expect(rows[0].style.getPropertyValue(margin)).toBe("-600px");
+    expect(rows[0].style.getPropertyValue(margin)).toBe("-602px");
     expect(rows[1].querySelector(".annotation-markdown-rendered")).toBeNull();
   } finally { controller.stop(); window.ResizeObserver = original; }
 });

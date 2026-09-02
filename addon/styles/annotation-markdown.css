@@ -1,7 +1,7 @@
 /* Only the selected oversized row's scroll target changes; layout stays native. */
 [data-sidebar-annotation-id].selected[data-annotation-markdown-scroll-target="true"],
 [data-sidebar-annotation-id][aria-selected="true"][data-annotation-markdown-scroll-target="true"] {
-    scroll-margin-top: 0;
+    scroll-margin-top: 2px;
     scroll-margin-bottom: var(--annotation-markdown-scroll-margin-bottom, 0px);
 }
 
