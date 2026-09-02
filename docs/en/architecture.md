@@ -76,6 +76,12 @@ The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-co
 
 Selection and expansion remain host-owned, including multi-selection. Keyboard input, a new outside pointer action, focus entering a real control or another annotation, refresh, and shutdown clear the temporary guard. Native note editors and annotation popups are excluded; active fast-editor sessions retain their existing blur-preservation path. `tests/annotation-scrollbar.test.js` models the installed Reader's deselection rule and covers sustained drags, overlay scrollbars, cleanup, and normal selection changes. Real Zotero verification should also check that scrolling a long selected annotation out of view and back does not fold it or pull the viewport back to the row.
 
+## Wide display equations
+
+Only `.annotation-markdown-rendered .katex-display` gets horizontal auto-overflow, following KaTeX's [CSS customization guidance](https://katex.org/docs/issues#css-customization). Short equations remain centered; inline math, source text, font sizes, and formula structure are unchanged. The annotation card itself does not become a horizontal scroll surface.
+
+`getPreviewMathScrollbar()` distinguishes the native bar from formula text, including text near the bottom of a short equation. The controller extends its temporary scrollbar guard through the pointer/mouse/focus sequence and the release click, without cancelling native scrolling. Keyboard focus on an overflowing formula does not enter editing; ordinary content clicks still do. The guard also covers plugin-owned popup previews and excludes native notes and other plugins' previews. Regression coverage lives in `tests/math-scrollbar.test.js` and `tests/rendered-content-style.test.js`; browser QA must check both formula ends, short/tall equations, narrow sidebars, and real scrollbar drags before manual Zotero testing.
+
 ## Third-party Reader plugin interoperability
 
 The annotation card and `.comment` container remain Zotero-owned, but the visible comment body is not necessarily Zotero's native presentation. This plugin preserves Zotero's `.content` as the source and adds an `.annotation-markdown-rendered` sibling; Weavero can independently add a `.wv-md-preview` sibling. Each plugin must modify and remove only its own preview nodes.
@@ -158,6 +164,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/reader-controller.test.js` | Rendering strategies, observers, fast-editor event lifecycle, editing pauses, caches, diagnostics, and cleanup. |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM selection, source extraction, preview/edit behavior, fast-editor save and viewport behavior, and stale-state cleanup. |
 | `tests/annotation-scrollbar.test.js` | Selected annotation scrollbar focus, sustained drags, unchanged viewport/preview, and guard cleanup. |
+| `tests/math-scrollbar.test.js` | Display equation scrolling, editing-entry boundaries, focus, release clicks, and cleanup. |
 | `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |
 | `tests/settings.test.js` | Preference defaults and normalization. |
 | `tests/bootstrap.test.js` | Zotero bootstrap integration and diagnostics. |

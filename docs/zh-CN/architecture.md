@@ -76,6 +76,12 @@ sequenceDiagram
 
 选中与展开状态仍由宿主持有，包括多选。键盘输入、新的外部指针操作、焦点进入真实控件或另一条标注、刷新与关闭都会清除临时保护。原生笔记编辑器和标注弹窗被排除；活跃快速编辑会话沿用已有的失焦保护路径。`tests/annotation-scrollbar.test.js` 按本机安装的 Reader 取消选中规则建模，覆盖持续拖动、覆盖式滚动条、清理和正常选中切换。真实 Zotero 验证还应确认：把一条很长的已选中标注滚出视野再滚回来，不会使它折叠，也不会把视口拉回该标注。
 
+## 超宽独立公式
+
+仅为 `.annotation-markdown-rendered .katex-display` 设置横向自动溢出，采用 KaTeX 的 [CSS 定制方案](https://katex.org/docs/issues#css-customization)。短公式仍然居中；行内公式、源码、字号和公式结构保持不变。注释卡片本身不会变成横向滚动区域。
+
+`getPreviewMathScrollbar()` 区分原生滚动条与公式正文，包括矮公式底部附近的文字。控制器将临时滚动保护覆盖到指针、鼠标、焦点序列及拖动释放后的点击，不取消原生滚动。键盘焦点进入超宽公式不会触发编辑，普通正文点击仍然可以编辑。保护也覆盖插件自己的弹窗预览，并排除原生笔记及其他插件的预览。回归测试位于 `tests/math-scrollbar.test.js` 和 `tests/rendered-content-style.test.js`；浏览器验证应检查公式两端、短公式与高公式、窄侧栏以及真实滚动条拖动，再进行 Zotero 手动测试。
+
 ## 第三方 Reader 插件互操作
 
 标注卡片和 `.comment` 容器仍归 Zotero 所有，但可见的评论正文不一定是 Zotero 原生展示。本插件保留 Zotero 的 `.content` 作为源码，并添加同级 `.annotation-markdown-rendered`；Weavero 也可以独立添加同级 `.wv-md-preview`。每个插件只能修改和移除自己的预览节点。
@@ -158,6 +164,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/reader-controller.test.js` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
 | `tests/annotation-scrollbar.test.js` | 已选中标注的滚动条焦点、持续拖动、视口与预览保持，以及交互保护清理。 |
+| `tests/math-scrollbar.test.js` | 独立公式滚动、编辑入口边界、焦点、拖动释放点击与清理。 |
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
 | `tests/settings.test.js` | 偏好默认值和规范化。 |
 | `tests/bootstrap.test.js` | Zotero 启动集成和诊断。 |

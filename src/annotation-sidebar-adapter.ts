@@ -80,6 +80,7 @@ export interface AnnotationSidebarAdapter {
   setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
   closeActiveFastEditor(): boolean;
   getSelectedAnnotationScrollbar(event: PointerEvent): HTMLElement | null;
+  getPreviewMathScrollbar(event: Event): HTMLElement | null;
   preserveActiveFastEditorForScrollbar(event: Event): boolean;
   commitComment(annotationID: string, comment: string): boolean;
   suppressRendering(node: HTMLElement | null | undefined, durationMs?: number): void;
@@ -526,6 +527,8 @@ export function createAnnotationSidebarAdapter({
       const session = fastEditorSessionByDocument.get(documentRef);
       return session ? session.close() : true;
     },
+
+    getPreviewMathScrollbar,
 
     getSelectedAnnotationScrollbar(event: PointerEvent) {
       if (
@@ -986,8 +989,9 @@ function findFastEditorScrollContainer(node: HTMLElement): HTMLElement | null {
 }
 
 function isPointerInNativeScrollbar(
-  event: PointerEvent,
-  scroller: HTMLElement
+  event: MouseEvent,
+  scroller: HTMLElement,
+  axis: "both" | "horizontal" = "both"
 ): boolean {
   const rect = scroller.getBoundingClientRect();
   const scaleX = scroller.offsetWidth > 0 ? rect.width / scroller.offsetWidth : 1;
@@ -1001,6 +1005,7 @@ function isPointerInNativeScrollbar(
   const computedStyle = scroller.ownerDocument.defaultView?.getComputedStyle?.(scroller);
   const direction = computedStyle?.direction ?? "ltr";
   const hasVerticalScrollbar =
+    axis !== "horizontal" &&
     scroller.scrollHeight > scroller.clientHeight &&
     scrollbarWidth > 0;
   const hasHorizontalScrollbar =
@@ -1019,6 +1024,41 @@ function isPointerInNativeScrollbar(
     event.clientY <= rect.bottom;
 
   return inVerticalScrollbar || inHorizontalScrollbar;
+}
+
+function getPreviewMathScrollbar(event: Event): HTMLElement | null {
+  const target = getElementTarget(event.target);
+  if (!target || isInsideNativeNoteEditor(target) || target.closest("a[href], button, input, textarea, select, [contenteditable='true']")) {
+    return null;
+  }
+  const preview = target.closest(`[${PREVIEW_ATTRIBUTE}='true'].annotation-markdown-rendered`);
+  if (!preview) {
+    return null;
+  }
+  // Normally the native scrollbar targets its own scroller; Gecko can also
+  // retarget it to the containing preview. Do not scan the whole Reader.
+  const closest = target.closest(".katex-display");
+  const candidates = closest && isHTMLElement(closest)
+    ? [closest]
+    : queryHtmlElements(preview, ".katex-display");
+  for (const scroller of candidates) {
+    // A glyph near the bottom of a short formula is still content. Only the
+    // scroller itself (or a retargeted ancestor) can represent its native bar.
+    if (!target.contains(scroller) || scroller.scrollWidth <= scroller.clientWidth) {
+      continue;
+    }
+    if (event.type === "focusin") {
+      // Gecko makes overflow containers focusable. Focusing one is navigation,
+      // not a request to replace the preview with the comment editor.
+      if (target === scroller) return scroller;
+      continue;
+    }
+    const pointer = event as PointerEvent;
+    if (pointer.button === 0 && pointer.pointerType !== "touch" && isPointerInNativeScrollbar(pointer, scroller, "horizontal")) {
+      return scroller;
+    }
+  }
+  return null;
 }
 
 function restoreFastEditorViewportAnchor(
@@ -1113,6 +1153,10 @@ function createPreviewNode(
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
   preview.addEventListener("pointerdown", (event) => {
+    if (getPreviewMathScrollbar(event)) {
+      event.stopPropagation();
+      return;
+    }
     if (getElementTarget(event.target)?.closest("a[href]")) {
       // Keep Zotero's pointer-driven row selection/focus path from replacing
       // the preview before the following mousedown opens the link.
@@ -1125,6 +1169,10 @@ function createPreviewNode(
     }
   }, { capture: true });
   preview.addEventListener("mousedown", (event) => {
+    if (getPreviewMathScrollbar(event)) {
+      event.stopPropagation();
+      return;
+    }
     const link = getElementTarget(event.target)?.closest("a[href]");
     if (link) {
       event.stopPropagation();

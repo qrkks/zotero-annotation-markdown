@@ -79,6 +79,12 @@
     margin-bottom: 0;
 }
 
+.annotation-markdown-rendered .katex-display {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
 .annotation-markdown-rendered a {
     color: LinkText;
     cursor: pointer;

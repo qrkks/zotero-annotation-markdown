@@ -85,8 +85,20 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("white-space: pre-wrap");
     expect(addonCss).toContain("overflow-wrap: anywhere");
     expect(addonCss).toContain(".annotation-markdown-rendered pre code");
-    expect(addonCss).not.toContain("overflow-x: auto");
+    const codeRules = addonCss.match(/\.annotation-markdown-rendered pre(?: code)?\s*\{[^}]*\}/g).join("\n");
+    expect(codeRules).not.toContain("overflow-x: auto");
     expect(addonCss).not.toContain("white-space: pre;");
+  });
+
+  test("contains horizontal overflow within each display equation without changing inline math", async () => {
+    const addonCss = await readAddonCss();
+    const displayRule = addonCss.match(/\.annotation-markdown-rendered \.katex-display\s*\{([^}]*)\}/)?.[1];
+    expect(displayRule).toBeDefined();
+    expect(displayRule).toContain("overflow-x: auto;");
+    expect(displayRule).toContain("overflow-y: hidden;");
+    expect(displayRule).toContain("max-width: 100%;");
+    expect(displayRule).not.toMatch(/font-size|transform|white-space/);
+    expect(addonCss).not.toMatch(/\.annotation-markdown-rendered >?\s*\.katex\s*\{/);
   });
 
   test("gives inline code a subtle background without styling fenced code wrappers", async () => {

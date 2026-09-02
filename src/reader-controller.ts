@@ -94,7 +94,7 @@ const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
 const ANNOTATION_SCROLLBAR_EVENTS = [
-  "pointerdown", "pointerup", "pointercancel", "dragend", "focusin", "keydown"
+  "pointerdown", "mousedown", "click", "pointerup", "pointercancel", "dragend", "focusin", "keydown"
 ] as const;
 
 /**
@@ -125,6 +125,7 @@ export function createReaderController({
   let pasteHandler: EventListener | undefined;
   let annotationScrollbarHandler: EventListener | undefined;
   let selectedAnnotationScroller: HTMLElement | null = null;
+  let previewMathScrollbarInteraction = false;
   let annotationScrollbarReleaseTimer: number | undefined;
   let fastEditorEntryHandler: EventListener | undefined;
   let fastEditorClosedHandler: EventListener | undefined;
@@ -805,6 +806,7 @@ export function createReaderController({
       annotationScrollbarReleaseTimer = undefined;
     }
     selectedAnnotationScroller = null;
+    previewMathScrollbarInteraction = false;
   }
 
   function registerAnnotationScrollbarHandlers(): void {
@@ -818,8 +820,30 @@ export function createReaderController({
       }
       if (event.type === "pointerdown") {
         clearAnnotationScrollbarInteraction();
-        selectedAnnotationScroller = adapter.getSelectedAnnotationScrollbar?.(event as PointerEvent) ?? null;
-        // Do not cancel native pointer events: the scrollbar must still drag.
+        const mathScroller = adapter.getPreviewMathScrollbar?.(event) ?? null;
+        selectedAnnotationScroller = mathScroller ?? adapter.getSelectedAnnotationScrollbar?.(event as PointerEvent) ?? null;
+        previewMathScrollbarInteraction = Boolean(mathScroller);
+        // Keep the preview/native editing handlers from consuming the scrollbar
+        // gesture, but never prevent its default native scrolling action.
+        if (mathScroller) event.stopImmediatePropagation();
+        return;
+      }
+      if (event.type === "mousedown" || event.type === "click") {
+        const target = getElementTarget(event.target);
+        if (
+          (previewMathScrollbarInteraction && selectedAnnotationScroller?.isConnected &&
+            target && (selectedAnnotationScroller.contains(target) || target.contains(selectedAnnotationScroller))) ||
+          adapter.getPreviewMathScrollbar?.(event)
+        ) {
+          // Includes the click after releasing a drag over the formula body.
+          event.stopImmediatePropagation();
+        }
+        return;
+      }
+      const focusedMathScroller = event.type === "focusin" ? adapter.getPreviewMathScrollbar?.(event) : null;
+      if (focusedMathScroller) {
+        if (selectedAnnotationScroller !== focusedMathScroller) clearAnnotationScrollbarInteraction();
+        event.stopImmediatePropagation();
         return;
       }
       if (!selectedAnnotationScroller) {
