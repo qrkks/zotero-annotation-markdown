@@ -13,10 +13,10 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fastEditor\"");
     expect(source).toContain(
-      "label=\"Use a faster editor instead of Zotero's native annotation comment editor\""
+      "label=\"Use the fast annotation comment editor\""
     );
     expect(source).toContain(
-      "Recommended for books with many annotations. Changes save when you click elsewhere or press Esc. Uncheck to restore Zotero's native editor."
+      "Helps reduce typing lag in documents with many annotations."
     );
     expect(source).toContain("label=\"Paste clipboard content into annotation comments as plain text\"");
     expect(source).toContain(

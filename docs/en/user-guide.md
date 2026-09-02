@@ -39,7 +39,7 @@ Settings are saved automatically. If the reader does not reflect a changed setti
 
 ## Preview and editing states
 
-When an annotation is not being edited, its comment is shown as a rendered preview. Selecting its comment opens the faster source editor by default; changes save when focus leaves the editor or when Escape is pressed. Disable **Use a faster editor instead of Zotero's native annotation comment editor** to restore Zotero's native editing path. Collapsed annotations retain Zotero's compact presentation.
+When an annotation is not being edited, its comment is shown as a rendered preview. Selecting its comment opens the faster source editor by default; changes save when focus leaves the editor or when Escape is pressed. Disable **Use the fast annotation comment editor** to restore Zotero's native editing path. Collapsed annotations retain Zotero's compact presentation.
 
 If the installed Zotero version does not expose the Reader annotation update capability required by the fast editor, the add-on leaves the native editor in control automatically.
 

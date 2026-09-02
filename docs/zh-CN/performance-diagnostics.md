@@ -111,7 +111,7 @@ Zotero 关闭时可以安全删除当前日志及其 `.1` 备份；它们只包�
 - `domMs` 很高，尤其伴随大量 `mountedPreviews` 时，通常指向 DOM 插入、样式或布局压力。
 - `cacheEntries` 增长但估算字节数稳定通常属于正常现象。如果关闭阅读器后仍持续增长，或多次干净复现之间不断增长，应使用真实内存分析器进一步调查。
 - `cachedNodes` 很高但仍能看到停顿，说明 HTML 转换缓存有效，但 DOM 重建或浏览器布局仍可能较慢。
-- 如果开启更快的替代编辑器后输入仍然缓慢，应取消勾选 **Use a faster editor instead of Zotero's native annotation comment editor**，并在同一标注中对比。两种模式差异很大，通常可以隔离 Zotero 原生编辑器的成本；两种模式表现相近，则更可能与保留 DOM、布局、其他插件或 Reader 本身有关。只有在第二轮对比时才需要禁用整个插件。
+- 如果开启更快的替代编辑器后输入仍然缓慢，应取消勾选 **Use the fast annotation comment editor**，并在同一标注中对比。两种模式差异很大，通常可以隔离 Zotero 原生编辑器的成本；两种模式表现相近，则更可能与保留 DOM、布局、其他插件或 Reader 本身有关。只有在第二轮对比时才需要禁用整个插件。
 - lazy 或 eager 模式下单次较慢的 `renderNow durationMs` 并不代表全部后台渲染时间，还需结合后续 `perf lazyRender` 条目判断。
 
 ## 分享诊断报告

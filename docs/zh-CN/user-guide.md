@@ -39,7 +39,7 @@
 
 ## 预览与编辑状态
 
-标注未处于编辑状态时，评论显示为渲染后的预览。默认点击评论后会使用更快的编辑器替代 Zotero 原生标注评论编辑器；失焦或按 Esc 时保存修改。关闭 **Use a faster editor instead of Zotero's native annotation comment editor** 后会恢复 Zotero 原生编辑路径。标注折叠时仍沿用 Zotero 的紧凑显示方式。
+标注未处于编辑状态时，评论显示为渲染后的预览。默认点击评论后会使用更快的编辑器替代 Zotero 原生标注评论编辑器；失焦或按 Esc 时保存修改。关闭 **Use the fast annotation comment editor** 后会恢复 Zotero 原生编辑路径。标注折叠时仍沿用 Zotero 的紧凑显示方式。
 
 如果当前 Zotero 版本没有提供快速编辑器所需的阅读器标注更新能力，插件会自动让 Zotero 原生编辑器继续接管。
 

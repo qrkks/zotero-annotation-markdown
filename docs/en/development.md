@@ -38,7 +38,7 @@ Install the exact final XPI and record its SHA-256 before tagging a release. On 
 2. A previously empty comment saves and immediately returns to rendered Markdown.
 3. Backspace, Delete, and arrow keys edit text without acting on the annotation row.
 4. Editing a partially visible annotation does not unexpectedly move it outside the sidebar viewport.
-5. Clearing **Use a faster editor instead of Zotero's native annotation comment editor** restores Zotero's native editor; enabling it again restores the faster editor.
+5. Clearing **Use the fast annotation comment editor** restores Zotero's native editor; enabling it again restores the faster editor.
 6. Closing and reopening the Reader, and disabling and re-enabling the add-on, leave no duplicate editors or stale preview state.
 
 This release line prioritizes real-host validation on the latest Zotero 10 version. Zotero 9 compatibility remains declared on a best-effort basis: missing fast-editor update capability must leave the native editor in control, and users can also disable the replacement editor manually.

@@ -38,7 +38,7 @@ pnpm run verify
 2. 原本为空的评论能够保存，并立即恢复为 Markdown 渲染结果。
 3. Backspace、Delete 和方向键只编辑文字，不会作用于标注行。
 4. 编辑部分可见的标注时，不会意外把它移出侧栏视口。
-5. 取消勾选 **Use a faster editor instead of Zotero's native annotation comment editor** 后恢复 Zotero 原生编辑器；重新勾选后恢复更快的编辑器。
+5. 取消勾选 **Use the fast annotation comment editor** 后恢复 Zotero 原生编辑器；重新勾选后恢复更快的编辑器。
 6. 关闭并重新打开 Reader，以及禁用并重新启用插件后，不会留下重复编辑器或旧预览状态。
 
 当前发布线优先在最新版 Zotero 10 中进行真实环境验证。Zotero 9 继续按尽力兼容原则声明支持：缺少快速编辑所需的更新能力时必须由原生编辑器接管，用户也可以手动关闭替代编辑器。

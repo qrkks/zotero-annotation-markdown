@@ -111,7 +111,7 @@ Each line starts with an ISO timestamp. The most useful entry families are:
 - High `domMs`, especially with many `mountedPreviews`, points toward DOM insertion, style, or layout pressure.
 - A growing `cacheEntries` count with stable estimated bytes is expected. Continual growth across closed readers or repeated clean reproductions deserves investigation with a real memory profiler.
 - High `cachedNodes` with visible pauses means the HTML conversion cache is working, but DOM reconstruction or browser layout may still be expensive.
-- If typing is slow with the faster replacement editor enabled, compare the same annotation after clearing **Use a faster editor instead of Zotero's native annotation comment editor**. A large difference isolates Zotero's native editor cost; similar behavior in both modes points toward retained DOM, layout, another extension, or the Reader itself. Disable the whole add-on only as a second comparison.
+- If typing is slow with the faster replacement editor enabled, compare the same annotation after clearing **Use the fast annotation comment editor**. A large difference isolates Zotero's native editor cost; similar behavior in both modes points toward retained DOM, layout, another extension, or the Reader itself. Disable the whole add-on only as a second comparison.
 - A single slow `renderNow durationMs` in `lazy` or `eager` mode does not describe the total background render time; use the following `perf lazyRender` entries as well.
 
 ## Share a diagnostic report
