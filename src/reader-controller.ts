@@ -11,6 +11,7 @@ import {
 } from "./annotation-sidebar-adapter.js";
 import type { Settings } from "./settings.js";
 import type { MarkdownRenderer, ReaderController } from "./types.js";
+import { trackAnnotationScrollTarget } from "./annotation-scroll-target.js";
 
 interface ReaderLike {
   document?: Document | null;
@@ -123,6 +124,7 @@ export function createReaderController({
   offscreenRenderMaxBytes: offscreenRenderMaxBytesOverride = MAX_RENDER_CACHE_BYTES
 }: CreateReaderControllerOptions): ReaderController {
   let observer: MutationObserver | undefined;
+  let stopScrollTargetTracking: (() => void) | undefined;
   let visibilityObserver: IntersectionObserver | undefined;
   let styleElement: HTMLStyleElement | undefined;
   let safetyTimer: number | undefined;
@@ -303,6 +305,8 @@ export function createReaderController({
     },
 
     refresh() {
+      stopScrollTargetTracking?.();
+      stopScrollTargetTracking = undefined;
       clearAnnotationScrollbarInteraction();
       injectStyles();
       cancelQueuedRendering();
@@ -320,10 +324,13 @@ export function createReaderController({
       }
       this.renderNow();
       registerMutationObserver();
+      registerScrollTargetTracking();
     },
 
     stop() {
       shutdownCleanupFailures = [];
+      runShutdownStep(() => stopScrollTargetTracking?.());
+      stopScrollTargetTracking = undefined;
       runShutdownStep(() => observer?.disconnect());
       observer = undefined;
       runShutdownStep(() => visibilityObserver?.disconnect?.());
@@ -506,6 +513,28 @@ export function createReaderController({
     adapter.clearRenderedState?.(root);
     renderNow();
     registerMutationObserver();
+    registerScrollTargetTracking();
+  }
+
+  function registerScrollTargetTracking(): void {
+    if (stopScrollTargetTracking) return;
+    stopScrollTargetTracking = trackAnnotationScrollTarget({
+      document: documentRef,
+      MutationObserver: MutationObserverRef,
+      ResizeObserver: windowRef?.ResizeObserver,
+      isEnabled: () => settings.isEnabled(),
+      prepareRow(row) {
+        if (isRenderingPaused()) return;
+        for (const node of adapter.findCommentNodes(row)) {
+          if (!adapter.isRendered(node) || node.querySelector("[data-annotation-markdown-placeholder='true']")) {
+            pendingRenderNodes.delete(node);
+            eagerComments.delete(node);
+            removeOffscreenRenderedNode(node);
+            renderNode(node);
+          }
+        }
+      }
+    });
   }
 
   function registerMutationObserver(): void {
