@@ -79,6 +79,7 @@ export interface AnnotationSidebarAdapter {
   getCommentNodeForAnnotationID(annotationID: string): HTMLElement | null;
   setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
   closeActiveFastEditor(): boolean;
+  hasActiveFastEditor(): boolean;
   getSelectedAnnotationScrollbar(event: PointerEvent): HTMLElement | null;
   getPreviewMathScrollbar(event: Event): HTMLElement | null;
   preserveActiveFastEditorForScrollbar(event: Event): boolean;
@@ -161,6 +162,11 @@ export function createAnnotationSidebarAdapter({
 
     isEditable(node: HTMLElement | null | undefined) {
       if (!node) {
+        return true;
+      }
+
+      const session = fastEditorSessionByDocument.get(node.ownerDocument);
+      if (session?.editor.isConnected && node.contains(session.editor)) {
         return true;
       }
 
@@ -316,6 +322,7 @@ export function createAnnotationSidebarAdapter({
         const session = fastEditorSessionByDocument.get(editor.ownerDocument);
         if (session?.editor === editor) {
           session.removalObserver?.disconnect();
+          clearFastEditorScrollbarInteraction(session);
           fastEditorSessionByDocument.delete(editor.ownerDocument);
         }
         endFastEditorKeyboardGuard(editor);
@@ -528,6 +535,10 @@ export function createAnnotationSidebarAdapter({
       return session ? session.close() : true;
     },
 
+    hasActiveFastEditor() {
+      return Boolean(documentRef && fastEditorSessionByDocument.get(documentRef)?.editor.isConnected);
+    },
+
     getPreviewMathScrollbar,
 
     getSelectedAnnotationScrollbar(event: PointerEvent) {
@@ -578,33 +589,52 @@ export function createAnnotationSidebarAdapter({
         return false;
       }
 
-      // Gecko can transfer focus to Reader chrome during the same native
-      // scrollbar interaction. Preserve that focusin as part of the scroll.
-      if (event.type === "focusin" || event.type === "blur") {
+      if (event.type === "blur") {
         return Boolean(session.preserveScrollbarInteraction);
+      }
+      if (event.type === "focusin") {
+        if (isFastEditorScrollbarFocusTarget(session, event.target)) {
+          return true;
+        }
+        clearFastEditorScrollbarInteraction(session);
+        return false;
+      }
+      if (event.type === "pointerup" && session.preserveScrollbarInteraction) {
+        // Native scrollbar focus may arrive after pointerup. End the drag in
+        // the next task, but remember where focus can rest until the next click.
+        if (session.preserveScrollbarTimer !== undefined) {
+          documentRef.defaultView?.clearTimeout(session.preserveScrollbarTimer);
+        }
+        session.preserveScrollbarTimer = documentRef.defaultView?.setTimeout(() => {
+          session.preserveScrollbarInteraction = false;
+          session.preserveScrollbarTimer = undefined;
+        }, 0);
+        return true;
+      }
+      if (event.type === "pointercancel" || event.type === "dragend") {
+        clearFastEditorScrollbarInteraction(session, true);
+        return false;
       }
       if (event.type !== "pointerdown") {
         return false;
       }
 
+      clearFastEditorScrollbarInteraction(session);
       const pointerEvent = event as PointerEvent;
       const scroller = findFastEditorScrollContainer(session.editor);
+      const target = getElementTarget(event.target);
       if (
-        pointerEvent.button !== 0 ||
-        !scroller ||
+        pointerEvent.button !== 0 || pointerEvent.pointerType === "touch" ||
+        this.isFastEditorTarget(target) ||
+        !scroller || !target ||
+        !(scroller.contains(target) || target.contains(scroller)) ||
         !isPointerInNativeScrollbar(pointerEvent, scroller)
       ) {
         return false;
       }
 
       session.preserveScrollbarInteraction = true;
-      if (session.preserveScrollbarTimer !== undefined) {
-        documentRef.defaultView?.clearTimeout(session.preserveScrollbarTimer);
-      }
-      session.preserveScrollbarTimer = documentRef.defaultView?.setTimeout(() => {
-        session.preserveScrollbarInteraction = false;
-        session.preserveScrollbarTimer = undefined;
-      }, 0);
+      session.scrollbarScroller = scroller;
       return true;
     },
 
@@ -738,17 +768,17 @@ function showFastEditor(
       restoreFastEditorAfterPaste(textarea, viewportAnchor);
     }
   });
-  textarea.addEventListener("blur", () => {
+  textarea.addEventListener("blur", (event) => {
     if (contextMenuFocusTransfer) {
       return;
     }
 
-    if (session.preserveScrollbarInteraction) {
-      runAfterLayout(node, () => {
-        if (editor.isConnected) {
-          textarea.focus({ preventScroll: true });
-        }
-      });
+    if (
+      (session.preserveScrollbarInteraction && !event.relatedTarget) ||
+      isFastEditorScrollbarFocusTarget(session, event.relatedTarget)
+    ) {
+      // Keep the session, not DOM focus. Refocusing here races the next click's
+      // native caret placement and the Reader's own focus-driven updates.
       return;
     }
 
@@ -815,9 +845,7 @@ function closeFastEditor(
   const session = fastEditorSessionByDocument.get(editor.ownerDocument);
   if (session?.editor === editor) {
     session.removalObserver?.disconnect();
-    if (session.preserveScrollbarTimer !== undefined) {
-      editor.ownerDocument.defaultView?.clearTimeout(session.preserveScrollbarTimer);
-    }
+    clearFastEditorScrollbarInteraction(session);
     fastEditorSessionByDocument.delete(editor.ownerDocument);
   }
   dispatchFastEditorClosed(node, { annotationID, source, committed });
@@ -853,9 +881,32 @@ interface FastEditorSession {
   removalObserver?: MutationObserver;
   preserveScrollbarInteraction?: boolean;
   preserveScrollbarTimer?: number;
+  scrollbarScroller?: HTMLElement;
 }
 
 const fastEditorSessionByDocument = new WeakMap<Document, FastEditorSession>();
+
+function clearFastEditorScrollbarInteraction(session: FastEditorSession, keepScroller = false): void {
+  if (session.preserveScrollbarTimer !== undefined) {
+    session.editor.ownerDocument.defaultView?.clearTimeout(session.preserveScrollbarTimer);
+    session.preserveScrollbarTimer = undefined;
+  }
+  session.preserveScrollbarInteraction = false;
+  if (!keepScroller) {
+    session.scrollbarScroller = undefined;
+  }
+}
+
+function isFastEditorScrollbarFocusTarget(session: FastEditorSession, target: EventTarget | null): boolean {
+  const element = getElementTarget(target);
+  const scroller = session.scrollbarScroller;
+  if (!element || !scroller?.isConnected) {
+    return false;
+  }
+  return element.contains(scroller) || Boolean(
+    session.preserveScrollbarInteraction && element === session.editor.closest(ANNOTATION_ROW_SELECTOR)
+  );
+}
 
 function endFastEditorKeyboardGuard(editor: HTMLElement): void {
   const cleanup = fastEditorCleanupByEditor.get(editor);

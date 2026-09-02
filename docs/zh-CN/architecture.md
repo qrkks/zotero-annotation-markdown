@@ -72,6 +72,10 @@ sequenceDiagram
 
 ## 侧栏滚动与标注选中状态
 
+侧栏滚动期间，快速编辑会话独立于 DOM 焦点。`preserveActiveFastEditorForScrollbar()` 跟踪原生滚动条拖动直到释放或取消，并记住允许焦点暂留的滚动容器。控制器仅在匹配滚动条的 `focusin` 到达 Zotero 前拦截，防止标注被取消选中；不会重新聚焦文本框或修改选区。`hasActiveFastEditor()` 保持渲染暂停，`isEditable()` 在焦点位于滚动容器时仍保护已挂载的会话。点回文本框时由浏览器根据点击位置定位光标。真正的外部点击或焦点转移仍然保存；拖动结束后的窗口失焦也会保存。关闭或禁用时清理会话与释放定时器。
+
+`tests/fast-editor-scrollbar.test.js` 覆盖持续拖动、覆盖式滚动条、焦点暂留、光标保持、外部退出、保存失败及清理。浏览器验证还必须实际拖动原生滚动条，再点击不同位置输入；仅靠 DOM 测试不能验证原生光标命中或完整的 Zotero/Gecko 焦点链路。
+
 `getSelectedAnnotationScrollbar()` 为已选中、非编辑状态的标注复用编辑器的滚动容器与滚动条命中判断。`registerAnnotationScrollbarHandlers()` 跟踪该指针交互，直到释放或取消。在此期间，只拦截目标为滚动容器或其祖先的 `focusin`，避免 Zotero 冒泡阶段的 `FocusManager` 清除选中状态。原生指针事件不被取消；这条路径不会重新选中标注、恢复标注焦点，也不会调用滚动 API。
 
 选中与展开状态仍由宿主持有，包括多选。键盘输入、新的外部指针操作、焦点进入真实控件或另一条标注、刷新与关闭都会清除临时保护。原生笔记编辑器和标注弹窗被排除；活跃快速编辑会话沿用已有的失焦保护路径。`tests/annotation-scrollbar.test.js` 按本机安装的 Reader 取消选中规则建模，覆盖持续拖动、覆盖式滚动条、清理和正常选中切换。真实 Zotero 验证还应确认：把一条很长的已选中标注滚出视野再滚回来，不会使它折叠，也不会把视口拉回该标注。
@@ -103,7 +107,7 @@ sequenceDiagram
 ## 运行时约束
 
 - Zotero 原始标注源码始终保留在宿主 DOM 中。插件只添加带标记的同级预览节点，并在关闭时移除自己的节点。
-- 标注编辑器拥有焦点时暂停渲染；编辑结束后，只强制立即渲染刚刚编辑的评论。
+- 标注编辑器拥有焦点，或侧栏滚动期间快速编辑会话仍打开时暂停渲染；编辑结束后，只强制立即渲染刚刚编辑的评论。
 - 每个 Reader 文档最多存在一个快速编辑会话。只要草稿发生变化，就必须在关闭编辑器前提交；即使 Zotero 在失焦事件到达前替换宿主 DOM，也要保留并提交草稿。
 - 快速编辑器的键盘事件必须留在文本框内，避免 Backspace、Delete 和方向键触发 Reader 层面的标注操作。
 - 关闭偏好设置或缺少必要的标注更新能力时，由 Zotero 原生编辑器继续接管。
@@ -164,6 +168,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/reader-controller.test.js` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
 | `tests/annotation-scrollbar.test.js` | 已选中标注的滚动条焦点、持续拖动、视口与预览保持，以及交互保护清理。 |
+| `tests/fast-editor-scrollbar.test.js` | 滚动条焦点与编辑会话分离、光标保持、外部退出、保存失败及清理。 |
 | `tests/math-scrollbar.test.js` | 独立公式滚动、编辑入口边界、焦点、拖动释放点击与清理。 |
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
 | `tests/settings.test.js` | 偏好默认值和规范化。 |

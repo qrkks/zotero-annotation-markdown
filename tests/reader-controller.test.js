@@ -191,7 +191,7 @@ describe("createReaderController", () => {
 
   test("keeps the fast editor open when the annotation sidebar scrollbar is used", async () => {
     document.body.innerHTML = `
-      <div id="annotations-view" style="overflow-y: auto">
+      <div id="annotations-view" tabindex="-1" style="overflow-y: auto">
         <div data-annotation-id="a1" class="annotation selected">
           <div class="comment">
             <div class="expandable-editor">
@@ -221,6 +221,7 @@ describe("createReaderController", () => {
       new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })
     );
     const textarea = document.querySelector("textarea");
+    await vi.waitFor(() => expect(document.activeElement).toBe(textarea));
     textarea.value = "new comment";
     textarea.focus();
 
@@ -255,14 +256,13 @@ describe("createReaderController", () => {
       clientY: 100
     }));
     window.dispatchEvent(new Event("blur"));
-    textarea.blur();
-    document.querySelector(".annotation").dispatchEvent(new FocusEvent("focusin", {
-      bubbles: true
-    }));
+    sidebar.focus();
+    sidebar.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
 
     expect(document.querySelector("textarea")).toBe(textarea);
     expect(commitComment).not.toHaveBeenCalled();
-    await vi.waitFor(() => expect(document.activeElement).toBe(textarea));
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(document.activeElement).toBe(sidebar);
 
     document.querySelector("#outside").dispatchEvent(new PointerEvent("pointerdown", {
       bubbles: true,

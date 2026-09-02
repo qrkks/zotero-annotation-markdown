@@ -72,6 +72,10 @@ The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-co
 
 ## Sidebar scrolling and annotation selection
 
+Fast-editor sessions are independent of DOM focus during sidebar scrolling. `preserveActiveFastEditorForScrollbar()` tracks the native scrollbar drag until release/cancellation and remembers its scroller as an allowed resting focus target. The controller stops only the matching scrollbar `focusin` before Zotero can deselect the row; it does not refocus the textarea or alter its selection. `hasActiveFastEditor()` keeps rendering paused, and `isEditable()` protects the mounted session even while focus is on the scroller. Clicking back into the textarea uses native caret placement. Real outside clicks/focus still save; window blur after the drag ends also saves. Closing or disabling clears the session and release timer.
+
+`tests/fast-editor-scrollbar.test.js` covers sustained drags, overlay scrollbars, parked focus, caret preservation, outside exits, failed saves, and cleanup. Browser QA must also drag the native scrollbar and click/type at multiple positions; DOM-only tests cannot verify native caret hit testing or the complete Zotero/Gecko focus chain.
+
 `getSelectedAnnotationScrollbar()` reuses the editor's scroll-container and scrollbar hit testing for selected, non-editing annotations. `registerAnnotationScrollbarHandlers()` tracks that pointer interaction until release or cancellation. During the interaction, only a `focusin` targeting the scroller (or its ancestor) is stopped before Zotero's bubbling `FocusManager` handler can clear the selection. Native pointer events are not cancelled; the plugin never reselects a row, restores its focus, or calls a scrolling API for this path.
 
 Selection and expansion remain host-owned, including multi-selection. Keyboard input, a new outside pointer action, focus entering a real control or another annotation, refresh, and shutdown clear the temporary guard. Native note editors and annotation popups are excluded; active fast-editor sessions retain their existing blur-preservation path. `tests/annotation-scrollbar.test.js` models the installed Reader's deselection rule and covers sustained drags, overlay scrollbars, cleanup, and normal selection changes. Real Zotero verification should also check that scrolling a long selected annotation out of view and back does not fold it or pull the viewport back to the row.
@@ -103,7 +107,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 ## Runtime invariants
 
 - Zotero's original annotation source remains in the host DOM. The plugin adds a marked sibling preview and removes its own nodes during shutdown.
-- Rendering pauses while an annotation editor owns focus. After editing, only the edited comment is forced through the immediate render path.
+- Rendering pauses while an annotation editor owns focus or a fast-editor session remains open during sidebar scrolling. After editing, only the edited comment is forced through the immediate render path.
 - At most one fast-editor session exists per Reader document. A changed draft must commit before the editor closes, including when Zotero replaces its host DOM before a blur event arrives.
 - Fast-editor keyboard events stay inside the textarea so Backspace, Delete, and arrow keys cannot trigger Reader-level annotation actions.
 - Disabling the preference or missing the required annotation update capability leaves Zotero's native editor in control.
@@ -164,6 +168,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/reader-controller.test.js` | Rendering strategies, observers, fast-editor event lifecycle, editing pauses, caches, diagnostics, and cleanup. |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM selection, source extraction, preview/edit behavior, fast-editor save and viewport behavior, and stale-state cleanup. |
 | `tests/annotation-scrollbar.test.js` | Selected annotation scrollbar focus, sustained drags, unchanged viewport/preview, and guard cleanup. |
+| `tests/fast-editor-scrollbar.test.js` | Scrollbar focus separate from editor sessions, caret preservation, outside exits, failed saves, and cleanup. |
 | `tests/math-scrollbar.test.js` | Display equation scrolling, editing-entry boundaries, focus, release clicks, and cleanup. |
 | `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |
 | `tests/settings.test.js` | Preference defaults and normalization. |

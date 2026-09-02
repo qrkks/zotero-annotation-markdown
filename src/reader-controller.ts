@@ -97,6 +97,10 @@ const ANNOTATION_SCROLLBAR_EVENTS = [
   "pointerdown", "mousedown", "click", "pointerup", "pointercancel", "dragend", "focusin", "keydown"
 ] as const;
 
+const FAST_EDITOR_EXIT_EVENTS = [
+  "pointerdown", "focusin", "pointerup", "pointercancel", "dragend"
+] as const;
+
 /**
  * Creates one controller for one Reader.
  *
@@ -356,8 +360,9 @@ export function createReaderController({
           root?.removeEventListener?.(FAST_EDITOR_CLOSED_EVENT, fastEditorClosedHandler);
         }
         if (fastEditorExitHandler) {
-          windowRef?.removeEventListener?.("pointerdown", fastEditorExitHandler, true);
-          windowRef?.removeEventListener?.("focusin", fastEditorExitHandler, true);
+          for (const type of FAST_EDITOR_EXIT_EVENTS) {
+            windowRef?.removeEventListener?.(type, fastEditorExitHandler, true);
+          }
         }
         if (fastEditorContextMenuHandler) {
           root?.removeEventListener?.("contextmenu", fastEditorContextMenuHandler, true);
@@ -888,6 +893,17 @@ export function createReaderController({
     }
 
     fastEditorExitHandler = (event: Event) => {
+      if (adapter.preserveActiveFastEditorForScrollbar?.(event)) {
+        if (event.type === "focusin") {
+          // Keep Zotero's focus manager from deselecting/rebuilding the row.
+          // The scrollbar retains actual focus; no textarea refocus is needed.
+          event.stopImmediatePropagation();
+        }
+        return;
+      }
+      if (event.type !== "pointerdown" && event.type !== "focusin") {
+        return;
+      }
       if (adapter.isFastEditorTarget?.(event.target)) {
         const mouseEvent = event as MouseEvent;
         if (event.type === "pointerdown" && mouseEvent.button === 2) {
@@ -895,11 +911,6 @@ export function createReaderController({
           // later contextmenu event can arrive after the Reader blur.
           skipNextFastEditorWindowBlur = true;
         }
-        return;
-      }
-      if (adapter.preserveActiveFastEditorForScrollbar?.(event)) {
-        // A scrollbar manipulates the current editing viewport; it does not
-        // express intent to leave the editor or commit the draft.
         return;
       }
       if (!adapter.closeActiveFastEditor?.()) {
@@ -985,8 +996,9 @@ export function createReaderController({
     root.addEventListener("focusin", fastEditorEntryHandler, true);
     root.addEventListener("contextmenu", fastEditorContextMenuHandler, true);
     root.addEventListener(FAST_EDITOR_CLOSED_EVENT, fastEditorClosedHandler);
-    windowRef?.addEventListener?.("pointerdown", fastEditorExitHandler, true);
-    windowRef?.addEventListener?.("focusin", fastEditorExitHandler, true);
+    for (const type of FAST_EDITOR_EXIT_EVENTS) {
+      windowRef?.addEventListener?.(type, fastEditorExitHandler, true);
+    }
     windowRef?.addEventListener?.("blur", fastEditorWindowBlurHandler);
     windowRef?.addEventListener?.("focus", fastEditorWindowFocusHandler);
   }
@@ -1091,6 +1103,9 @@ export function createReaderController({
   }
 
   function resumeRenderingAfterEditing(comment: HTMLElement): void {
+    if (adapter.hasActiveFastEditor?.()) {
+      return;
+    }
     const activeComment = adapter.getCommentNodeForTarget?.(documentRef?.activeElement);
     if (activeComment && adapter.isCommentEditorTarget?.(documentRef.activeElement)) {
       pauseRenderingForEditing(activeComment);
