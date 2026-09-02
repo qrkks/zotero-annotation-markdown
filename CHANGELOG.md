@@ -2,6 +2,10 @@
 
 ## 0.6.3 - 2026-09-02
 
+### Changed
+
+- Simplify the fast editor setting label and description to focus on reducing typing lag in documents with many annotations.
+
 ### Fixed
 
 - Restore the fast editor's native right-click menu and keep cut, copy, and paste available without closing the editor.
@@ -9,6 +13,10 @@
 - Preserve the selected annotation and its expanded preview during sidebar scrolling.
 - Keep caret placement working when clicking back into the fast editor after scrolling, without forced refocusing or sidebar jumps.
 - Allow wide display equations to scroll horizontally without opening the comment editor or collapsing the preview.
+
+### 调整
+
+- 精简快速编辑器的设置名称和说明，突出减少批注较多的文档中的输入卡顿。
 
 ### 修复
 
