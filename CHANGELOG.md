@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.3 - 2026-09-02
+
+### Fixed
+
+- Restore the fast editor's native right-click menu and keep cut, copy, and paste available without closing the editor.
+- Keep the fast editor open while dragging the annotation sidebar scrollbar.
+- Preserve the selected annotation and its expanded preview during sidebar scrolling.
+- Keep caret placement working when clicking back into the fast editor after scrolling, without forced refocusing or sidebar jumps.
+- Allow wide display equations to scroll horizontally without opening the comment editor or collapsing the preview.
+
+### 修复
+
+- 恢复快速编辑器的原生右键菜单，使用剪切、复制和粘贴时保持编辑器打开。
+- 拖动批注侧栏滚动条时保持快速编辑器打开。
+- 侧栏滚动时保留批注选中状态及展开的预览。
+- 滚动后点击快速编辑器可正常定位光标，避免强制重新聚焦和侧栏跳动。
+- 支持超宽块级公式横向滚动，避免滚动时误入评论编辑或收起预览。
+
 ## 0.6.2 - 2026-08-26
 
 ### Fixed
