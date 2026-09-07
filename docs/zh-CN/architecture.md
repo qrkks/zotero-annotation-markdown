@@ -13,13 +13,15 @@ flowchart LR
     C --> D["src/reader-controller.ts<br>渲染生命周期"]
     D --> E["src/annotation-sidebar-adapter.ts<br>宿主 DOM 边界"]
     D --> F["src/markdown-renderer.ts<br>Markdown 与内容清理"]
+    D --> H["src/annotation-scroll-target.ts<br>原生选择滚动目标"]
+    D --> I["src/annotation-escape-scroll.ts<br>Esc 可见性恢复"]
     B --> G["src/settings.ts<br>偏好设置抽象"]
     G --> D
 ```
 
 `addon/bootstrap.js` 由 Zotero 直接执行。它加载打包后的 `plugin.js`、注册偏好设置面板、读取样式，并负责诊断日志初始化。`src/plugin.ts` 是组合入口：把 Zotero API 与设置、渲染器、DOM 适配器、每个 Reader 的控制器和注册表连接起来。
 
-控制器负责发现标注评论并决定何时渲染。适配器是唯一应该直接操作 Zotero 标注 DOM 的模块。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
+控制器负责发现标注评论并决定何时渲染。适配器负责源码、预览与编辑器 DOM 操作。两个作用范围受限的滚动模块管理选中目标的 CSS 和 Esc 退出后的可见性恢复，不替换宿主标注结构或原生 DOM 方法。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
 
 ## 快速编辑器流程
 
@@ -52,7 +54,7 @@ sequenceDiagram
 
 观察到的问题取决于具体工作负载：在一本真实的重度标注书籍中，使用 Zotero 原生编辑器时编辑明显变慢，启用替代编辑器后同一本书又恢复流畅。该现象与侧栏中大量标注行和标签相关。这组 A/B 结果足以支持绕过原生编辑 UI，但不能证明标签是唯一原因，也不能据此指定 Zotero 内部某个确切瓶颈。
 
-替代编辑器通过以下方式减少输入路径上的工作：只保留一个普通文本框会话，让无关预览 DOM 继续挂载，暂停插件渲染观察，并在失焦或按 Escape 时只提交一次最终源码。持久化仍调用 Zotero 自己使用的 Reader 标注管理器；提交成功后，控制器只协调并渲染受影响的评论。视口锚定只补偿已经可见的编辑器打开时产生的布局移动。
+替代编辑器通过以下方式减少输入路径上的工作：只保留一个普通文本框会话，让无关预览 DOM 继续挂载，暂停插件渲染观察，并在失焦或按 Escape 时只提交一次最终源码。持久化仍调用 Zotero 自己使用的 Reader 标注管理器；提交成功后，控制器只协调并渲染受影响的评论。进入编辑时的视口锚定补偿已经可见的编辑器打开时产生的布局移动；Esc 退出则在恢复预览期间暂时关闭浏览器滚动锚定，并只对完全不可见的标注进行定位补救。
 
 这项优化不会替换 Zotero 的标注存储，不会普遍加速标签管理，也不会改变 PDF 页面渲染器。它依赖半内部 Reader 集成，因此必须同时保留能力检测和由用户控制的原生编辑器回退。
 
@@ -64,13 +66,32 @@ sequenceDiagram
 | Reader 键盘安全 | `src/plugin.ts` 中的 `beginReaderFastEditorKeyboardGuard()`，以及适配器捕获的编辑器事件 | 能力可用时临时关闭 Zotero 的空评论删除快捷逻辑，并阻止文字编辑按键到达 Reader 层处理器。 |
 | 进入与退出协调 | `src/reader-controller.ts` 中的 `registerFastEditorHandlers()`、`scheduleFastEditorAfterNativeFocus()`、`scheduleEditingResume()` | 从指针事件尽早进入；焦点触发时等待 Zotero 状态稳定；在外部焦点或窗口失焦时关闭；只恢复刚刚编辑的评论。 |
 | 编辑器 DOM 与草稿所有权 | `src/annotation-sidebar-adapter.ts` 中的 `showFastEditor()`、`closeFastEditor()`、`FastEditorSession`、`fastEditorSessionByDocument` | 每个文档只持有一个文本框会话；Zotero 移除宿主 DOM 时仍保留已修改草稿；只有提交成功后才关闭。 |
-| 提交通知 | `FAST_EDITOR_CLOSED_EVENT` 和 `FastEditorClosedDetail` | 把标注 ID、已提交源码和提交状态传回控制器；即使原标注行已经脱离 DOM 也能通知。 |
+| 提交通知 | `FAST_EDITOR_CLOSED_EVENT` 和 `FastEditorClosedDetail` | 把标注 ID、源码、提交状态及可选的 `reason: "escape"` 传回控制器；即使原标注行已经脱离 DOM 也能通知。普通失焦不带 Esc 原因。 |
 | 视口稳定 | `captureFastEditorViewportAnchor()` 和 `restoreFastEditorViewportAnchor()` | 只锚定已经与真实可滚动侧栏相交的标注，并修正 Gecko 可能在下一帧产生的焦点移动。 |
+| Esc 定位补救 | `src/annotation-escape-scroll.ts` 中的 `createAnnotationEscapeRecovery()` | 在预览恢复期间保持位置；只有当前选中的实际标注行完全不可见时，才滚动一次到顶部 2px。 |
 | 原生回退 | 传给适配器的 `isFastEditorEnabled()` 与能力检查 | 偏好设置关闭或缺少所需管理器时，不挂载插件编辑器 DOM，也不阻止宿主事件。 |
 
 对应的回归测试位于 `tests/plugin.test.js`、`tests/reader-controller.test.js`、`tests/annotation-sidebar-adapter.test.js` 和 `tests/rendered-content-style.test.js`。任何生命周期修改都应先在最窄的适用测试中复现准确的 DOM、焦点、键盘、保存或滚动失败场景。
 
 ## 侧栏滚动与标注选中状态
+
+### 原生选择定位
+
+Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 `scrollIntoView()`。`trackAnnotationScrollTarget()` 只调整高于滚动视口的单条选中侧栏标注。控制器在测量前准备该标注的懒渲染预览，同时遵守全局编辑暂停规则。MutationObserver 跟踪选择与标注行替换，ResizeObserver 跟踪标注行和滚动容器的尺寸。
+
+样式表通过插件专属标记和自定义属性应用 `scroll-margin-top: 2px`，以及值为“视口高度 − 标注行高度 − 2px”的底部滚动边距。它让滚动目标区域等于视口高度，而不改变标注行的布局高度，因此原生最近边缘滚动能够从两个方向稳定对齐到开头。这条路径不会增加额外滚动调用、设置滚动吸附，也不会替换 `Element.prototype.scrollIntoView`。
+
+短标注和多选沿用原生定位；编辑状态、原生笔记编辑器和标注弹窗均被排除。手动滚动不会被纠正。刷新和关闭会移除目标标记及自定义属性；缺少所需的 MutationObserver 或 ResizeObserver 时，由原生滚动继续接管。回归测试位于 `tests/annotation-scroll-target.test.js` 和 `tests/native-reader-scroll.test.js`。
+
+### Esc 退出编辑
+
+适配器在成功通过 Esc 关闭编辑器时传递 `reason: "escape"`。控制器在移除编辑器前启动补救流程，暂时只把侧栏滚动容器的 `overflow-anchor` 设为 `none`，并在强制渲染刚编辑的评论后调用 `afterRender()`。这样可以避免临时收起的标注行使 Gecko 锚定后面的标注，把当前编辑内容推走。
+
+经过两个布局帧后，补救流程重新查找当前选中的实际标注行。只要任何部分与视口相交，就不调用滚动；否则对滚动容器调用一次平滑 `scrollTo()`，以顶部 2px 为目标，并限制在可滚动范围内，编辑后变短的评论也适用。随后恢复此前的内联滚动锚定值和优先级。普通失焦不进入此流程；保存失败时编辑器保持打开。
+
+新的指针、滚轮、触摸、键盘或焦点操作会取消待执行的补救。选择变化、重新编辑、刷新、关闭或渲染恢复中止，也会阻止补救并清理临时状态。`tests/escape-editor-scroll.test.js` 覆盖可见与不可见标注、延迟测量、取消操作、保存失败、保存时替换标注行及 CSS 清理。实际滚动锚定和平滑滚动仍需 Firefox 与真实 Zotero 验证。
+
+### 滚动条焦点与选择
 
 侧栏滚动期间，快速编辑会话独立于 DOM 焦点。`preserveActiveFastEditorForScrollbar()` 跟踪原生滚动条拖动直到释放或取消，并记住允许焦点暂留的滚动容器。控制器仅在匹配滚动条的 `focusin` 到达 Zotero 前拦截，防止标注被取消选中；不会重新聚焦文本框或修改选区。`hasActiveFastEditor()` 保持渲染暂停，`isEditable()` 在焦点位于滚动容器时仍保护已挂载的会话。点回文本框时由浏览器根据点击位置定位光标。真正的外部点击或焦点转移仍然保存；拖动结束后的窗口失焦也会保存。关闭或禁用时清理会话与释放定时器。
 
@@ -124,6 +145,8 @@ sequenceDiagram
 | `src/reader-registry.ts` | 每个 Reader 持有一个控制器，避免重复注册，并协调异步启动和停止。 |
 | `src/reader-controller.ts` | 协调 Reader 就绪、DOM 扫描、立即/懒渲染、快速编辑进入/退出事件、编辑暂停、缓存、诊断、样式和清理。 |
 | `src/annotation-sidebar-adapter.ts` | 封装 Zotero Reader 选择器、“源码 + 预览”DOM 操作和快速文本框会话，并排除原生笔记编辑器。 |
+| `src/annotation-scroll-target.ts` | 跟踪选中的超长标注行，通过可清理的 CSS 边距配合 Zotero 原生选择滚动。 |
+| `src/annotation-escape-scroll.ts` | 在 Esc 退出并恢复预览期间暂停滚动锚定，对完全不可见的标注行补救一次，并负责取消与清理。 |
 | `src/markdown-renderer.ts` | 规范化标注文本，渲染 Markdown 和可选数学公式，清理输出，并提供纯文本回退。 |
 | `src/settings.ts` | 定义偏好键、默认值、规范化规则，以及运行模块使用的设置 API。 |
 | `src/types.ts` | 保存不依赖 Zotero 宿主对象形状的小型共享契约。 |
@@ -141,7 +164,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/preferences.xhtml` | 偏好设置面板结构。 |
 | `addon/preferences.js` | 偏好设置面板事件处理，并写入 `Zotero.Prefs`。 |
 | `addon/preferences.css` | 偏好设置面板布局样式。 |
-| `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括受偏好开关控制的 Weavero 链接颜色变量。 |
+| `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括选中标注的滚动边距及受偏好开关控制的 Weavero 链接颜色变量。 |
 | `addon/icons/annotation-markdown.svg` | 插件和偏好设置面板图标。 |
 
 这些 JavaScript 文件有意保留为 JavaScript，因为 Zotero 会直接执行它们。`src/` 下的 TypeScript 会被打包为 `dist/addon/plugin.js`。
@@ -168,6 +191,9 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/reader-controller.test.js` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
 | `tests/annotation-scrollbar.test.js` | 已选中标注的滚动条焦点、持续拖动、视口与预览保持，以及交互保护清理。 |
+| `tests/annotation-scroll-target.test.js` | 选择目标的尺寸、懒渲染准备、大小变化、编辑与多选排除、标注行替换和清理。 |
+| `tests/native-reader-scroll.test.js` | 控制器启动、选择、刷新和关闭期间保持原生滚动方法不变。 |
+| `tests/escape-editor-scroll.test.js` | 仅针对 Esc 的可见性恢复、锚定样式恢复、输入取消、保存失败及实际标注行替换。 |
 | `tests/fast-editor-scrollbar.test.js` | 滚动条焦点与编辑会话分离、光标保持、外部退出、保存失败及清理。 |
 | `tests/math-scrollbar.test.js` | 独立公式滚动、编辑入口边界、焦点、拖动释放点击与清理。 |
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |

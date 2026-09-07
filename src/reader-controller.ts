@@ -106,8 +106,8 @@ const FAST_EDITOR_EXIT_EVENTS = [
 /**
  * Creates one controller for one Reader.
  *
- * The controller never owns Zotero's source DOM directly; all DOM policy stays
- * behind `AnnotationSidebarAdapter`.
+ * The controller never owns Zotero's source DOM directly; DOM policy stays in
+ * `AnnotationSidebarAdapter` and the scoped scroll helpers.
  */
 export function createReaderController({
   reader,

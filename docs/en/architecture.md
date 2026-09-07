@@ -13,13 +13,15 @@ flowchart LR
     C --> D["src/reader-controller.ts<br>render lifecycle"]
     D --> E["src/annotation-sidebar-adapter.ts<br>host DOM boundary"]
     D --> F["src/markdown-renderer.ts<br>Markdown and sanitization"]
+    D --> H["src/annotation-scroll-target.ts<br>native selection scroll target"]
+    D --> I["src/annotation-escape-scroll.ts<br>Escape visibility recovery"]
     B --> G["src/settings.ts<br>preference abstraction"]
     G --> D
 ```
 
 `addon/bootstrap.js` is executed directly by Zotero. It loads the bundled `plugin.js`, registers the preference pane, injects the stylesheet text, and owns diagnostic-log setup. `src/plugin.ts` is the composition root: it connects Zotero APIs to settings, rendering, DOM adaptation, the per-Reader controller, and the registry.
 
-The controller discovers annotation comments and decides when to render them. The adapter is the only module that should manipulate Zotero's annotation DOM. The renderer accepts text and returns sanitized HTML; it does not know about Reader nodes or preferences.
+The controller discovers annotation comments and decides when to render them. The adapter owns source, preview, and editor DOM operations. Two scoped scroll helpers manage selection-target CSS and visibility recovery after Escape without replacing the host's annotation structure or native DOM methods. The renderer accepts text and returns sanitized HTML; it does not know about Reader nodes or preferences.
 
 ## Fast editor flow
 
@@ -52,7 +54,7 @@ sequenceDiagram
 
 The observed problem is workload-dependent: a real heavily annotated book became much slower to edit when Zotero's native editor was used, and the same book became responsive when the replacement editor was enabled. The slowdown correlated with a sidebar containing many annotation rows and tags. That A/B result justifies bypassing the native editing UI, but it does not establish tags as the sole cause or identify an exact bottleneck inside Zotero.
 
-The replacement reduces work on the typing path by keeping one plain textarea session, leaving unrelated preview DOM mounted, pausing plugin rendering observers, and committing only the final source on blur or Escape. Persistence still calls the same Reader annotation manager used by Zotero; after a successful commit, the controller reconciles and renders only the affected comment. Viewport anchoring compensates only for layout movement caused while opening the already-visible editor.
+The replacement reduces work on the typing path by keeping one plain textarea session, leaving unrelated preview DOM mounted, pausing plugin rendering observers, and committing only the final source on blur or Escape. Persistence still calls the same Reader annotation manager used by Zotero; after a successful commit, the controller reconciles and renders only the affected comment. Editor-entry anchoring compensates for layout movement while opening an already-visible editor. Escape separately suspends browser scroll anchoring during preview restoration and recovers only a completely offscreen annotation.
 
 This optimization does not replace Zotero's annotation storage, speed up tag management generally, or change the PDF page renderer. It depends on semi-internal Reader integration and therefore retains both capability detection and a user-controlled native-editor fallback.
 
@@ -64,13 +66,32 @@ This optimization does not replace Zotero's annotation storage, speed up tag man
 | Reader keyboard safety | `beginReaderFastEditorKeyboardGuard()` in `src/plugin.ts` and captured editor events in the adapter | Temporarily disable Zotero's empty-comment deletion shortcut when available and keep text-editing keys from reaching Reader-level handlers. |
 | Entry and exit coordination | `registerFastEditorHandlers()`, `scheduleFastEditorAfterNativeFocus()`, `scheduleEditingResume()` in `src/reader-controller.ts` | Enter early from pointer events, defer focus-driven takeover until Zotero settles, close on outside focus or window blur, and resume only the edited comment. |
 | Editor DOM and draft ownership | `showFastEditor()`, `closeFastEditor()`, `FastEditorSession`, and `fastEditorSessionByDocument` in `src/annotation-sidebar-adapter.ts` | Own exactly one textarea session per document, preserve changed drafts when Zotero removes host DOM, and close only after a successful commit. |
-| Commit notification | `FAST_EDITOR_CLOSED_EVENT` and `FastEditorClosedDetail` | Carry annotation ID, committed source, and commit status back to the controller, including when the original row was detached. |
+| Commit notification | `FAST_EDITOR_CLOSED_EVENT` and `FastEditorClosedDetail` | Carry annotation ID, source, commit status, and an optional `reason: "escape"` back to the controller, including when the original row was detached. Ordinary blur has no Escape reason. |
 | Viewport stability | `captureFastEditorViewportAnchor()` and `restoreFastEditorViewportAnchor()` | Anchor only an annotation already intersecting the real scrollable sidebar and correct Gecko's possible next-frame focus movement. |
+| Escape recovery | `createAnnotationEscapeRecovery()` in `src/annotation-escape-scroll.ts` | Preserve position through preview restoration; scroll once to a 2px top inset only if the live selected row is completely offscreen. |
 | Native fallback | `isFastEditorEnabled()` plus the capability check passed to the adapter | Do not mount plugin editor DOM or prevent the host event when the preference is off or the required manager is unavailable. |
 
 The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-controller.test.js`, `tests/annotation-sidebar-adapter.test.js`, and `tests/rendered-content-style.test.js`. Any lifecycle change should start with the exact failing DOM, focus, keyboard, save, or scroll case in the narrowest applicable suite.
 
 ## Sidebar scrolling and annotation selection
+
+### Native selection positioning
+
+Zotero owns the selection scroll and calls `scrollIntoView()` with smooth behavior and nearest alignment. `trackAnnotationScrollTarget()` adjusts only a single selected sidebar row taller than its scrollport. The controller prepares that row's lazy preview before measuring, while preserving the global editing pause. A MutationObserver tracks selection and row replacement; a ResizeObserver follows the row and scroller dimensions.
+
+The stylesheet applies `scroll-margin-top: 2px` and a bottom margin of `viewport height - row height - 2px` through a plugin-owned marker and custom property. This makes the scroll target as tall as the viewport without changing the row's layout height, so the native nearest scroll aligns its beginning consistently from either direction. This path issues no extra scroll call, installs no scroll snap, and never replaces `Element.prototype.scrollIntoView`.
+
+Short rows and multiple selection retain native positioning. Editing, native note editors, and annotation popups are excluded. Manual scrolling is not corrected. Refresh and shutdown remove the target marker and custom property; without the required mutation/resize observers, native scrolling remains in control. Coverage is in `tests/annotation-scroll-target.test.js` and `tests/native-reader-scroll.test.js`.
+
+### Escape after editing
+
+The adapter marks a successful Escape close with `reason: "escape"`. The controller starts recovery before removing the editor, temporarily sets only the sidebar scroller's `overflow-anchor` to `none`, and calls `afterRender()` after forcing the edited comment through preview rendering. This prevents the temporary collapsed row from making Gecko anchor to later annotations and push the edited content away.
+
+After two layout frames, recovery resolves the live selected row again. If any part intersects the viewport, it makes no scroll call. Otherwise it issues one scroller `scrollTo()` with smooth behavior, targeting a 2px top inset and clamping to the scroll range; this also handles short comments after editing. It then restores the prior inline anchoring value and priority. Ordinary blur does not enter this path. A failed save keeps the editor open.
+
+New pointer, wheel, touch, keyboard, or focus input cancels pending recovery. A changed selection, editor re-entry, refresh, shutdown, or an aborted rendering resume also prevents recovery and clears temporary state. `tests/escape-editor-scroll.test.js` covers visible/offscreen rows, deferred measurement, cancellation, save failure, replacement of the saved row, and CSS cleanup. Firefox and real-Zotero checks are needed for actual anchoring and smooth-scroll behavior.
+
+### Scrollbar focus and selection
 
 Fast-editor sessions are independent of DOM focus during sidebar scrolling. `preserveActiveFastEditorForScrollbar()` tracks the native scrollbar drag until release/cancellation and remembers its scroller as an allowed resting focus target. The controller stops only the matching scrollbar `focusin` before Zotero can deselect the row; it does not refocus the textarea or alter its selection. `hasActiveFastEditor()` keeps rendering paused, and `isEditable()` protects the mounted session even while focus is on the scroller. Clicking back into the textarea uses native caret placement. Real outside clicks/focus still save; window blur after the drag ends also saves. Closing or disabling clears the session and release timer.
 
@@ -124,6 +145,8 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 | `src/reader-registry.ts` | Owns one controller per Reader, deduplicates registration, and coordinates asynchronous start/stop. |
 | `src/reader-controller.ts` | Orchestrates Reader readiness, DOM discovery, eager/lazy rendering, fast-editor entry/exit events, editing pauses, caches, diagnostics, styles, and cleanup. |
 | `src/annotation-sidebar-adapter.ts` | Encapsulates Zotero Reader selectors, source-plus-preview DOM operations, and the fast textarea session. Excludes native note editors. |
+| `src/annotation-scroll-target.ts` | Tracks the selected oversized row and applies reversible CSS margins for Zotero's native selection scroll. |
+| `src/annotation-escape-scroll.ts` | Suspends anchoring during Escape preview restoration, recovers a completely offscreen row once, and cancels/cleans pending recovery. |
 | `src/markdown-renderer.ts` | Normalizes annotation text, renders Markdown and optional math, sanitizes output, and provides a plain-text fallback. |
 | `src/settings.ts` | Defines preference keys, defaults, normalization, and the settings API consumed by runtime modules. |
 | `src/types.ts` | Holds small shared contracts that do not depend on Zotero's host-specific object shapes. |
@@ -141,7 +164,7 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/preferences.xhtml` | Preference-pane markup. |
 | `addon/preferences.js` | Preference-pane event handling and writes to `Zotero.Prefs`. |
 | `addon/preferences.css` | Preference-pane layout styles. |
-| `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including preference-gated Weavero link-color variables. |
+| `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including selected-row scroll margins and preference-gated Weavero link-color variables. |
 | `addon/icons/annotation-markdown.svg` | Add-on and preference-pane icon. |
 
 These JavaScript files intentionally remain JavaScript because Zotero executes them directly. TypeScript under `src/` is bundled into `dist/addon/plugin.js`.
@@ -168,6 +191,9 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/reader-controller.test.js` | Rendering strategies, observers, fast-editor event lifecycle, editing pauses, caches, diagnostics, and cleanup. |
 | `tests/annotation-sidebar-adapter.test.js` | Zotero DOM selection, source extraction, preview/edit behavior, fast-editor save and viewport behavior, and stale-state cleanup. |
 | `tests/annotation-scrollbar.test.js` | Selected annotation scrollbar focus, sustained drags, unchanged viewport/preview, and guard cleanup. |
+| `tests/annotation-scroll-target.test.js` | Selection-target geometry, lazy preparation, resizing, editing/multi-selection exclusions, replacement, and cleanup. |
+| `tests/native-reader-scroll.test.js` | Preservation of the native scroll method across controller start, selection, refresh, and shutdown. |
+| `tests/escape-editor-scroll.test.js` | Escape-only visibility recovery, anchoring restoration, input cancellation, failed saves, and live-row replacement. |
 | `tests/fast-editor-scrollbar.test.js` | Scrollbar focus separate from editor sessions, caret preservation, outside exits, failed saves, and cleanup. |
 | `tests/math-scrollbar.test.js` | Display equation scrolling, editing-entry boundaries, focus, release clicks, and cleanup. |
 | `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |

@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Align selected annotations taller than the sidebar viewport near the top with a 2px inset, consistently when navigating forward or backward from the sidebar or document page.
+- Keep Zotero's native smooth selection scroll as the only scrolling action by adjusting the target's CSS scroll margins; short annotations retain native positioning.
+- Preserve the visible sidebar position when leaving the fast editor with Escape. After the preview is restored, bring a completely offscreen annotation back with one smooth scroll to the same 2px inset.
+- Cancel pending Escape recovery on new user input, another selection, editor re-entry, refresh, or shutdown. Ordinary blur does not pull the previous annotation back into view.
+
+### 修复
+
+- 从侧栏或文档页面前后切换标注时，高于侧栏视口的单条选中标注会稳定定位到顶部，保留 2px 间距。
+- 通过 CSS 滚动边距调整定位范围，由 Zotero 原生平滑滚动一次完成选择定位；短标注沿用原生定位。
+- 按 Esc 退出快速编辑时保持可见的侧栏位置；预览恢复后，只有整条标注完全不可见时，才平滑滚动一次到相同的顶部 2px 位置。
+- 新的用户操作、切换选中标注、重新编辑、刷新或关闭会取消待执行的 Esc 定位补救。普通失焦不会把上一条标注拉回视窗。
+
 ## 0.6.3 - 2026-09-02
 
 ### Changed

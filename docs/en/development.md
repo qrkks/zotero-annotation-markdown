@@ -40,6 +40,10 @@ Install the exact final XPI and record its SHA-256 before tagging a release. On 
 4. Editing a partially visible annotation does not unexpectedly move it outside the sidebar viewport.
 5. Clearing **Use the fast annotation comment editor** restores Zotero's native editor; enabling it again restores the faster editor.
 6. Closing and reopening the Reader, and disabling and re-enabling the add-on, leave no duplicate editors or stale preview state.
+7. Select earlier and later annotations from both the sidebar and document page, including an initially offscreen long comment. An annotation taller than the viewport settles near the top with a 2px inset in one native smooth scroll. Check short annotations, multiple selection, and a resized sidebar as well.
+8. Scroll a selected long annotation out of view and back manually: selection and expansion persist, and no delayed correction pulls the viewport back. Repeated selection changes leave the sidebar and toolbar intact.
+9. Press Escape while editing the middle or end of a long comment. After preview restoration, any visible part keeps the current position; a completely offscreen annotation receives only one smooth recovery to the 2px inset, subject to scroll limits. Clicking elsewhere must not pull the old annotation back.
+10. Before Escape recovery executes, scroll, select another annotation, reopen editing, or disable the add-on. Recovery must be cancelled, temporary scroll styles restored, and a failed save must keep the editor and draft available.
 
 This release line prioritizes real-host validation on the latest Zotero 10 version. Zotero 9 compatibility remains declared on a best-effort basis: missing fast-editor update capability must leave the native editor in control, and users can also disable the replacement editor manually.
 
