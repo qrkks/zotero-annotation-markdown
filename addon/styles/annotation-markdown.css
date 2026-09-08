@@ -22,6 +22,109 @@
     word-wrap: break-word;
 }
 
+.annotation-markdown-outline {
+    pointer-events: none;
+    position: fixed;
+    z-index: 20;
+}
+
+.annotation-markdown-outline-surface {
+    color: CanvasText;
+    font-size: 0.85em;
+    max-width: calc(100vw - 2em);
+    pointer-events: auto;
+    position: relative;
+}
+
+.annotation-markdown-outline[data-side="left"] .annotation-markdown-outline-surface {
+    transform: translateX(-100%);
+}
+
+.annotation-markdown-outline-toggle,
+.annotation-markdown-outline-item {
+    appearance: none;
+    background: Canvas;
+    border: 1px solid ButtonBorder;
+    color: CanvasText;
+    cursor: pointer;
+    font: inherit;
+}
+
+.annotation-markdown-outline-toggle {
+    border-radius: 999px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.18);
+    line-height: 1.2;
+    padding: 0.28em 0.65em;
+}
+
+.annotation-markdown-outline-toggle:hover,
+.annotation-markdown-outline-item:hover {
+    background: ButtonFace;
+}
+
+.annotation-markdown-outline-toggle:focus-visible,
+.annotation-markdown-outline-item:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+}
+
+.annotation-markdown-outline-panel {
+    background: Canvas;
+    border: 1px solid ButtonBorder;
+    border-radius: 6px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+    box-sizing: border-box;
+    margin-top: 0.3em;
+    max-height: min(45vh, 20em);
+    max-width: calc(100vw - 2em);
+    overflow-y: auto;
+    padding: 0.3em;
+    position: absolute;
+    width: var(--annotation-markdown-outline-panel-width, 14em);
+}
+
+.annotation-markdown-outline[data-side="right"] .annotation-markdown-outline-panel {
+    inset-inline-end: auto;
+    inset-inline-start: 0;
+}
+
+.annotation-markdown-outline[data-side="left"] .annotation-markdown-outline-panel {
+    inset-inline-end: 0;
+    inset-inline-start: auto;
+}
+
+.annotation-markdown-outline-panel[hidden] {
+    display: none;
+}
+
+.annotation-markdown-outline-list {
+    display: grid;
+    gap: 1px;
+}
+
+.annotation-markdown-outline-item {
+    border: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    padding: 0.34em 0.5em;
+    text-align: start;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.annotation-markdown-outline-item[data-level="2"] { padding-inline-start: 1.15em; }
+.annotation-markdown-outline-item[data-level="3"] { padding-inline-start: 1.8em; }
+.annotation-markdown-outline-item[data-level="4"],
+.annotation-markdown-outline-item[data-level="5"],
+.annotation-markdown-outline-item[data-level="6"] { padding-inline-start: 2.45em; }
+
+.annotation-markdown-outline-item[aria-current="location"] {
+    background: SelectedItem;
+    color: SelectedItemText;
+    font-weight: 600;
+}
+
 .annotation.selected .annotation-markdown-rendered,
 .annotation-row.selected .annotation-markdown-rendered {
     contain-intrinsic-size: none;

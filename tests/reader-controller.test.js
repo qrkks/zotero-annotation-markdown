@@ -1314,8 +1314,11 @@ describe("createReaderController", () => {
     document.querySelector("#outside").focus();
     vi.runAllTimers();
 
-    expect(observerInstances).toHaveLength(2);
-    expect(observerInstances[1].observe).toHaveBeenCalledTimes(1);
+    expect(observerInstances).toHaveLength(3);
+    // The outline observer remains mounted while the render observer pauses;
+    // the final instance is the newly registered render observer.
+    expect(observerInstances[1].disconnect).not.toHaveBeenCalled();
+    expect(observerInstances[2].observe).toHaveBeenCalledTimes(1);
 
     controller.stop();
     vi.useRealTimers();

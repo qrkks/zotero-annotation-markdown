@@ -29,6 +29,7 @@ const SUPPRESS_UNTIL_ATTRIBUTE = "data-annotation-markdown-suppress-until";
 const PREVIEW_ATTRIBUTE = "data-annotation-markdown-preview";
 const PREVIEW_PLACEHOLDER_ATTRIBUTE = "data-annotation-markdown-placeholder";
 const PREVIEW_HIDDEN_ATTRIBUTE = "data-annotation-markdown-preview-hidden";
+const OUTLINE_ATTRIBUTE = "data-annotation-markdown-outline";
 const SOURCE_WRAPPER_ATTRIBUTE = "data-annotation-markdown-source-node";
 const SOURCE_HIDDEN_ATTRIBUTE = "data-annotation-markdown-source-hidden";
 const EDITING_CLASS = "annotation-markdown-editing";
@@ -93,6 +94,7 @@ export interface AnnotationSidebarAdapter {
   getCommentNodeForTarget(target: EventTarget | null | undefined): HTMLElement | null;
   isCommentEditorTarget(target: EventTarget | null | undefined): boolean;
   isFastEditorTarget(target: EventTarget | null | undefined): boolean;
+  isOutlineTarget(target: EventTarget | null | undefined): boolean;
   openLink: ((url: string) => void) | null;
 }
 
@@ -332,7 +334,7 @@ export function createAnnotationSidebarAdapter({
 
       for (const preview of queryHtmlElements(
         queryRoot,
-        `[${PREVIEW_ATTRIBUTE}='true'], .annotation-markdown-rendered`
+        `[${PREVIEW_ATTRIBUTE}='true'], .annotation-markdown-rendered, [${OUTLINE_ATTRIBUTE}='true']`
       )) {
         preview.remove();
       }
@@ -398,7 +400,7 @@ export function createAnnotationSidebarAdapter({
       }
 
       const targetElement = getElementTarget(target);
-      if (targetElement?.closest("a[href]")) {
+      if (targetElement?.closest(`a[href], [${OUTLINE_ATTRIBUTE}='true']`)) {
         return false;
       }
       const nativeEntry = targetElement?.closest(
@@ -525,6 +527,10 @@ export function createAnnotationSidebarAdapter({
 
     isFastEditorTarget(target: EventTarget | null | undefined) {
       return Boolean(getElementTarget(target)?.closest(`[${FAST_EDITOR_ATTRIBUTE}='true']`));
+    },
+
+    isOutlineTarget(target: EventTarget | null | undefined) {
+      return Boolean(getElementTarget(target)?.closest(`[${OUTLINE_ATTRIBUTE}='true']`));
     },
 
     closeActiveFastEditor() {

@@ -125,6 +125,59 @@ describe("createPlugin", () => {
     expect(source.hidden).toBe(false);
   });
 
+  test("mounts a selected annotation outline and persists its explicit toggle", async () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content"># One\n\n## Two</div></div>
+      </div>
+    `;
+    const values = new Map([["extensions.annotationMarkdown.outlineExpanded", false]]);
+    const set = vi.fn((key, value) => values.set(key, value));
+    const plugin = createPlugin({
+      Zotero: {
+        Reader: { _readers: [{ document }], registerEventListener: vi.fn() },
+        Prefs: { get: vi.fn(key => values.get(key)), set }
+      }
+    });
+
+    await plugin.startup();
+    const toggle = document.querySelector(".annotation-markdown-outline-toggle");
+    const row = document.querySelector(".annotation");
+    expect(toggle?.textContent).toBe("Outline · 2");
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+
+    const hostPointerDown = vi.fn(() => row.classList.remove("selected"));
+    const hostMouseDown = vi.fn(() => row.classList.remove("selected"));
+    const hostFocusIn = vi.fn(() => row.classList.remove("selected"));
+    document.addEventListener("pointerdown", hostPointerDown, true);
+    document.addEventListener("mousedown", hostMouseDown, true);
+    document.addEventListener("focusin", hostFocusIn, true);
+    expect(toggle.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true, cancelable: true, button: 0, pointerType: "mouse"
+    }))).toBe(false);
+    expect(toggle.dispatchEvent(new MouseEvent("mousedown", {
+      bubbles: true, cancelable: true, button: 0
+    }))).toBe(false);
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+    expect(hostPointerDown).not.toHaveBeenCalled();
+    expect(hostMouseDown).not.toHaveBeenCalled();
+    expect(hostFocusIn).not.toHaveBeenCalled();
+    expect(row.classList.contains("selected")).toBe(true);
+
+    toggle.click();
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineExpanded", true, true);
+    expect(document.querySelector(".annotation-markdown-outline-panel")?.hidden).toBe(false);
+    expect(row.classList.contains("selected")).toBe(true);
+
+    document.removeEventListener("pointerdown", hostPointerDown, true);
+    document.removeEventListener("mousedown", hostMouseDown, true);
+    document.removeEventListener("focusin", hostFocusIn, true);
+
+    plugin.shutdown();
+    expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+  });
+
   test("commits fast editor comments through Zotero's annotation manager", async () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>

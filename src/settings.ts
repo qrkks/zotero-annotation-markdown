@@ -13,6 +13,7 @@ export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled"
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
+export const OUTLINE_EXPANDED_PREF_KEY = "extensions.annotationMarkdown.outlineExpanded";
 export const RENDER_STRATEGIES = ["auto", "eager", "lazy"] as const;
 export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
 
@@ -34,6 +35,8 @@ export interface Settings {
   setLightweightModeEnabled(enabled: boolean): void;
   getRenderStrategy(): RenderStrategy;
   setRenderStrategy(strategy: RenderStrategy): void;
+  isOutlineExpanded(): boolean;
+  setOutlineExpanded(expanded: boolean): void;
 }
 
 interface CreateSettingsOptions {
@@ -46,6 +49,7 @@ interface CreateSettingsOptions {
   performanceDiagnosticsKey?: string;
   lightweightModeKey?: string;
   renderStrategyKey?: string;
+  outlineExpandedKey?: string;
 }
 
 const DEFAULT_FONT_SCALE = 1;
@@ -66,7 +70,8 @@ export function createSettings({
   mathEnabledKey = MATH_ENABLED_PREF_KEY,
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
-  renderStrategyKey = RENDER_STRATEGY_PREF_KEY
+  renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
+  outlineExpandedKey = OUTLINE_EXPANDED_PREF_KEY
 }: CreateSettingsOptions = {}): Settings {
   let memoryEnabled = true;
   let memoryFontScale = DEFAULT_FONT_SCALE;
@@ -76,6 +81,7 @@ export function createSettings({
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
   let memoryRenderStrategy: RenderStrategy = "auto";
+  let memoryOutlineExpanded = false;
 
   return {
     isEnabled() {
@@ -220,6 +226,24 @@ export function createSettings({
       }
 
       memoryRenderStrategy = value;
+    },
+
+    isOutlineExpanded() {
+      if (prefs?.get) {
+        return Boolean(prefs.get(outlineExpandedKey, false));
+      }
+
+      return memoryOutlineExpanded;
+    },
+
+    setOutlineExpanded(expanded) {
+      const value = Boolean(expanded);
+
+      if (prefs?.set) {
+        prefs.set(outlineExpandedKey, value);
+      }
+
+      memoryOutlineExpanded = value;
     }
   };
 }

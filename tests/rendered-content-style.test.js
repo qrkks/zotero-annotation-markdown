@@ -69,6 +69,21 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("text-decoration: underline");
   });
 
+  test("keeps the outline compact, fixed, directional, theme-aware, and keyboard visible", async () => {
+    const addonCss = await readAddonCss();
+
+    expect(addonCss).toContain(".annotation-markdown-outline");
+    expect(addonCss).toContain("position: fixed");
+    expect(addonCss).toContain(".annotation-markdown-outline[data-side=\"right\"]");
+    expect(addonCss).toContain(".annotation-markdown-outline[data-side=\"left\"]");
+    expect(addonCss).toContain("--annotation-markdown-outline-panel-width");
+    expect(addonCss).toContain("background: Canvas");
+    expect(addonCss).toContain("color: CanvasText");
+    expect(addonCss).toContain(".annotation-markdown-outline-toggle:focus-visible");
+    expect(addonCss).toContain(".annotation-markdown-outline-item[aria-current=\"location\"]");
+    expect(addonCss).toContain("max-height: min(45vh, 20em)");
+  });
+
   test("keeps Zotero's refreshed native comment shell hidden while the fast editor is open", async () => {
     const addonCss = await readAddonCss();
 

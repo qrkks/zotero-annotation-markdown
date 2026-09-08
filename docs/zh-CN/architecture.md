@@ -15,13 +15,14 @@ flowchart LR
     D --> F["src/markdown-renderer.ts<br>Markdown 与内容清理"]
     D --> H["src/annotation-scroll-target.ts<br>原生选择滚动目标"]
     D --> I["src/annotation-escape-scroll.ts<br>Esc 可见性恢复"]
+    D --> J["src/annotation-outline.ts<br>选中预览导航"]
     B --> G["src/settings.ts<br>偏好设置抽象"]
     G --> D
 ```
 
 `addon/bootstrap.js` 由 Zotero 直接执行。它加载打包后的 `plugin.js`、注册偏好设置面板、读取样式，并负责诊断日志初始化。`src/plugin.ts` 是组合入口：把 Zotero API 与设置、渲染器、DOM 适配器、每个 Reader 的控制器和注册表连接起来。
 
-控制器负责发现标注评论并决定何时渲染。适配器负责源码、预览与编辑器 DOM 操作。两个作用范围受限的滚动模块管理选中目标的 CSS 和 Esc 退出后的可见性恢复，不替换宿主标注结构或原生 DOM 方法。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
+控制器负责发现标注评论并决定何时渲染。适配器负责源码、预览与编辑器 DOM 操作。作用范围受限的 Reader 辅助模块分别管理选中目标 CSS、Esc 退出后的可见性恢复，以及选中预览中可清理的浮动大纲，不替换宿主标注结构或原生 DOM 方法。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
 
 ## 快速编辑器流程
 
@@ -97,6 +98,12 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 
 `tests/fast-editor-scrollbar.test.js` 覆盖持续拖动、覆盖式滚动条、焦点暂留、光标保持、外部退出、保存失败及清理。浏览器验证还必须实际拖动原生滚动条，再点击不同位置输入；仅靠 DOM 测试不能验证原生光标命中或完整的 Zotero/Gecko 焦点链路。
 
+### 浮动大纲
+
+`trackAnnotationOutline()` 只处理一个已选中、已渲染的侧栏预览，并在其中包含至少两个 `H1`–`H6` 元素时创建大纲。插件专属导航节点是 Reader 文档 body 下的固定浮层，不属于预览或标注行，因此既不破坏缓存 HTML 的稳定比较，也不会被宿主 overflow 裁剪或随标注滚走。运行时几何将它锚定到侧栏视口：右侧有足够面板宽度时放到滚动条外侧，否则移到滚动条内侧并向左展开。切换选择、进入编辑、刷新/禁用或关闭时都会移除标题标记和整个大纲。
+
+只有用户明确点击大纲开关时才写入 `extensions.annotationMarkdown.outlineExpanded`；暂时没有大纲或正在编辑都不会改变已保存值。当前选中标注仅注册一个滚动监听器来跟踪活动标题；即使选中标注行已经滚出视口，固定浮层仍可使用，尺寸观察器会在布局变化时重新计算方向和宽度。点击标题时根据实际侧栏滚动容器计算目标位置，不滚动文档页面，也不进入原生标注选择路径。
+
 `getSelectedAnnotationScrollbar()` 为已选中、非编辑状态的标注复用编辑器的滚动容器与滚动条命中判断。`registerAnnotationScrollbarHandlers()` 跟踪该指针交互，直到释放或取消。在此期间，只拦截目标为滚动容器或其祖先的 `focusin`，避免 Zotero 冒泡阶段的 `FocusManager` 清除选中状态。原生指针事件不被取消；这条路径不会重新选中标注、恢复标注焦点，也不会调用滚动 API。
 
 选中与展开状态仍由宿主持有，包括多选。键盘输入、新的外部指针操作、焦点进入真实控件或另一条标注、刷新与关闭都会清除临时保护。原生笔记编辑器和标注弹窗被排除；活跃快速编辑会话沿用已有的失焦保护路径。`tests/annotation-scrollbar.test.js` 按本机安装的 Reader 取消选中规则建模，覆盖持续拖动、覆盖式滚动条、清理和正常选中切换。真实 Zotero 验证还应确认：把一条很长的已选中标注滚出视野再滚回来，不会使它折叠，也不会把视口拉回该标注。
@@ -147,6 +154,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 | `src/annotation-sidebar-adapter.ts` | 封装 Zotero Reader 选择器、“源码 + 预览”DOM 操作和快速文本框会话，并排除原生笔记编辑器。 |
 | `src/annotation-scroll-target.ts` | 跟踪选中的超长标注行，通过可清理的 CSS 边距配合 Zotero 原生选择滚动。 |
 | `src/annotation-escape-scroll.ts` | 在 Esc 退出并恢复预览期间暂停滚动锚定，对完全不可见的标注行补救一次，并负责取消与清理。 |
+| `src/annotation-outline.ts` | 构建并清理选中预览的标题导航，持久化用户主动选择的展开状态，并只滚动标注侧栏。 |
 | `src/markdown-renderer.ts` | 规范化标注文本，渲染 Markdown 和可选数学公式，清理输出，并提供纯文本回退。 |
 | `src/settings.ts` | 定义偏好键、默认值、规范化规则，以及运行模块使用的设置 API。 |
 | `src/types.ts` | 保存不依赖 Zotero 宿主对象形状的小型共享契约。 |
@@ -194,6 +202,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/annotation-scroll-target.test.js` | 选择目标的尺寸、懒渲染准备、大小变化、编辑与多选排除、标注行替换和清理。 |
 | `tests/native-reader-scroll.test.js` | 控制器启动、选择、刷新和关闭期间保持原生滚动方法不变。 |
 | `tests/escape-editor-scroll.test.js` | 仅针对 Esc 的可见性恢复、锚定样式恢复、输入取消、保存失败及实际标注行替换。 |
+| `tests/annotation-outline.test.js` | 大纲显示条件、标题层级、固定浮层几何、左右方向、状态保持、编辑时隐藏、侧栏内标题跳转和清理。 |
 | `tests/fast-editor-scrollbar.test.js` | 滚动条焦点与编辑会话分离、光标保持、外部退出、保存失败及清理。 |
 | `tests/math-scrollbar.test.js` | 独立公式滚动、编辑入口边界、焦点、拖动释放点击与清理。 |
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |

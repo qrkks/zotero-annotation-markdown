@@ -1,0 +1,329 @@
+/** A small, persistent outline for the currently selected Markdown preview. */
+const PREVIEW = "[data-annotation-markdown-preview='true'].annotation-markdown-rendered:not([data-annotation-markdown-placeholder='true'])";
+const SELECTED = [
+  ".annotation.selected",
+  ".annotation-row.selected",
+  "[data-sidebar-annotation-id].selected",
+  "[data-annotation-id].selected",
+  ".annotation[aria-selected='true']",
+  ".annotation-row[aria-selected='true']",
+  "[data-sidebar-annotation-id][aria-selected='true']",
+  "[data-annotation-id][aria-selected='true']"
+].join(",");
+const EXCLUDED = ".annotation-popup, .note-editor, .zotero-note-editor, [data-note-editor], .ProseMirror";
+const EDITING = ".annotation-markdown-editing, .annotation-markdown-fast-editing";
+const OUTLINE = "data-annotation-markdown-outline";
+const TARGET = "data-annotation-markdown-outline-target";
+const ACTIVE = "aria-current";
+const HEADING_SELECTOR = "h1,h2,h3,h4,h5,h6";
+const HEADING_TOP_INSET_PX = 8;
+const VIEWPORT_INSET_PX = 8;
+const OUTSIDE_GAP_PX = 6;
+const SCROLLBAR_RESERVE_PX = 16;
+const PANEL_MAX_WIDTH_PX = 224;
+const PANEL_MIN_OUTSIDE_WIDTH_PX = 168;
+let nextPanelID = 0;
+
+export interface AnnotationOutlineController {
+  sync(): void;
+  stop(): void;
+}
+
+interface AnnotationOutlineOptions {
+  document: Document;
+  MutationObserver?: typeof MutationObserver;
+  ResizeObserver?: typeof ResizeObserver;
+  isEnabled(): boolean;
+  isExpanded(): boolean;
+  setExpanded(expanded: boolean): void;
+}
+
+export function trackAnnotationOutline({
+  document: doc,
+  MutationObserver: MutationObserverRef,
+  ResizeObserver: ResizeObserverRef,
+  isEnabled,
+  isExpanded,
+  setExpanded
+}: AnnotationOutlineOptions): AnnotationOutlineController {
+  const win = doc.defaultView;
+  let active = true;
+  let preview: HTMLElement | null = null;
+  let outline: HTMLElement | null = null;
+  let panel: HTMLElement | null = null;
+  let toggle: HTMLButtonElement | null = null;
+  let headings: HTMLElement[] = [];
+  let buttons: HTMLButtonElement[] = [];
+  let signature = "";
+  let scroller: HTMLElement | null = null;
+  let resizeObserver: ResizeObserver | undefined;
+  let activeFrame: number | undefined;
+
+  for (const stale of doc.querySelectorAll<HTMLElement>(`[${OUTLINE}='true']`)) stale.remove();
+  for (const staleTarget of doc.querySelectorAll<HTMLElement>(`[${TARGET}]`)) staleTarget.removeAttribute(TARGET);
+
+  const observer = MutationObserverRef && doc.body
+    ? new MutationObserverRef(() => sync())
+    : undefined;
+  observer?.observe(doc.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class", "aria-selected", "hidden"]
+  });
+
+  function sync(): void {
+    if (!active) return;
+    const nextPreview = findSelectedPreview(doc, isEnabled);
+    const nextHeadings = nextPreview ? collectHeadings(nextPreview) : [];
+    const nextSignature = nextHeadings
+      .map(heading => `${heading.tagName}:${normalizeHeadingText(heading.textContent)}`)
+      .join("\n");
+
+    if (!nextPreview || nextHeadings.length < 2) {
+      clearCurrent();
+      return;
+    }
+    if (
+      preview === nextPreview &&
+      outline?.isConnected &&
+      headings.length === nextHeadings.length &&
+      headings.every((heading, index) => heading === nextHeadings[index]) &&
+      signature === nextSignature
+    ) {
+      applyExpandedState();
+      scheduleViewportUpdate();
+      return;
+    }
+
+    clearCurrent();
+    preview = nextPreview;
+    headings = nextHeadings;
+    signature = nextSignature;
+    mountOutline();
+  }
+
+  function mountOutline(): void {
+    if (!preview || !doc.body) return;
+    const labels = getLabels(doc);
+    const nav = doc.createElement("nav");
+    nav.className = "annotation-markdown-outline";
+    nav.setAttribute(OUTLINE, "true");
+    nav.setAttribute("aria-label", labels.outline);
+
+    const surface = doc.createElement("div");
+    surface.className = "annotation-markdown-outline-surface";
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.className = "annotation-markdown-outline-toggle";
+    button.textContent = `${labels.outline} · ${headings.length}`;
+    button.title = labels.toggle;
+    const panelID = `annotation-markdown-outline-panel-${++nextPanelID}`;
+    button.setAttribute("aria-controls", panelID);
+
+    const menu = doc.createElement("div");
+    menu.id = panelID;
+    menu.className = "annotation-markdown-outline-panel";
+    const list = doc.createElement("div");
+    list.className = "annotation-markdown-outline-list";
+
+    buttons = headings.map((heading, index) => {
+      heading.setAttribute(TARGET, String(index));
+      const item = doc.createElement("button");
+      const label = normalizeHeadingText(heading.textContent);
+      item.type = "button";
+      item.className = "annotation-markdown-outline-item";
+      item.dataset.level = heading.tagName.slice(1);
+      item.textContent = label;
+      item.title = label;
+      item.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        scrollToHeading(heading);
+        setActiveHeading(index);
+      });
+      return item;
+    });
+    list.append(...buttons);
+    menu.append(list);
+    surface.append(button, menu);
+    nav.append(surface);
+
+    button.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const expanded = !isExpanded();
+      setExpanded(expanded);
+      applyExpandedState(expanded);
+      if (expanded) scheduleViewportUpdate();
+    });
+    nav.addEventListener("pointerdown", event => event.stopPropagation());
+    nav.addEventListener("mousedown", event => event.stopPropagation());
+    nav.addEventListener("click", event => event.stopPropagation());
+
+    // The portal deliberately lives outside the annotation row so Zotero's row
+    // overflow and recycling cannot clip it or scroll it away.
+    doc.body.append(nav);
+    outline = nav;
+    panel = menu;
+    toggle = button;
+    scroller = findScroller(preview);
+    scroller?.addEventListener("scroll", scheduleViewportUpdate, { passive: true });
+    win?.addEventListener?.("resize", scheduleViewportUpdate);
+    if (ResizeObserverRef && scroller) {
+      resizeObserver = new ResizeObserverRef(scheduleViewportUpdate);
+      resizeObserver.observe(scroller);
+    }
+    applyExpandedState();
+    updateViewport();
+  }
+
+  function applyExpandedState(expanded = isExpanded()): void {
+    if (!outline || !panel || !toggle) return;
+    const value = String(expanded);
+    if (outline.dataset.expanded !== value) outline.dataset.expanded = value;
+    if (panel.hidden !== !expanded) panel.hidden = !expanded;
+    if (toggle.getAttribute("aria-expanded") !== value) toggle.setAttribute("aria-expanded", value);
+  }
+
+  function scrollToHeading(heading: HTMLElement): void {
+    if (scroller?.isConnected) {
+      const scrollerRect = scroller.getBoundingClientRect();
+      const headingRect = heading.getBoundingClientRect();
+      const top = Math.max(
+        0,
+        scroller.scrollTop + headingRect.top - scrollerRect.top - HEADING_TOP_INSET_PX
+      );
+      scroller.scrollTo({ top, behavior: "smooth" });
+      return;
+    }
+    heading.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }
+
+  function scheduleViewportUpdate(): void {
+    if (!active || activeFrame !== undefined) return;
+    if (!win?.requestAnimationFrame) {
+      updateViewport();
+      return;
+    }
+    activeFrame = win.requestAnimationFrame(() => {
+      activeFrame = undefined;
+      updateViewport();
+    });
+  }
+
+  function updateViewport(): void {
+    positionOutline();
+    updateActiveHeading();
+  }
+
+  function positionOutline(): void {
+    if (!outline?.isConnected || !scroller?.isConnected) return;
+    const rect = scroller.getBoundingClientRect();
+    const viewportWidth = Math.max(doc.documentElement.clientWidth, win?.innerWidth ?? 0);
+    const viewportHeight = Math.max(doc.documentElement.clientHeight, win?.innerHeight ?? 0);
+    const rightAnchor = rect.right + OUTSIDE_GAP_PX;
+    const rightSpace = viewportWidth - rightAnchor - VIEWPORT_INSET_PX;
+    const canOpenOutside = rightSpace >= PANEL_MIN_OUTSIDE_WIDTH_PX;
+    const anchor = canOpenOutside
+      ? rightAnchor
+      : Math.max(VIEWPORT_INSET_PX, rect.right - SCROLLBAR_RESERVE_PX - OUTSIDE_GAP_PX);
+    const availableWidth = canOpenOutside
+      ? rightSpace
+      : Math.max(0, anchor - VIEWPORT_INSET_PX);
+    const panelWidth = Math.min(PANEL_MAX_WIDTH_PX, availableWidth);
+    const topLimit = Math.max(VIEWPORT_INSET_PX, viewportHeight - 40);
+    const top = Math.min(Math.max(VIEWPORT_INSET_PX, rect.top + VIEWPORT_INSET_PX), topLimit);
+    const side = canOpenOutside ? "right" : "left";
+
+    if (outline.dataset.side !== side) outline.dataset.side = side;
+    outline.style.left = `${Math.round(anchor)}px`;
+    outline.style.top = `${Math.round(top)}px`;
+    outline.style.setProperty("--annotation-markdown-outline-panel-width", `${Math.round(panelWidth)}px`);
+  }
+
+  function updateActiveHeading(): void {
+    if (!outline?.isConnected || headings.length === 0) return;
+    const top = (scroller?.getBoundingClientRect().top ?? 0) + HEADING_TOP_INSET_PX + 1;
+    let activeIndex = 0;
+    for (let index = 0; index < headings.length; index++) {
+      if (headings[index].getBoundingClientRect().top <= top) activeIndex = index;
+      else break;
+    }
+    setActiveHeading(activeIndex);
+  }
+
+  function setActiveHeading(index: number): void {
+    buttons.forEach((button, buttonIndex) => {
+      if (buttonIndex === index) button.setAttribute(ACTIVE, "location");
+      else button.removeAttribute(ACTIVE);
+    });
+  }
+
+  function clearCurrent(): void {
+    if (activeFrame !== undefined) win?.cancelAnimationFrame?.(activeFrame);
+    activeFrame = undefined;
+    scroller?.removeEventListener("scroll", scheduleViewportUpdate);
+    win?.removeEventListener?.("resize", scheduleViewportUpdate);
+    resizeObserver?.disconnect();
+    resizeObserver = undefined;
+    for (const heading of headings) heading.removeAttribute(TARGET);
+    outline?.remove();
+    preview = null;
+    outline = null;
+    panel = null;
+    toggle = null;
+    headings = [];
+    buttons = [];
+    signature = "";
+    scroller = null;
+  }
+
+  sync();
+  return {
+    sync,
+    stop(): void {
+      if (!active) return;
+      active = false;
+      observer?.disconnect();
+      clearCurrent();
+      for (const stale of doc.querySelectorAll<HTMLElement>(`[${OUTLINE}='true']`)) stale.remove();
+      for (const staleTarget of doc.querySelectorAll<HTMLElement>(`[${TARGET}]`)) staleTarget.removeAttribute(TARGET);
+    }
+  };
+}
+
+function findSelectedPreview(doc: Document, isEnabled: () => boolean): HTMLElement | null {
+  if (!isEnabled()) return null;
+  const previews = Array.from(doc.querySelectorAll<HTMLElement>(PREVIEW)).filter(candidate => {
+    if (candidate.hidden || candidate.closest(EXCLUDED) || candidate.closest(EDITING)) return false;
+    return Boolean(candidate.closest(SELECTED));
+  });
+  return previews.length === 1 ? previews[0] : null;
+}
+
+function collectHeadings(preview: HTMLElement): HTMLElement[] {
+  return Array.from(preview.querySelectorAll<HTMLElement>(HEADING_SELECTOR))
+    .filter(heading => normalizeHeadingText(heading.textContent).length > 0);
+}
+
+function normalizeHeadingText(value: string | null): string {
+  return (value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function findScroller(target: HTMLElement): HTMLElement | null {
+  const win = target.ownerDocument.defaultView;
+  let ancestor = target.parentElement;
+  while (ancestor && ancestor !== target.ownerDocument.body) {
+    if (/^(auto|scroll|overlay)$/.test(win?.getComputedStyle(ancestor)?.overflowY ?? "")) return ancestor;
+    ancestor = ancestor.parentElement;
+  }
+  return null;
+}
+
+function getLabels(doc: Document): { outline: string; toggle: string } {
+  const language = doc.documentElement.lang || doc.defaultView?.navigator.language || "en";
+  return language.toLowerCase().startsWith("zh")
+    ? { outline: "大纲", toggle: "展开或收起大纲" }
+    : { outline: "Outline", toggle: "Expand or collapse outline" };
+}

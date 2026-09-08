@@ -15,13 +15,14 @@ flowchart LR
     D --> F["src/markdown-renderer.ts<br>Markdown and sanitization"]
     D --> H["src/annotation-scroll-target.ts<br>native selection scroll target"]
     D --> I["src/annotation-escape-scroll.ts<br>Escape visibility recovery"]
+    D --> J["src/annotation-outline.ts<br>selected preview navigation"]
     B --> G["src/settings.ts<br>preference abstraction"]
     G --> D
 ```
 
 `addon/bootstrap.js` is executed directly by Zotero. It loads the bundled `plugin.js`, registers the preference pane, injects the stylesheet text, and owns diagnostic-log setup. `src/plugin.ts` is the composition root: it connects Zotero APIs to settings, rendering, DOM adaptation, the per-Reader controller, and the registry.
 
-The controller discovers annotation comments and decides when to render them. The adapter owns source, preview, and editor DOM operations. Two scoped scroll helpers manage selection-target CSS and visibility recovery after Escape without replacing the host's annotation structure or native DOM methods. The renderer accepts text and returns sanitized HTML; it does not know about Reader nodes or preferences.
+The controller discovers annotation comments and decides when to render them. The adapter owns source, preview, and editor DOM operations. Scoped Reader helpers manage selection-target CSS, visibility recovery after Escape, and the selected preview's removable outline without replacing the host's annotation structure or native DOM methods. The renderer accepts text and returns sanitized HTML; it does not know about Reader nodes or preferences.
 
 ## Fast editor flow
 
@@ -97,6 +98,12 @@ Fast-editor sessions are independent of DOM focus during sidebar scrolling. `pre
 
 `tests/fast-editor-scrollbar.test.js` covers sustained drags, overlay scrollbars, parked focus, caret preservation, outside exits, failed saves, and cleanup. Browser QA must also drag the native scrollbar and click/type at multiple positions; DOM-only tests cannot verify native caret hit testing or the complete Zotero/Gecko focus chain.
 
+### Floating outline
+
+`trackAnnotationOutline()` considers only one selected, rendered sidebar preview and creates an outline when it contains at least two `H1`–`H6` elements. The plugin-owned navigation node is a fixed portal under the Reader document body, not a child of the preview or annotation row, so cached HTML comparison remains stable and host overflow cannot clip or scroll it away. Runtime geometry anchors it to the sidebar viewport, places it outside the scrollbar on the right when at least a useful panel width is available, and otherwise moves it inside the scrollbar and opens left. Heading markers and the complete outline are removed on selection changes, editing, refresh/disable, and shutdown.
+
+Only an explicit outline-toggle click writes `extensions.annotationMarkdown.outlineExpanded`; temporary absence or editing never changes the stored value. One scroll listener tracks the active heading while the fixed portal remains available even after its selected row leaves the viewport; resize observation recomputes its side and dimensions. Heading activation computes a target within the actual sidebar scroller, avoiding document-page scrolling and the native annotation-selection path.
+
 `getSelectedAnnotationScrollbar()` reuses the editor's scroll-container and scrollbar hit testing for selected, non-editing annotations. `registerAnnotationScrollbarHandlers()` tracks that pointer interaction until release or cancellation. During the interaction, only a `focusin` targeting the scroller (or its ancestor) is stopped before Zotero's bubbling `FocusManager` handler can clear the selection. Native pointer events are not cancelled; the plugin never reselects a row, restores its focus, or calls a scrolling API for this path.
 
 Selection and expansion remain host-owned, including multi-selection. Keyboard input, a new outside pointer action, focus entering a real control or another annotation, refresh, and shutdown clear the temporary guard. Native note editors and annotation popups are excluded; active fast-editor sessions retain their existing blur-preservation path. `tests/annotation-scrollbar.test.js` models the installed Reader's deselection rule and covers sustained drags, overlay scrollbars, cleanup, and normal selection changes. Real Zotero verification should also check that scrolling a long selected annotation out of view and back does not fold it or pull the viewport back to the row.
@@ -147,6 +154,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 | `src/annotation-sidebar-adapter.ts` | Encapsulates Zotero Reader selectors, source-plus-preview DOM operations, and the fast textarea session. Excludes native note editors. |
 | `src/annotation-scroll-target.ts` | Tracks the selected oversized row and applies reversible CSS margins for Zotero's native selection scroll. |
 | `src/annotation-escape-scroll.ts` | Suspends anchoring during Escape preview restoration, recovers a completely offscreen row once, and cancels/cleans pending recovery. |
+| `src/annotation-outline.ts` | Builds and cleans the selected preview's heading navigation, persists explicit expansion choices, and scrolls within the annotation sidebar. |
 | `src/markdown-renderer.ts` | Normalizes annotation text, renders Markdown and optional math, sanitizes output, and provides a plain-text fallback. |
 | `src/settings.ts` | Defines preference keys, defaults, normalization, and the settings API consumed by runtime modules. |
 | `src/types.ts` | Holds small shared contracts that do not depend on Zotero's host-specific object shapes. |
@@ -194,6 +202,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/annotation-scroll-target.test.js` | Selection-target geometry, lazy preparation, resizing, editing/multi-selection exclusions, replacement, and cleanup. |
 | `tests/native-reader-scroll.test.js` | Preservation of the native scroll method across controller start, selection, refresh, and shutdown. |
 | `tests/escape-editor-scroll.test.js` | Escape-only visibility recovery, anchoring restoration, input cancellation, failed saves, and live-row replacement. |
+| `tests/annotation-outline.test.js` | Outline eligibility, hierarchy, fixed portal geometry, right/left placement, persistent toggles, editing visibility, sidebar-only heading navigation, and cleanup. |
 | `tests/fast-editor-scrollbar.test.js` | Scrollbar focus separate from editor sessions, caret preservation, outside exits, failed saves, and cleanup. |
 | `tests/math-scrollbar.test.js` | Display equation scrolling, editing-entry boundaries, focus, release clicks, and cleanup. |
 | `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |

@@ -13,6 +13,7 @@ import type { Settings } from "./settings.js";
 import type { MarkdownRenderer, ReaderController } from "./types.js";
 import { trackAnnotationScrollTarget } from "./annotation-scroll-target.js";
 import { createAnnotationEscapeRecovery, type EscapeScrollRecovery } from "./annotation-escape-scroll.js";
+import { trackAnnotationOutline, type AnnotationOutlineController } from "./annotation-outline.js";
 
 interface ReaderLike {
   document?: Document | null;
@@ -100,7 +101,7 @@ const ANNOTATION_SCROLLBAR_EVENTS = [
 ] as const;
 
 const FAST_EDITOR_EXIT_EVENTS = [
-  "pointerdown", "focusin", "pointerup", "pointercancel", "dragend"
+  "pointerdown", "mousedown", "focusin", "pointerup", "pointercancel", "dragend"
 ] as const;
 
 /**
@@ -126,6 +127,7 @@ export function createReaderController({
 }: CreateReaderControllerOptions): ReaderController {
   let observer: MutationObserver | undefined;
   let stopScrollTargetTracking: (() => void) | undefined;
+  let outlineController: AnnotationOutlineController | undefined;
   let escapeScrollRecovery: { comment: HTMLElement; recovery: EscapeScrollRecovery } | undefined;
   let visibilityObserver: IntersectionObserver | undefined;
   let styleElement: HTMLStyleElement | undefined;
@@ -328,11 +330,14 @@ export function createReaderController({
       this.renderNow();
       registerMutationObserver();
       registerScrollTargetTracking();
+      outlineController?.sync();
     },
 
     stop() {
       shutdownCleanupFailures = [];
       runShutdownStep(clearEscapeScrollRecovery);
+      runShutdownStep(() => outlineController?.stop());
+      outlineController = undefined;
       runShutdownStep(() => stopScrollTargetTracking?.());
       stopScrollTargetTracking = undefined;
       runShutdownStep(() => observer?.disconnect());
@@ -518,6 +523,14 @@ export function createReaderController({
     renderNow();
     registerMutationObserver();
     registerScrollTargetTracking();
+    outlineController = trackAnnotationOutline({
+      document: documentRef,
+      MutationObserver: MutationObserverRef,
+      ResizeObserver: windowRef?.ResizeObserver,
+      isEnabled: () => settings.isEnabled(),
+      isExpanded: () => settings.isOutlineExpanded?.() ?? false,
+      setExpanded: expanded => settings.setOutlineExpanded?.(expanded)
+    });
   }
 
   function registerScrollTargetTracking(): void {
@@ -926,6 +939,18 @@ export function createReaderController({
     }
 
     fastEditorExitHandler = (event: Event) => {
+      if (
+        adapter.isOutlineTarget?.(event.target) &&
+        (event.type === "pointerdown" || event.type === "mousedown" || event.type === "focusin")
+      ) {
+        // Zotero's FocusManager can deselect and fold the annotation before
+        // the outline's own bubbling handlers run. Guard at window capture;
+        // cancelling the press prevents pointer focus, while the later click
+        // still reaches the outline control and keyboard focus remains usable.
+        if (event.type !== "focusin") event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       if (adapter.preserveActiveFastEditorForScrollbar?.(event)) {
         if (event.type === "focusin") {
           // Keep Zotero's focus manager from deselecting/rebuilding the row.
@@ -937,7 +962,7 @@ export function createReaderController({
       if (event.type !== "pointerdown" && event.type !== "focusin") {
         return;
       }
-      if (adapter.isFastEditorTarget?.(event.target)) {
+      if (adapter.isFastEditorTarget?.(event.target) || adapter.isOutlineTarget?.(event.target)) {
         const mouseEvent = event as MouseEvent;
         if (event.type === "pointerdown" && mouseEvent.button === 2) {
           // Arm before Gecko transfers focus to its native context menu. The
@@ -974,7 +999,7 @@ export function createReaderController({
     };
 
     fastEditorEntryHandler = (event: Event) => {
-      if (adapter.isFastEditorTarget?.(event.target)) {
+      if (adapter.isFastEditorTarget?.(event.target) || adapter.isOutlineTarget?.(event.target)) {
         return;
       }
 
@@ -1812,6 +1837,9 @@ function mutationNeedsSafetyScan(
 }
 
 function isPluginOwnedMutation(mutation: MutationRecord): boolean {
+  if (mutation?.type === "attributes" && isPluginOwnedNode(mutation.target)) {
+    return true;
+  }
   const changedNodes = [
     ...Array.from(mutation?.addedNodes ?? []),
     ...Array.from(mutation?.removedNodes ?? [])
@@ -1835,8 +1863,9 @@ function isPluginOwnedNode(node: Node | null): boolean {
   return Boolean(
     element?.getAttribute("data-annotation-markdown-preview") === "true" ||
     element?.getAttribute("data-annotation-markdown-fast-editor") === "true" ||
+    element?.getAttribute("data-annotation-markdown-outline") === "true" ||
     element?.getAttribute("data-annotation-markdown-source-node") === "true" ||
-    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-source-node='true']")
+    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-outline='true'], [data-annotation-markdown-source-node='true']")
   );
 }
 

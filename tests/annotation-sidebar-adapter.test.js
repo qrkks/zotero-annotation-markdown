@@ -1383,4 +1383,31 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(node.querySelector(".annotation-markdown-rendered")?.hidden).toBe(true);
     expect(node.querySelector(".annotation-markdown-rendered")?.style.display).toBe("none");
   });
+
+  test("treats floating outline controls as navigation instead of editing entry", () => {
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content"># One</div></div>
+      </div>
+    `;
+    const comment = document.querySelector(".comment");
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    adapter.applyRenderedHtml(comment, "<h1>One</h1><h2>Two</h2>");
+    const outline = document.createElement("nav");
+    outline.setAttribute("data-annotation-markdown-outline", "true");
+    const button = document.createElement("button");
+    outline.append(button);
+    comment.prepend(outline);
+
+    expect(adapter.isOutlineTarget(button)).toBe(true);
+    expect(adapter.tryShowFastEditorForTarget(button)).toBe(false);
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+
+    adapter.clearRenderedState(document.body);
+    expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+  });
 });

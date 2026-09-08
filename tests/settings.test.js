@@ -199,4 +199,18 @@ describe("createSettings", () => {
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy");
     expect(createSettings({ prefs: { get: () => "unsupported" } }).getRenderStrategy()).toBe("auto");
   });
+
+  test("persists the floating outline expansion preference and defaults it closed", () => {
+    const settings = createSettings();
+    expect(settings.isOutlineExpanded()).toBe(false);
+    settings.setOutlineExpanded(true);
+    expect(settings.isOutlineExpanded()).toBe(true);
+
+    const prefs = { get: vi.fn(() => true), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.isOutlineExpanded()).toBe(true);
+    stored.setOutlineExpanded(false);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineExpanded", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineExpanded", false);
+  });
 });
