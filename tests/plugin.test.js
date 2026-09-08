@@ -504,11 +504,19 @@ describe("createPlugin", () => {
     });
 
     await plugin.startup();
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith(
+      "extensions.annotationMarkdown.outlineEnabled",
+      expect.any(Function),
+      true
+    );
     observers.get("extensions.annotationMarkdown.mathEnabled")();
 
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
     observers.get("extensions.annotationMarkdown.renderStrategy")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
+    observers.get("extensions.annotationMarkdown.outlineEnabled")();
     expect(refresh).toHaveBeenCalled();
 
     plugin.shutdown();
@@ -517,6 +525,9 @@ describe("createPlugin", () => {
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.renderStrategy"
+    );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.outlineEnabled"
     );
   });
 

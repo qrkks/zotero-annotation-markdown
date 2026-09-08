@@ -4,12 +4,12 @@
 
 ### Added
 
-- Show a compact floating outline for the selected annotation when its rendered Markdown contains at least two headings. The outline stays fixed to the annotation-sidebar viewport, prefers the unobtrusive space to its right, falls back to the left when needed, follows heading hierarchy, highlights the current section, and scrolls only the annotation sidebar when a heading is chosen.
+- Show a compact floating outline for the selected annotation when its rendered Markdown contains at least two headings. The outline stays fixed to the annotation-sidebar viewport, prefers the unobtrusive space to its right, falls back to the left when needed, follows heading hierarchy, highlights the current section, and scrolls only the annotation sidebar when a heading is chosen. It is enabled by default and can be disabled in the add-on settings.
 - Remember the user's explicit outline open/closed choice across annotations, Readers, and Zotero restarts. Editing and annotations without an outline hide it temporarily without changing that preference.
 
 ### 新增
 
-- 当前选中标注的 Markdown 预览包含至少两个标题时，显示紧凑的浮动大纲；大纲固定在标注侧栏视口，优先利用右侧空白、空间不足时回退到左侧，同时保留标题层级、高亮当前章节，点击标题时只滚动标注侧栏。
+- 当前选中标注的 Markdown 预览包含至少两个标题时，显示紧凑的浮动大纲；大纲固定在标注侧栏视口，优先利用右侧空白、空间不足时回退到左侧，同时保留标题层级、高亮当前章节，点击标题时只滚动标注侧栏。该功能默认开启，也可在插件设置中关闭。
 - 在不同标注、Reader 和 Zotero 重启后记住用户主动选择的大纲展开/收起状态；编辑或当前标注没有大纲时仅暂时隐藏，不改变该偏好。
 
 ### Fixed

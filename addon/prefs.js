@@ -6,4 +6,5 @@ pref("extensions.annotationMarkdown.mathEnabled", true);
 pref("extensions.annotationMarkdown.performanceDiagnostics", false);
 pref("extensions.annotationMarkdown.lightweightMode", false);
 pref("extensions.annotationMarkdown.renderStrategy", "auto");
+pref("extensions.annotationMarkdown.outlineEnabled", true);
 pref("extensions.annotationMarkdown.outlineExpanded", false);

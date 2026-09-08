@@ -12,6 +12,7 @@ afterEach(() => {
 
 function setup({
   initialExpanded = false,
+  enabled = true,
   viewportWidth = 800,
   viewportHeight = 700,
   scrollerRect = { left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600 }
@@ -36,7 +37,7 @@ function setup({
   controller = trackAnnotationOutline({
     document,
     MutationObserver: window.MutationObserver,
-    isEnabled: () => true,
+    isEnabled: () => enabled,
     isExpanded: () => expanded,
     setExpanded
   });
@@ -139,6 +140,11 @@ test("does not create an outline for one heading, multiple selection, or disable
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).not.toBeNull();
   rows[0].classList.add("selected");
   await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+
+  controller.stop();
+  controller = undefined;
+  setup({ enabled: false });
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
 });
 

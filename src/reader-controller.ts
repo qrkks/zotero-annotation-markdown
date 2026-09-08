@@ -527,7 +527,7 @@ export function createReaderController({
       document: documentRef,
       MutationObserver: MutationObserverRef,
       ResizeObserver: windowRef?.ResizeObserver,
-      isEnabled: () => settings.isEnabled(),
+      isEnabled: () => settings.isEnabled() && (settings.isOutlineEnabled?.() ?? true),
       isExpanded: () => settings.isOutlineExpanded?.() ?? false,
       setExpanded: expanded => settings.setOutlineExpanded?.(expanded)
     });

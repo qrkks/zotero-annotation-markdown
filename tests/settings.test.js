@@ -213,4 +213,19 @@ describe("createSettings", () => {
     expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineExpanded", false);
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineExpanded", false);
   });
+
+  test("defaults the floating outline to enabled and persists its visibility preference", () => {
+    const settings = createSettings();
+    expect(settings.isOutlineEnabled()).toBe(true);
+    settings.setOutlineEnabled(false);
+    expect(settings.isOutlineEnabled()).toBe(false);
+
+    const prefs = { get: vi.fn(() => false), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.isOutlineEnabled()).toBe(false);
+    stored.setOutlineEnabled(true);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", true);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", true);
+    expect(createSettings({ prefs: { get: () => undefined } }).isOutlineEnabled()).toBe(true);
+  });
 });

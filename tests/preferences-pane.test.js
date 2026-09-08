@@ -23,11 +23,18 @@ describe("preferences pane", () => {
       "Recommended when pasting responses from AI tools. Keeps Markdown editable and avoids importing rich-text formatting or hidden HTML."
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineEnabled\"");
+    expect(source).toContain(
+      "label=\"Show a floating outline for annotations with multiple headings\""
+    );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.renderStrategy\"");
     expect(source.indexOf("id=\"annotation-markdown-enabled\"")).toBeLessThan(
       source.indexOf("id=\"annotation-markdown-math-enabled\"")
     );
     expect(source.indexOf("id=\"annotation-markdown-math-enabled\"")).toBeLessThan(
+      source.indexOf("id=\"annotation-markdown-outline-enabled\"")
+    );
+    expect(source.indexOf("id=\"annotation-markdown-outline-enabled\"")).toBeLessThan(
       source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")
     );
     expect(source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")).toBeLessThan(
@@ -53,6 +60,7 @@ describe("preferences pane", () => {
     const pasteAsPlainTextInput = createInput();
     const fastEditorInput = createInput();
     const mathInput = createInput();
+    const outlineEnabledInput = createInput();
     const renderStrategySelect = createInput();
     const documentRef = {
       getElementById(id) {
@@ -62,6 +70,7 @@ describe("preferences pane", () => {
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
+          "annotation-markdown-outline-enabled": outlineEnabledInput,
           "annotation-markdown-render-strategy": renderStrategySelect
         }[id] ?? null;
       }
@@ -74,6 +83,7 @@ describe("preferences pane", () => {
     expect(pasteAsPlainTextInput.checked).toBe(true);
     expect(fastEditorInput.checked).toBe(true);
     expect(mathInput.checked).toBe(true);
+    expect(outlineEnabledInput.checked).toBe(true);
     expect(renderStrategySelect.value).toBe("auto");
   });
 
@@ -92,6 +102,7 @@ describe("preferences pane", () => {
             "extensions.annotationMarkdown.pasteAsPlainText": true,
             "extensions.annotationMarkdown.fastEditor": true,
             "extensions.annotationMarkdown.mathEnabled": true,
+            "extensions.annotationMarkdown.outlineEnabled": true,
             "extensions.annotationMarkdown.renderStrategy": "auto"
           }[key];
         }),
@@ -103,6 +114,7 @@ describe("preferences pane", () => {
     const pasteAsPlainTextInput = createInput();
     const fastEditorInput = createInput();
     const mathInput = createInput();
+    const outlineEnabledInput = createInput();
     const renderStrategySelect = createInput();
     const documentRef = {
       getElementById(id) {
@@ -112,6 +124,7 @@ describe("preferences pane", () => {
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
+          "annotation-markdown-outline-enabled": outlineEnabledInput,
           "annotation-markdown-render-strategy": renderStrategySelect
         }[id] ?? null;
       }
@@ -128,6 +141,8 @@ describe("preferences pane", () => {
     fastEditorInput.dispatch("command");
     mathInput.checked = false;
     mathInput.dispatch("command");
+    outlineEnabledInput.checked = false;
+    outlineEnabledInput.dispatch("command");
     renderStrategySelect.value = "lazy";
     renderStrategySelect.dispatch("command");
 
@@ -136,6 +151,7 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy", true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", expect.anything(), true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", expect.anything(), true);

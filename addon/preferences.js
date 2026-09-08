@@ -4,6 +4,7 @@ var ZoteroAnnotationMarkdownPreferences = {
   pasteAsPlainTextKey: "extensions.annotationMarkdown.pasteAsPlainText",
   fastEditorKey: "extensions.annotationMarkdown.fastEditor",
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
+  outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
   renderStrategyKey: "extensions.annotationMarkdown.renderStrategy",
 
   init(documentRef = document) {
@@ -12,6 +13,7 @@ var ZoteroAnnotationMarkdownPreferences = {
     const pasteAsPlainTextInput = documentRef.getElementById("annotation-markdown-paste-as-plain-text");
     const fastEditorInput = documentRef.getElementById("annotation-markdown-fast-editor");
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
+    const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
     const renderStrategySelect = documentRef.getElementById("annotation-markdown-render-strategy");
 
     if (
@@ -20,6 +22,7 @@ var ZoteroAnnotationMarkdownPreferences = {
       !pasteAsPlainTextInput ||
       !fastEditorInput ||
       !mathEnabledInput ||
+      !outlineEnabledInput ||
       !renderStrategySelect
     ) {
       return;
@@ -30,6 +33,7 @@ var ZoteroAnnotationMarkdownPreferences = {
     pasteAsPlainTextInput.checked = this.getPref(this.pasteAsPlainTextKey, true);
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
+    outlineEnabledInput.checked = this.getPref(this.outlineEnabledKey, true);
     renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
 
     enabledInput.addEventListener("command", () => {
@@ -50,6 +54,10 @@ var ZoteroAnnotationMarkdownPreferences = {
 
     mathEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.mathEnabledKey, Boolean(mathEnabledInput.checked), true);
+    });
+
+    outlineEnabledInput.addEventListener("command", () => {
+      Zotero.Prefs.set(this.outlineEnabledKey, Boolean(outlineEnabledInput.checked), true);
     });
 
     renderStrategySelect.addEventListener("command", () => {

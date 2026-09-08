@@ -49,7 +49,7 @@ The add-on changes presentation only; the Markdown source stored by Zotero is no
 
 When the selected annotation contains at least two Markdown headings, a compact **Outline** button stays fixed beside the annotation-sidebar viewport, so it remains available after the start of a long annotation has scrolled away. It prefers the open space to the right of the sidebar and scrollbar; at narrow widths it moves inside and opens to the left. The outline includes `H1` through `H6`, preserves their hierarchy, and highlights the section nearest the top of the annotation sidebar. Choosing an entry smoothly scrolls only that sidebar to its heading; it does not enter comment editing or change the selected annotation.
 
-The outline starts closed for new installations. Opening or closing it is remembered across annotations, Reader tabs, and Zotero restarts. An annotation with fewer than two headings has no outline. Entering comment editing hides the outline temporarily, then restores the remembered state when the rendered preview returns.
+The outline is enabled by default and can be disabled with **Show a floating outline for annotations with multiple headings** in the add-on settings. It starts closed for new installations. Opening or closing it is remembered independently across annotations, Reader tabs, and Zotero restarts, so disabling and later re-enabling the feature preserves that choice. An annotation with fewer than two headings has no outline. Entering comment editing hides the outline temporarily, then restores the remembered state when the rendered preview returns.
 
 ## Sidebar positioning
 
