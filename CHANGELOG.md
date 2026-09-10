@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0 - 2026-09-10
+
 ### Added
 
 - Show a compact floating outline for the selected annotation when its rendered Markdown contains at least two headings. The outline stays fixed to the annotation-sidebar viewport, prefers the unobtrusive space to its right, falls back to the left when needed, follows heading hierarchy, highlights the current section, and scrolls only the annotation sidebar when a heading is chosen. It is enabled by default and can be disabled in the add-on settings.
