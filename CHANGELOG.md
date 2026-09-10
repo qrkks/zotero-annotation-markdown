@@ -4,24 +4,28 @@
 
 ## 0.7.0 - 2026-09-10
 
-### Added
+### Added and improved
+
+#### Floating outline
 
 - Show a compact floating outline for the selected annotation when its rendered Markdown contains at least two headings. The outline stays fixed to the annotation-sidebar viewport, prefers the unobtrusive space to its right, falls back to the left when needed, follows heading hierarchy, highlights the current section, and scrolls only the annotation sidebar when a heading is chosen. It is enabled by default and can be disabled in the add-on settings.
 - Remember the user's explicit outline open/closed choice across annotations, Readers, and Zotero restarts. Editing and annotations without an outline hide it temporarily without changing that preference.
 
-### 新增
+#### Long annotation navigation
+
+- Position selected annotations taller than the sidebar viewport near the top with a 2px inset, consistently when navigating forward or backward from the sidebar or document page.
+- Use Zotero's native smooth selection scroll as the only scrolling action by adjusting the target's CSS scroll margins; short annotations retain native positioning.
+- Preserve the visible sidebar position when leaving the fast editor with Escape. After the preview is restored, bring a completely offscreen annotation back with one smooth scroll to the same 2px inset.
+- Cancel pending Escape recovery on new user input, another selection, editor re-entry, refresh, or shutdown. Ordinary blur does not pull the previous annotation back into view.
+
+### 新增与改进
+
+#### 浮动大纲
 
 - 当前选中标注的 Markdown 预览包含至少两个标题时，显示紧凑的浮动大纲；大纲固定在标注侧栏视口，优先利用右侧空白、空间不足时回退到左侧，同时保留标题层级、高亮当前章节，点击标题时只滚动标注侧栏。该功能默认开启，也可在插件设置中关闭。
 - 在不同标注、Reader 和 Zotero 重启后记住用户主动选择的大纲展开/收起状态；编辑或当前标注没有大纲时仅暂时隐藏，不改变该偏好。
 
-### Fixed
-
-- Align selected annotations taller than the sidebar viewport near the top with a 2px inset, consistently when navigating forward or backward from the sidebar or document page.
-- Keep Zotero's native smooth selection scroll as the only scrolling action by adjusting the target's CSS scroll margins; short annotations retain native positioning.
-- Preserve the visible sidebar position when leaving the fast editor with Escape. After the preview is restored, bring a completely offscreen annotation back with one smooth scroll to the same 2px inset.
-- Cancel pending Escape recovery on new user input, another selection, editor re-entry, refresh, or shutdown. Ordinary blur does not pull the previous annotation back into view.
-
-### 修复
+#### 长标注导航
 
 - 从侧栏或文档页面前后切换标注时，高于侧栏视口的单条选中标注会稳定定位到顶部，保留 2px 间距。
 - 通过 CSS 滚动边距调整定位范围，由 Zotero 原生平滑滚动一次完成选择定位；短标注沿用原生定位。
