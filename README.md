@@ -12,6 +12,7 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
 - Automatic links for bare URLs in rendered previews.
+- A persistent floating outline for navigating long annotations with multiple headings.
 - [Fast source editing](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster) that remains responsive in books with many annotation tags.
 - Adjustable preview font size and rendering strategy.
 - Sanitized output with a plain-text fallback on rendering failure.

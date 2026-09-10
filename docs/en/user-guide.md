@@ -26,6 +26,7 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - pasting clipboard content into comments as plain text, recommended for AI responses so Markdown remains editable without imported rich-text formatting or hidden HTML;
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
 - LaTeX math rendering;
+- showing a floating outline for annotations with multiple headings, enabled by default;
 - preview font size from 80% to 150%;
 - annotation rendering strategy.
 
