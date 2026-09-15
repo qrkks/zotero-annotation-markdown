@@ -137,7 +137,131 @@ function normalizeMathDelimiters(text: string): string {
     .replace(/(^|\n)([ \t]*)\\\\\[[ \t]*(?=\n|$)/g, "$1$2\\[")
     .replace(/(^|\n)([ \t]*)\\\\\][ \t]*(?=\n|$)/g, "$1$2\\]");
 
-  return isolateBracketDisplayMath(normalizedDelimiters);
+  return isolateDollarDisplayMathTrailingText(
+    isolateBracketDisplayMath(normalizedDelimiters)
+  );
+}
+
+function isolateDollarDisplayMathTrailingText(text: string): string {
+  if (!text.includes("$$")) {
+    return text;
+  }
+
+  const lines = text.split("\n");
+  const output: string[] = [];
+  let displayMathOpen = false;
+  let fence: { marker: string; length: number } | null = null;
+
+  for (const line of lines) {
+    const parts = splitMarkdownBlockPrefix(line);
+
+    if (!displayMathOpen) {
+      if (fence) {
+        const closingFence = parts.content.match(/^(`{3,}|~{3,})[ \t]*$/);
+        output.push(line);
+        if (
+          closingFence &&
+          closingFence[1][0] === fence.marker &&
+          closingFence[1].length >= fence.length
+        ) {
+          fence = null;
+        }
+        continue;
+      }
+
+      const fenceMatch = parts.content.match(/^(`{3,}|~{3,})/);
+      if (fenceMatch) {
+        fence = { marker: fenceMatch[1][0], length: fenceMatch[1].length };
+        output.push(line);
+        continue;
+      }
+
+      if (!parts.content.startsWith("$$")) {
+        output.push(line);
+        continue;
+      }
+
+      const closingIndex = findDollarDisplayClosingDelimiter(parts.content, 2);
+      if (closingIndex === -1) {
+        displayMathOpen = true;
+        output.push(line);
+        continue;
+      }
+
+      appendDollarDisplayLine(output, parts, closingIndex);
+      continue;
+    }
+
+    const closingIndex = findDollarDisplayClosingDelimiter(parts.content, 0);
+    if (closingIndex === -1) {
+      output.push(line);
+      continue;
+    }
+
+    appendDollarDisplayLine(output, parts, closingIndex);
+    displayMathOpen = false;
+  }
+
+  return output.join("\n");
+}
+
+interface MarkdownBlockLineParts {
+  prefix: string;
+  continuationPrefix: string;
+  content: string;
+}
+
+function splitMarkdownBlockPrefix(line: string): MarkdownBlockLineParts {
+  const match = line.match(
+    /^([ \t]{0,3})((?:>[ \t]?)*)(?:((?:[-+*]|\d+[.)]))([ \t]+))?(.*)$/
+  );
+
+  if (!match) {
+    return { prefix: "", continuationPrefix: "", content: line };
+  }
+
+  const [, indentation, quotePrefix, listMarker = "", listSpacing = "", content] = match;
+  const listPrefix = `${listMarker}${listSpacing}`;
+
+  return {
+    prefix: `${indentation}${quotePrefix}${listPrefix}`,
+    continuationPrefix: `${indentation}${quotePrefix}${" ".repeat(listPrefix.length)}`,
+    content
+  };
+}
+
+function findDollarDisplayClosingDelimiter(content: string, start: number): number {
+  let index = content.indexOf("$$", start);
+
+  while (index !== -1) {
+    if (index === 0 || content[index - 1] !== "\\") {
+      return index;
+    }
+    index = content.indexOf("$$", index + 2);
+  }
+
+  return -1;
+}
+
+function appendDollarDisplayLine(
+  output: string[],
+  parts: MarkdownBlockLineParts,
+  closingIndex: number
+): void {
+  let mathEnd = closingIndex + 2;
+  const equationNumber = parts.content.slice(mathEnd).match(/^[ \t]*\([^\s)]+\)/);
+  if (equationNumber) {
+    mathEnd += equationNumber[0].length;
+  }
+
+  const trailingText = parts.content.slice(mathEnd);
+  if (trailingText.trim() === "") {
+    output.push(`${parts.prefix}${parts.content}`);
+    return;
+  }
+
+  output.push(`${parts.prefix}${parts.content.slice(0, mathEnd)}`);
+  output.push(`${parts.continuationPrefix}${trailingText.trimStart()}`);
 }
 
 function isolateBracketDisplayMath(text: string): string {

@@ -170,6 +170,53 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("a");
   });
 
+  test("preserves prose immediately after line-start dollar display math", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("$$a^2$$后面的文字");
+
+    expect(html).toContain("katex-display");
+    expect(html).toContain("后面的文字");
+  });
+
+  test("preserves prose after a multiline dollar display math closing delimiter", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("$$\na^2\n$$后面的文字");
+
+    expect(html).toContain("katex-display");
+    expect(html).toContain("后面的文字");
+  });
+
+  test("preserves prose after dollar display math in a list item", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("- $$a^2$$后面的文字");
+
+    expect(html).toContain("<li>");
+    expect(html).toContain("katex-display");
+    expect(html).toContain("后面的文字");
+  });
+
+  test("preserves surrounding prose for inline-position dollar display math", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("前面的文字 $$a^2$$ 后面的文字");
+
+    expect(html).toContain("前面的文字");
+    expect(html).toContain("katex-display");
+    expect(html).toContain("后面的文字");
+  });
+
+  test("leaves dollar display delimiters inside fenced code unchanged", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("```text\n$$a^2$$后面的文字\n```");
+
+    expect(html).toContain("$$a^2$$后面的文字");
+    expect(html).not.toContain("katex-display");
+  });
+
   test("renders bracket-delimited inline LaTeX math with the default renderer", () => {
     const renderer = createMarkdownRenderer();
 
