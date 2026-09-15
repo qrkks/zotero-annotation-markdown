@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- Hide the floating outline when the annotation sidebar tab is not visible, including when a page annotation popup selects the corresponding hidden sidebar row.
+
+### 修复
+
+- 当前侧栏不在“注释”标签页时隐藏浮动大纲，避免页内标注弹窗选中隐藏的侧栏标注后在左上角误显示大纲。
+
 ## 0.7.0 - 2026-09-10
 
 ### Added and improved

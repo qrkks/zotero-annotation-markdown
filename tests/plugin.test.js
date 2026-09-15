@@ -127,10 +127,15 @@ describe("createPlugin", () => {
 
   test("mounts a selected annotation outline and persists its explicit toggle", async () => {
     document.body.innerHTML = `
-      <div data-sidebar-annotation-id="a1" class="annotation selected">
-        <div class="comment"><div class="content"># One\n\n## Two</div></div>
+      <div id="annotations" style="overflow-y:auto">
+        <div data-sidebar-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content"># One\n\n## Two</div></div>
+        </div>
       </div>
     `;
+    document.querySelector("#annotations").getBoundingClientRect = () => ({
+      left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600
+    });
     const values = new Map([["extensions.annotationMarkdown.outlineExpanded", false]]);
     const set = vi.fn((key, value) => values.set(key, value));
     const plugin = createPlugin({

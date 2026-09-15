@@ -69,7 +69,7 @@ export function trackAnnotationOutline({
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["class", "aria-selected", "hidden"]
+    attributeFilter: ["class", "aria-selected", "aria-hidden", "hidden", "inert", "style"]
   });
 
   function sync(): void {
@@ -297,9 +297,34 @@ function findSelectedPreview(doc: Document, isEnabled: () => boolean): HTMLEleme
   if (!isEnabled()) return null;
   const previews = Array.from(doc.querySelectorAll<HTMLElement>(PREVIEW)).filter(candidate => {
     if (candidate.hidden || candidate.closest(EXCLUDED) || candidate.closest(EDITING)) return false;
-    return Boolean(candidate.closest(SELECTED));
+    if (!candidate.closest(SELECTED)) return false;
+    return isVisibleSidebarPreview(candidate);
   });
   return previews.length === 1 ? previews[0] : null;
+}
+
+function isVisibleSidebarPreview(preview: HTMLElement): boolean {
+  const win = preview.ownerDocument.defaultView;
+  let ancestor: HTMLElement | null = preview;
+  while (ancestor) {
+    const style = win?.getComputedStyle(ancestor);
+    if (
+      ancestor.hidden ||
+      ancestor.getAttribute("aria-hidden") === "true" ||
+      ancestor.hasAttribute("inert") ||
+      style?.display === "none" ||
+      style?.visibility === "hidden" ||
+      style?.visibility === "collapse"
+    ) {
+      return false;
+    }
+    ancestor = ancestor.parentElement;
+  }
+
+  const scroller = findScroller(preview);
+  if (!scroller) return false;
+  const rect = scroller.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
 }
 
 function collectHeadings(preview: HTMLElement): HTMLElement[] {

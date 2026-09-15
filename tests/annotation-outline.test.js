@@ -18,14 +18,16 @@ function setup({
   scrollerRect = { left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600 }
 } = {}) {
   document.documentElement.lang = "zh-CN";
-  document.body.innerHTML = `<div id="annotations" style="overflow-y:auto">
-    <div data-sidebar-annotation-id="a" class="annotation selected">
-      <div class="comment"><div class="content">source a</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>第一章</h1><p>内容</p><h2>细节</h2></div></div>
+  document.body.innerHTML = `<section id="annotation-tab-panel">
+    <div id="annotations" style="overflow-y:auto">
+      <div data-sidebar-annotation-id="a" class="annotation selected">
+        <div class="comment"><div class="content">source a</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>第一章</h1><p>内容</p><h2>细节</h2></div></div>
+      </div>
+      <div data-sidebar-annotation-id="b" class="annotation">
+        <div class="comment"><div class="content">source b</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>第二章</h1><h2>结论</h2><h3>限制</h3></div></div>
+      </div>
     </div>
-    <div data-sidebar-annotation-id="b" class="annotation">
-      <div class="comment"><div class="content">source b</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>第二章</h1><h2>结论</h2><h3>限制</h3></div></div>
-    </div>
-  </div>`;
+  </section>`;
   const scroller = document.querySelector("#annotations");
   scroller.getBoundingClientRect = () => scrollerRect;
   Object.defineProperty(document.documentElement, "clientWidth", { configurable: true, value: viewportWidth });
@@ -125,6 +127,38 @@ test("temporarily hides during editing without changing the stored choice", asyn
   rows[0].querySelector(".comment").classList.remove("annotation-markdown-fast-editing");
   await flushMutations();
   expect(document.querySelector(".annotation-markdown-outline-toggle").getAttribute("aria-expanded")).toBe("true");
+  expect(setExpanded).not.toHaveBeenCalled();
+});
+
+test("hides when the annotation tab is not visible while a page popup is open", async () => {
+  const { scroller, setExpanded } = setup({ initialExpanded: true });
+  const panel = document.querySelector("#annotation-tab-panel");
+  document.body.insertAdjacentHTML("beforeend", `<div class="annotation-popup">
+    <div class="annotation selected">
+      <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>页内</h1><h2>弹窗</h2></div>
+    </div>
+  </div>`);
+
+  panel.setAttribute("aria-hidden", "true");
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+
+  panel.removeAttribute("aria-hidden");
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).not.toBeNull();
+
+  panel.style.display = "none";
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+
+  panel.style.display = "";
+  scroller.getBoundingClientRect = () => ({
+    left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0
+  });
+  panel.classList.add("inactive");
+  await flushMutations();
+
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
   expect(setExpanded).not.toHaveBeenCalled();
 });
 
