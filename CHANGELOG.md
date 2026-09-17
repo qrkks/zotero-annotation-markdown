@@ -2,12 +2,16 @@
 
 ## Unreleased
 
+## 0.7.1 - 2026-09-17
+
 ### Fixed
 
+- Preserve prose immediately following `$$...$$` display math, including multiline formulas and formulas in list items.
 - Hide the floating outline when the annotation sidebar tab is not visible, including when a page annotation popup selects the corresponding hidden sidebar row.
 
 ### 修复
 
+- 保留紧跟在 `$$...$$` 显示公式后的正文，包括多行公式和列表项中的公式。
 - 当前侧栏不在“注释”标签页时隐藏浮动大纲，避免页内标注弹窗选中隐藏的侧栏标注后在左上角误显示大纲。
 
 ## 0.7.0 - 2026-09-10
