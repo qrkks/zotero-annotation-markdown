@@ -529,7 +529,8 @@ export function createReaderController({
       ResizeObserver: windowRef?.ResizeObserver,
       isEnabled: () => settings.isEnabled() && (settings.isOutlineEnabled?.() ?? true),
       isExpanded: () => settings.isOutlineExpanded?.() ?? false,
-      setExpanded: expanded => settings.setOutlineExpanded?.(expanded)
+      setExpanded: expanded => settings.setOutlineExpanded?.(expanded),
+      getFontScale: () => settings.getOutlineFontScale?.() ?? 1
     });
   }
 

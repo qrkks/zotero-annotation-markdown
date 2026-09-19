@@ -24,12 +24,22 @@ describe("preferences pane", () => {
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineEnabled\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineFontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoTag\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoCleanup\"");
     const readerGroupEnd = source.indexOf("</groupbox>");
+    const outlineGroupStart = source.indexOf("<html:h2>Floating Outline</html:h2>");
+    const outlineGroupEnd = source.indexOf("</groupbox>", outlineGroupStart);
+    const readerGroup = source.slice(0, readerGroupEnd);
+    const outlineGroup = source.slice(outlineGroupStart, outlineGroupEnd);
     const tagsGroupStart = source.indexOf("<html:h2>Annotation Tags</html:h2>");
     const tagsGroupEnd = source.indexOf("</groupbox>", tagsGroupStart);
-    expect(readerGroupEnd).toBeLessThan(tagsGroupStart);
+    expect(readerGroupEnd).toBeLessThan(outlineGroupStart);
+    expect(readerGroup).toContain("id=\"annotation-markdown-font-scale\"");
+    expect(source).not.toContain("<html:h2>Preview Font Size</html:h2>");
+    expect(outlineGroupStart).toBeLessThan(source.indexOf("id=\"annotation-markdown-outline-enabled\""));
+    expect(source.indexOf("id=\"annotation-markdown-outline-font-scale\"")).toBeLessThan(outlineGroupEnd);
+    expect(outlineGroupEnd).toBeLessThan(tagsGroupStart);
     expect(tagsGroupStart).toBeLessThan(source.indexOf("id=\"annotation-markdown-auto-todo-tag\""));
     expect(source.indexOf("id=\"annotation-markdown-auto-todo-cleanup\"")).toBeLessThan(tagsGroupEnd);
     expect(tagsGroupEnd).toBeLessThan(source.indexOf("<html:h2>Rendering Performance</html:h2>"));
@@ -41,9 +51,9 @@ describe("preferences pane", () => {
       source.indexOf("id=\"annotation-markdown-math-enabled\"")
     );
     expect(source.indexOf("id=\"annotation-markdown-math-enabled\"")).toBeLessThan(
-      source.indexOf("id=\"annotation-markdown-outline-enabled\"")
+      source.indexOf("id=\"annotation-markdown-font-scale\"")
     );
-    expect(source.indexOf("id=\"annotation-markdown-outline-enabled\"")).toBeLessThan(
+    expect(source.indexOf("id=\"annotation-markdown-font-scale\"")).toBeLessThan(
       source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")
     );
     expect(source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")).toBeLessThan(
@@ -55,6 +65,11 @@ describe("preferences pane", () => {
     expect(source).toContain("<menuitem label=\"80%\" value=\"80\"/>");
     expect(source).toContain("<menuitem label=\"100%\" value=\"100\"/>");
     expect(source).toContain("<menuitem label=\"150%\" value=\"150\"/>");
+    expect(readerGroup).toContain("<menuitem label=\"200%\" value=\"200\"/>");
+    expect(outlineGroup).toContain("<menuitem label=\"80%\" value=\"80\"/>");
+    expect(outlineGroup).toContain("<menuitem label=\"200%\" value=\"200\"/>");
+    expect(source).toContain("<menulist id=\"annotation-markdown-outline-font-scale\"");
+    expect(source).toContain("<menuitem label=\"90%\" value=\"90\"/>");
     expect(source).toContain("<menulist id=\"annotation-markdown-render-strategy\"");
     expect(source).toContain("<menuitem label=\"Automatic (recommended)\" value=\"auto\"/>");
     expect(source).toContain("<menuitem label=\"Render all annotations\" value=\"eager\"/>");
@@ -70,6 +85,7 @@ describe("preferences pane", () => {
     const fastEditorInput = createInput();
     const mathInput = createInput();
     const outlineEnabledInput = createInput();
+    const outlineFontScaleSelect = createInput();
     const autoTodoTagInput = createInput();
     const autoTodoCleanupInput = createInput();
     const renderStrategySelect = createInput();
@@ -82,6 +98,7 @@ describe("preferences pane", () => {
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
           "annotation-markdown-outline-enabled": outlineEnabledInput,
+          "annotation-markdown-outline-font-scale": outlineFontScaleSelect,
           "annotation-markdown-auto-todo-tag": autoTodoTagInput,
           "annotation-markdown-auto-todo-cleanup": autoTodoCleanupInput,
           "annotation-markdown-render-strategy": renderStrategySelect
@@ -97,6 +114,7 @@ describe("preferences pane", () => {
     expect(fastEditorInput.checked).toBe(true);
     expect(mathInput.checked).toBe(true);
     expect(outlineEnabledInput.checked).toBe(true);
+    expect(outlineFontScaleSelect.value).toBe("100");
     expect(autoTodoTagInput.checked).toBe(false);
     expect(autoTodoCleanupInput.checked).toBe(false);
     expect(autoTodoCleanupInput.disabled).toBe(true);
@@ -119,6 +137,7 @@ describe("preferences pane", () => {
             "extensions.annotationMarkdown.fastEditor": true,
             "extensions.annotationMarkdown.mathEnabled": true,
             "extensions.annotationMarkdown.outlineEnabled": true,
+            "extensions.annotationMarkdown.outlineFontScalePercent": 100,
             "extensions.annotationMarkdown.autoTodoTag": false,
             "extensions.annotationMarkdown.autoTodoCleanup": false,
             "extensions.annotationMarkdown.renderStrategy": "auto"
@@ -133,6 +152,7 @@ describe("preferences pane", () => {
     const fastEditorInput = createInput();
     const mathInput = createInput();
     const outlineEnabledInput = createInput();
+    const outlineFontScaleSelect = createInput();
     const autoTodoTagInput = createInput();
     const autoTodoCleanupInput = createInput();
     const renderStrategySelect = createInput();
@@ -145,6 +165,7 @@ describe("preferences pane", () => {
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
           "annotation-markdown-outline-enabled": outlineEnabledInput,
+          "annotation-markdown-outline-font-scale": outlineFontScaleSelect,
           "annotation-markdown-auto-todo-tag": autoTodoTagInput,
           "annotation-markdown-auto-todo-cleanup": autoTodoCleanupInput,
           "annotation-markdown-render-strategy": renderStrategySelect
@@ -165,6 +186,8 @@ describe("preferences pane", () => {
     mathInput.dispatch("command");
     outlineEnabledInput.checked = false;
     outlineEnabledInput.dispatch("command");
+    outlineFontScaleSelect.value = "140";
+    outlineFontScaleSelect.dispatch("command");
     autoTodoTagInput.checked = true;
     autoTodoTagInput.dispatch("command");
     expect(autoTodoCleanupInput.disabled).toBe(false);
@@ -179,6 +202,7 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineFontScalePercent", 140, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoTag", true, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoCleanup", true, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy", true);

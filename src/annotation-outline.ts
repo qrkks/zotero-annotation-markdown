@@ -21,6 +21,8 @@ const VIEWPORT_INSET_PX = 8;
 const OUTSIDE_GAP_PX = 6;
 const SCROLLBAR_RESERVE_PX = 16;
 const PANEL_MAX_WIDTH_PX = 224;
+const PANEL_WIDTH_PER_SCALE_PX = 112;
+const PANEL_MAX_SCALED_WIDTH_PX = 320;
 const PANEL_MIN_OUTSIDE_WIDTH_PX = 168;
 let nextPanelID = 0;
 
@@ -36,6 +38,7 @@ interface AnnotationOutlineOptions {
   isEnabled(): boolean;
   isExpanded(): boolean;
   setExpanded(expanded: boolean): void;
+  getFontScale?(): number;
 }
 
 export function trackAnnotationOutline({
@@ -44,7 +47,8 @@ export function trackAnnotationOutline({
   ResizeObserver: ResizeObserverRef,
   isEnabled,
   isExpanded,
-  setExpanded
+  setExpanded,
+  getFontScale = () => 1
 }: AnnotationOutlineOptions): AnnotationOutlineController {
   const win = doc.defaultView;
   let active = true;
@@ -91,6 +95,7 @@ export function trackAnnotationOutline({
       headings.every((heading, index) => heading === nextHeadings[index]) &&
       signature === nextSignature
     ) {
+      applyFontScale();
       applyExpandedState();
       scheduleViewportUpdate();
       return;
@@ -167,6 +172,7 @@ export function trackAnnotationOutline({
     outline = nav;
     panel = menu;
     toggle = button;
+    applyFontScale();
     scroller = findScroller(preview);
     scroller?.addEventListener("scroll", scheduleViewportUpdate, { passive: true });
     win?.addEventListener?.("resize", scheduleViewportUpdate);
@@ -184,6 +190,14 @@ export function trackAnnotationOutline({
     if (outline.dataset.expanded !== value) outline.dataset.expanded = value;
     if (panel.hidden !== !expanded) panel.hidden = !expanded;
     if (toggle.getAttribute("aria-expanded") !== value) toggle.setAttribute("aria-expanded", value);
+  }
+
+  function applyFontScale(): void {
+    if (!outline) return;
+    const size = `${Number((0.85 * getFontScale()).toFixed(3))}em`;
+    if (outline.style.getPropertyValue("--annotation-markdown-outline-font-size") !== size) {
+      outline.style.setProperty("--annotation-markdown-outline-font-size", size);
+    }
   }
 
   function scrollToHeading(heading: HTMLElement): void {
@@ -231,7 +245,9 @@ export function trackAnnotationOutline({
     const availableWidth = canOpenOutside
       ? rightSpace
       : Math.max(0, anchor - VIEWPORT_INSET_PX);
-    const panelWidth = Math.min(PANEL_MAX_WIDTH_PX, availableWidth);
+    const panelMaxWidth = Math.min(PANEL_MAX_SCALED_WIDTH_PX, PANEL_MAX_WIDTH_PX +
+      Math.max(0, getFontScale() - 1) * PANEL_WIDTH_PER_SCALE_PX);
+    const panelWidth = Math.min(panelMaxWidth, availableWidth);
     const topLimit = Math.max(VIEWPORT_INSET_PX, viewportHeight - 40);
     const top = Math.min(Math.max(VIEWPORT_INSET_PX, rect.top + VIEWPORT_INSET_PX), topLimit);
     const side = canOpenOutside ? "right" : "left";

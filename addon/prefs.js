@@ -8,5 +8,6 @@ pref("extensions.annotationMarkdown.lightweightMode", false);
 pref("extensions.annotationMarkdown.renderStrategy", "auto");
 pref("extensions.annotationMarkdown.outlineEnabled", true);
 pref("extensions.annotationMarkdown.outlineExpanded", false);
+pref("extensions.annotationMarkdown.outlineFontScalePercent", 100);
 pref("extensions.annotationMarkdown.autoTodoTag", false);
 pref("extensions.annotationMarkdown.autoTodoCleanup", false);

@@ -30,7 +30,7 @@
 
 .annotation-markdown-outline-surface {
     color: CanvasText;
-    font-size: 0.85em;
+    font-size: var(--annotation-markdown-outline-font-size, 0.85em);
     max-width: calc(100vw - 2em);
     pointer-events: auto;
     position: relative;

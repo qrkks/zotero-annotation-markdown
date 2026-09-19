@@ -5,6 +5,7 @@ var ZoteroAnnotationMarkdownPreferences = {
   fastEditorKey: "extensions.annotationMarkdown.fastEditor",
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
   outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
+  outlineFontScalePercentKey: "extensions.annotationMarkdown.outlineFontScalePercent",
   autoTodoTagKey: "extensions.annotationMarkdown.autoTodoTag",
   autoTodoCleanupKey: "extensions.annotationMarkdown.autoTodoCleanup",
   renderStrategyKey: "extensions.annotationMarkdown.renderStrategy",
@@ -16,6 +17,7 @@ var ZoteroAnnotationMarkdownPreferences = {
     const fastEditorInput = documentRef.getElementById("annotation-markdown-fast-editor");
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
     const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
+    const outlineFontScaleSelect = documentRef.getElementById("annotation-markdown-outline-font-scale");
     const autoTodoTagInput = documentRef.getElementById("annotation-markdown-auto-todo-tag");
     const autoTodoCleanupInput = documentRef.getElementById("annotation-markdown-auto-todo-cleanup");
     const renderStrategySelect = documentRef.getElementById("annotation-markdown-render-strategy");
@@ -27,6 +29,7 @@ var ZoteroAnnotationMarkdownPreferences = {
       !fastEditorInput ||
       !mathEnabledInput ||
       !outlineEnabledInput ||
+      !outlineFontScaleSelect ||
       !autoTodoTagInput ||
       !autoTodoCleanupInput ||
       !renderStrategySelect
@@ -40,6 +43,7 @@ var ZoteroAnnotationMarkdownPreferences = {
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
     outlineEnabledInput.checked = this.getPref(this.outlineEnabledKey, true);
+    outlineFontScaleSelect.value = String(this.getPref(this.outlineFontScalePercentKey, 100));
     autoTodoTagInput.checked = this.getPref(this.autoTodoTagKey, false);
     autoTodoCleanupInput.checked = this.getPref(this.autoTodoCleanupKey, false);
     autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
@@ -67,6 +71,10 @@ var ZoteroAnnotationMarkdownPreferences = {
 
     outlineEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.outlineEnabledKey, Boolean(outlineEnabledInput.checked), true);
+    });
+
+    outlineFontScaleSelect.addEventListener("command", () => {
+      Zotero.Prefs.set(this.outlineFontScalePercentKey, Number.parseInt(outlineFontScaleSelect.value, 10), true);
     });
 
     autoTodoTagInput.addEventListener("command", () => {

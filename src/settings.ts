@@ -15,6 +15,7 @@ export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightwei
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
 export const OUTLINE_ENABLED_PREF_KEY = "extensions.annotationMarkdown.outlineEnabled";
 export const OUTLINE_EXPANDED_PREF_KEY = "extensions.annotationMarkdown.outlineExpanded";
+export const OUTLINE_FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.outlineFontScalePercent";
 export const AUTO_TODO_TAG_PREF_KEY = "extensions.annotationMarkdown.autoTodoTag";
 export const AUTO_TODO_CLEANUP_PREF_KEY = "extensions.annotationMarkdown.autoTodoCleanup";
 export const RENDER_STRATEGIES = ["auto", "eager", "lazy"] as const;
@@ -42,6 +43,8 @@ export interface Settings {
   setOutlineEnabled(enabled: boolean): void;
   isOutlineExpanded(): boolean;
   setOutlineExpanded(expanded: boolean): void;
+  getOutlineFontScale(): number;
+  setOutlineFontScale(fontScale: number): void;
   isAutoTodoTagEnabled(): boolean;
   setAutoTodoTagEnabled(enabled: boolean): void;
   isAutoTodoCleanupEnabled(): boolean;
@@ -60,6 +63,7 @@ interface CreateSettingsOptions {
   renderStrategyKey?: string;
   outlineEnabledKey?: string;
   outlineExpandedKey?: string;
+  outlineFontScalePercentKey?: string;
   autoTodoTagKey?: string;
   autoTodoCleanupKey?: string;
 }
@@ -67,7 +71,7 @@ interface CreateSettingsOptions {
 const DEFAULT_FONT_SCALE = 1;
 const DEFAULT_FONT_SCALE_PERCENT = 100;
 const MIN_FONT_SCALE = 0.8;
-const MAX_FONT_SCALE = 1.5;
+const MAX_FONT_SCALE = 2;
 
 /**
  * Creates normalized settings over an injected store, with in-memory fallbacks
@@ -85,6 +89,7 @@ export function createSettings({
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
   outlineEnabledKey = OUTLINE_ENABLED_PREF_KEY,
   outlineExpandedKey = OUTLINE_EXPANDED_PREF_KEY,
+  outlineFontScalePercentKey = OUTLINE_FONT_SCALE_PERCENT_PREF_KEY,
   autoTodoTagKey = AUTO_TODO_TAG_PREF_KEY,
   autoTodoCleanupKey = AUTO_TODO_CLEANUP_PREF_KEY
 }: CreateSettingsOptions = {}): Settings {
@@ -98,6 +103,7 @@ export function createSettings({
   let memoryRenderStrategy: RenderStrategy = "auto";
   let memoryOutlineEnabled = true;
   let memoryOutlineExpanded = false;
+  let memoryOutlineFontScale = DEFAULT_FONT_SCALE;
   let memoryAutoTodoTag = false;
   let memoryAutoTodoCleanup = false;
 
@@ -281,6 +287,21 @@ export function createSettings({
       }
 
       memoryOutlineExpanded = value;
+    },
+
+    getOutlineFontScale() {
+      if (prefs?.get) {
+        return normalizeFontScalePercent(
+          prefs.get(outlineFontScalePercentKey, DEFAULT_FONT_SCALE_PERCENT)
+        );
+      }
+      return memoryOutlineFontScale;
+    },
+
+    setOutlineFontScale(fontScale) {
+      const value = normalizeFontScale(fontScale);
+      prefs?.set?.(outlineFontScalePercentKey, Math.round(value * 100));
+      memoryOutlineFontScale = value;
     },
 
     isAutoTodoTagEnabled() {

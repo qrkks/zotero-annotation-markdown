@@ -9,9 +9,27 @@
     <checkbox id="annotation-markdown-math-enabled"
               preference="extensions.annotationMarkdown.mathEnabled"
               label="Render LaTeX math formulas"/>
-    <checkbox id="annotation-markdown-outline-enabled"
-              preference="extensions.annotationMarkdown.outlineEnabled"
-              label="Show a floating outline for annotations with multiple headings"/>
+    <hbox class="annotation-markdown-preference-field" align="center">
+      <label value="Markdown preview font size"/>
+      <menulist id="annotation-markdown-font-scale"
+        preference="extensions.annotationMarkdown.fontScalePercent">
+        <menupopup>
+          <menuitem label="80%" value="80"/>
+          <menuitem label="90%" value="90"/>
+          <menuitem label="100%" value="100"/>
+          <menuitem label="110%" value="110"/>
+          <menuitem label="120%" value="120"/>
+          <menuitem label="130%" value="130"/>
+          <menuitem label="140%" value="140"/>
+          <menuitem label="150%" value="150"/>
+          <menuitem label="160%" value="160"/>
+          <menuitem label="170%" value="170"/>
+          <menuitem label="180%" value="180"/>
+          <menuitem label="190%" value="190"/>
+          <menuitem label="200%" value="200"/>
+        </menupopup>
+      </menulist>
+    </hbox>
     <checkbox id="annotation-markdown-paste-as-plain-text"
               preference="extensions.annotationMarkdown.pasteAsPlainText"
               label="Paste clipboard content into annotation comments as plain text"/>
@@ -20,6 +38,34 @@
               preference="extensions.annotationMarkdown.fastEditor"
               label="Use the fast annotation comment editor"/>
     <description class="annotation-markdown-preference-description">Helps reduce typing lag in documents with many annotations.</description>
+  </groupbox>
+
+  <groupbox>
+    <label><html:h2>Floating Outline</html:h2></label>
+    <checkbox id="annotation-markdown-outline-enabled"
+              preference="extensions.annotationMarkdown.outlineEnabled"
+              label="Show a floating outline for annotations with multiple headings"/>
+    <hbox class="annotation-markdown-preference-field" align="center">
+      <label value="Outline text size"/>
+      <menulist id="annotation-markdown-outline-font-scale"
+        preference="extensions.annotationMarkdown.outlineFontScalePercent">
+        <menupopup>
+          <menuitem label="80%" value="80"/>
+          <menuitem label="90%" value="90"/>
+          <menuitem label="100%" value="100"/>
+          <menuitem label="110%" value="110"/>
+          <menuitem label="120%" value="120"/>
+          <menuitem label="130%" value="130"/>
+          <menuitem label="140%" value="140"/>
+          <menuitem label="150%" value="150"/>
+          <menuitem label="160%" value="160"/>
+          <menuitem label="170%" value="170"/>
+          <menuitem label="180%" value="180"/>
+          <menuitem label="190%" value="190"/>
+          <menuitem label="200%" value="200"/>
+        </menupopup>
+      </menulist>
+    </hbox>
   </groupbox>
 
   <groupbox>
@@ -49,23 +95,4 @@
     </hbox>
   </groupbox>
 
-  <groupbox>
-    <label><html:h2>Preview Font Size</html:h2></label>
-    <hbox class="annotation-markdown-preference-field" align="center">
-      <label value="Markdown preview font size"/>
-      <menulist id="annotation-markdown-font-scale"
-        preference="extensions.annotationMarkdown.fontScalePercent">
-        <menupopup>
-          <menuitem label="80%" value="80"/>
-          <menuitem label="90%" value="90"/>
-          <menuitem label="100%" value="100"/>
-          <menuitem label="110%" value="110"/>
-          <menuitem label="120%" value="120"/>
-          <menuitem label="130%" value="130"/>
-          <menuitem label="140%" value="140"/>
-          <menuitem label="150%" value="150"/>
-        </menupopup>
-      </menulist>
-    </hbox>
-  </groupbox>
 </vbox>

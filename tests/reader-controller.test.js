@@ -2103,11 +2103,11 @@ describe("createReaderController", () => {
     });
 
     controller.start();
-    fontScale = 1.2;
+    fontScale = 2;
     controller.refresh();
 
     const style = document.querySelector("style[data-annotation-markdown-style='true']");
-    expect(style?.textContent).toContain("--annotation-markdown-font-scale: 1.2em");
+    expect(style?.textContent).toContain("--annotation-markdown-font-scale: 2em");
 
     controller.stop();
   });

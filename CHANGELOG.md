@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- Add a separate 80%–200% text size setting for the floating outline. Keep 100% at the previous size and widen the outline panel when enlarged, within the available reader space.
+- Extend the Markdown preview font size choices from 150% up to 200%.
+- Move the Markdown preview font size control into **Reader Annotations** beside its rendering options.
+
+### 新增
+
+- 浮动大纲新增独立的 80%–200% 文字大小设置；100% 保持原有大小，放大时在阅读器可用空间内相应加宽面板。
+- Markdown 预览字号上限由 150% 提高到 200%。
+- 将 Markdown 预览字号设置移入 **Reader Annotations** 分组，紧邻渲染选项。
+
 ## 0.8.0 - 2026-09-19
 
 ### Added

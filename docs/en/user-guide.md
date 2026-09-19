@@ -27,9 +27,10 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
 - LaTeX math rendering;
 - showing a floating outline for annotations with multiple headings, enabled by default;
+- adjusting floating outline text size independently from 80% to 200%, with 100% preserving the previous size;
 - adding a `todo` annotation tag when a saved comment contains a `todo:` or `todo：` directive, disabled by default;
 - optionally removing the lowercase `todo` annotation tag after the directive is removed and the comment is saved, disabled by default and requiring automatic tagging;
-- preview font size from 80% to 150%;
+- preview font size from 80% to 200%;
 - annotation rendering strategy.
 
 The rendering strategies are:
@@ -38,7 +39,7 @@ The rendering strategies are:
 - **Render all annotations:** schedules all annotation previews for rendering.
 - **Render near the viewport:** renders annotations as they approach the visible sidebar region.
 
-Settings are saved automatically. If the reader does not reflect a changed setting, close and reopen that reader or restart Zotero.
+Settings are saved automatically. Markdown preview font size is in **Reader Annotations**, beside the rendering options. If the reader does not reflect a changed setting, close and reopen that reader or restart Zotero.
 
 ## Preview and editing states
 
@@ -56,7 +57,7 @@ Both options are in the **Annotation Tags** settings group. Automatic cleanup is
 
 When the selected annotation contains at least two Markdown headings, a compact **Outline** button stays fixed beside the annotation-sidebar viewport, so it remains available after the start of a long annotation has scrolled away. It prefers the open space to the right of the sidebar and scrollbar; at narrow widths it moves inside and opens to the left. The outline includes `H1` through `H6`, preserves their hierarchy, and highlights the section nearest the top of the annotation sidebar. Choosing an entry smoothly scrolls only that sidebar to its heading; it does not enter comment editing or change the selected annotation.
 
-The outline is enabled by default and can be disabled with **Show a floating outline for annotations with multiple headings** in the add-on settings. It starts closed for new installations. Opening or closing it is remembered independently across annotations, Reader tabs, and Zotero restarts, so disabling and later re-enabling the feature preserves that choice. An annotation with fewer than two headings has no outline. Entering comment editing hides the outline temporarily, then restores the remembered state when the rendered preview returns.
+The outline is enabled by default and can be disabled with **Show a floating outline for annotations with multiple headings** in the **Floating Outline** settings group. **Outline text size** ranges from 80% to 200%, with 100% preserving the previous size. It is separate from Markdown preview font size and updates open Readers immediately. The panel widens when the text is enlarged, as space allows. The outline starts closed for new installations. Opening or closing it is remembered independently across annotations, Reader tabs, and Zotero restarts, so disabling and later re-enabling the feature preserves that choice. An annotation with fewer than two headings has no outline. Entering comment editing hides the outline temporarily, then restores the remembered state when the rendered preview returns.
 
 ## Sidebar positioning
 

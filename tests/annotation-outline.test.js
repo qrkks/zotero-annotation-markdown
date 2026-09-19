@@ -13,6 +13,7 @@ afterEach(() => {
 function setup({
   initialExpanded = false,
   enabled = true,
+  fontScale = 1,
   viewportWidth = 800,
   viewportHeight = 700,
   scrollerRect = { left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600 }
@@ -35,19 +36,25 @@ function setup({
   Object.defineProperty(window, "innerWidth", { configurable: true, value: viewportWidth });
   Object.defineProperty(window, "innerHeight", { configurable: true, value: viewportHeight });
   let expanded = initialExpanded;
+  let currentFontScale = fontScale;
   const setExpanded = vi.fn(value => { expanded = value; });
   controller = trackAnnotationOutline({
     document,
     MutationObserver: window.MutationObserver,
     isEnabled: () => enabled,
     isExpanded: () => expanded,
-    setExpanded
+    setExpanded,
+    getFontScale: () => currentFontScale
   });
   return {
     rows: [...document.querySelectorAll(".annotation")],
     scroller,
     setExpanded,
-    getExpanded: () => expanded
+    getExpanded: () => expanded,
+    setFontScale(value) {
+      currentFontScale = value;
+      controller.sync();
+    }
   };
 }
 
@@ -73,7 +80,43 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(outline.style.left).toBe("326px");
   expect(outline.style.top).toBe("68px");
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("224px");
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.85em");
 });
+
+test("resizes the outline text and available panel width on a live preference change", async () => {
+  const { setFontScale } = setup({ viewportWidth: 420, initialExpanded: true });
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+
+  setFontScale(1.5);
+  await nextFrame();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("1.275em");
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("280px");
+  expect(outline.querySelector(".annotation-markdown-outline-panel").hidden).toBe(false);
+
+  setFontScale(2);
+  await nextFrame();
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("1.7em");
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("290px");
+
+  setFontScale(0.8);
+  await nextFrame();
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.68em");
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("224px");
+});
+
+test("caps the enlarged outline panel width in a wide reader", () => {
+  setup({ viewportWidth: 800, fontScale: 2 });
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("320px");
+});
+
+function nextFrame() {
+  return new Promise(resolve => {
+    if (window.requestAnimationFrame) window.requestAnimationFrame(resolve);
+    else setTimeout(resolve, 0);
+  });
+}
 
 test("falls back inside to the left while reserving the sidebar scrollbar", () => {
   setup({ viewportWidth: 420 });

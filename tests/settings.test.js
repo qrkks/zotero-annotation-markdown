@@ -65,11 +65,16 @@ describe("createSettings", () => {
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 110);
   });
 
-  test("keeps font scale within a sidebar-friendly range", () => {
+  test("allows markdown preview font scale up to 200 percent", () => {
     const settings = createSettings();
 
     settings.setFontScale(10);
-    expect(settings.getFontScale()).toBe(1.5);
+    expect(settings.getFontScale()).toBe(2);
+
+    settings.setFontScale(1.8);
+    expect(settings.getFontScale()).toBe(1.8);
+
+    expect(createSettings({ prefs: { get: () => 200 } }).getFontScale()).toBe(2);
 
     settings.setFontScale(0.1);
     expect(settings.getFontScale()).toBe(0.8);
@@ -227,6 +232,27 @@ describe("createSettings", () => {
     expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", true);
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", true);
     expect(createSettings({ prefs: { get: () => undefined } }).isOutlineEnabled()).toBe(true);
+  });
+
+  test("stores outline font size separately from preview font size", () => {
+    const settings = createSettings();
+    expect(settings.getOutlineFontScale()).toBe(1);
+    settings.setOutlineFontScale(1.4);
+    expect(settings.getOutlineFontScale()).toBe(1.4);
+    expect(settings.getFontScale()).toBe(1);
+    settings.setOutlineFontScale(0.1);
+    expect(settings.getOutlineFontScale()).toBe(0.8);
+    settings.setOutlineFontScale(10);
+    expect(settings.getOutlineFontScale()).toBe(2);
+
+    const prefs = { get: vi.fn(() => 120), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.getOutlineFontScale()).toBe(1.2);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineFontScalePercent", 100);
+    stored.setOutlineFontScale(1.3);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineFontScalePercent", 130);
+    expect(createSettings({ prefs: { get: () => undefined } }).getOutlineFontScale()).toBe(1);
+    expect(createSettings({ prefs: { get: () => 200 } }).getOutlineFontScale()).toBe(2);
   });
 
   test("defaults automatic todo tagging off and persists its choice", () => {
