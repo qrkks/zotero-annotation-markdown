@@ -81,7 +81,7 @@ export function trackAnnotationOutline({
     const nextPreview = findSelectedPreview(doc, isEnabled);
     const nextHeadings = nextPreview ? collectHeadings(nextPreview) : [];
     const nextSignature = nextHeadings
-      .map(heading => `${heading.tagName}:${normalizeHeadingText(heading.textContent)}`)
+      .map(heading => `${heading.tagName}:${getHeadingLabel(heading)}`)
       .join("\n");
 
     if (!nextPreview || nextHeadings.length < 2) {
@@ -135,7 +135,7 @@ export function trackAnnotationOutline({
     buttons = headings.map((heading, index) => {
       heading.setAttribute(TARGET, String(index));
       const item = doc.createElement("button");
-      const label = normalizeHeadingText(heading.textContent);
+      const label = getHeadingLabel(heading);
       item.type = "button";
       item.className = "annotation-markdown-outline-item";
       item.dataset.level = heading.tagName.slice(1);
@@ -345,7 +345,18 @@ function isVisibleSidebarPreview(preview: HTMLElement): boolean {
 
 function collectHeadings(preview: HTMLElement): HTMLElement[] {
   return Array.from(preview.querySelectorAll<HTMLElement>(HEADING_SELECTOR))
-    .filter(heading => normalizeHeadingText(heading.textContent).length > 0);
+    .filter(heading => getHeadingLabel(heading).length > 0);
+}
+
+function getHeadingLabel(heading: HTMLElement): string {
+  if (!heading.querySelector(".katex")) return normalizeHeadingText(heading.textContent);
+  const copy = heading.cloneNode(true) as HTMLElement;
+  for (const math of copy.querySelectorAll<HTMLElement>(".katex")) {
+    const visible = math.querySelector<HTMLElement>(".katex-html");
+    if (visible) math.replaceWith(visible.textContent ?? "");
+    else math.querySelector("annotation[encoding='application/x-tex']")?.remove();
+  }
+  return normalizeHeadingText(copy.textContent);
 }
 
 function normalizeHeadingText(value: string | null): string {

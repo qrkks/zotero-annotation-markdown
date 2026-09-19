@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 import { trackAnnotationOutline } from "../src/annotation-outline.ts";
+import { createMarkdownRenderer } from "../src/markdown-renderer.ts";
 
 let controller;
 afterEach(() => {
@@ -81,6 +82,24 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(outline.style.top).toBe("68px");
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("224px");
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.85em");
+});
+
+test("uses only the visible KaTeX text in outline labels and tooltips", () => {
+  setup();
+  const rendered = document.createElement("div");
+  rendered.innerHTML = createMarkdownRenderer({ windowRef: window })
+    .render("## 它就是课本上的 $A^{-1}XA=\\Lambda X$ 吗？");
+  const heading = rendered.querySelector("h2");
+  expect(heading.querySelector(".katex-mathml")).not.toBeNull();
+  expect(heading.querySelector(".katex-html")).not.toBeNull();
+  expect(heading.textContent).toContain("\\Lambda");
+  document.querySelector(".annotation.selected h2").replaceWith(heading);
+  controller.sync();
+
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.textContent).toBe("它就是课本上的 A−1XA=ΛX 吗？");
+  expect(item.title).toBe(item.textContent);
+  expect(heading.querySelector(".katex-mathml")).not.toBeNull();
 });
 
 test("resizes the outline text and available panel width on a live preference change", async () => {

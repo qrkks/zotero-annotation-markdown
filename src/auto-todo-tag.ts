@@ -37,7 +37,7 @@ interface AutoTodoTagOptions {
 }
 
 const TODO_TAG = "todo";
-const TODO_DIRECTIVE = /^[ \t]*todo[:：]/im;
+const TODO_DIRECTIVE = /^[ \t]*(?:todo|t)[:：]/im;
 
 export function hasTodoDirective(comment: string): boolean {
   return TODO_DIRECTIVE.test(comment);

@@ -8,13 +8,17 @@ const settle = async () => {
 };
 
 describe("automatic annotation todo tag", () => {
-  test("matches a line-leading todo directive in any letter case", () => {
+  test("matches line-leading todo and t directives in any letter case", () => {
     for (const comment of [
-      "todo: read", "TODO: read", "Todo：读完", "Note\n  tOdO：再核对"
+      "todo: read", "TODO: read", "Todo：读完", "Note\n  tOdO：再核对",
+      "t: read", "T：读完", "Note\n  t：再核对"
     ]) {
       expect(hasTodoDirective(comment)).toBe(true);
     }
-    for (const comment of ["A todo: example in prose", "`todo:` is syntax", "todoo: read", "todo read", "todo读完"]) {
+    for (const comment of [
+      "A todo: example in prose", "`todo:` is syntax", "todoo: read", "todo read", "todo读完",
+      "A t: example in prose", "`t:` is syntax", "tt: read", "to: read", "t read", "t读完"
+    ]) {
       expect(hasTodoDirective(comment)).toBe(false);
     }
   });
@@ -24,7 +28,7 @@ describe("automatic annotation todo tag", () => {
     const tags = [];
     const item = {
       isAnnotation: () => true,
-      annotationComment: "TODO: check this",
+      annotationComment: "T：check this",
       getTags: () => tags.map(tag => ({ tag })),
       addTag: vi.fn(tag => { tags.push(tag); return true; }),
       saveTx: vi.fn(async () => notify("modify", "item", [7], { 7: { changed: { tags: [] } } }))
@@ -146,13 +150,19 @@ describe("automatic annotation todo tag", () => {
       isCleanupEnabled: () => cleanupEnabled,
       warn: vi.fn()
     });
-    const commentChange = { 7: { changed: { annotationComment: "todo: read" } } };
+    const commentChange = { 7: { changed: { annotationComment: "t: read" } } };
 
     notify("modify", "item", [7], commentChange);
     await settle();
     expect(item.removeTag).not.toHaveBeenCalled();
 
     cleanupEnabled = true;
+    item.annotationComment = "T：still pending";
+    notify("modify", "item", [7], { 7: { changed: { annotationComment: "todo: read" } } });
+    await settle();
+    expect(item.removeTag).not.toHaveBeenCalled();
+
+    item.annotationComment = "Finished reading";
     notify("modify", "item", [7], { 7: { changed: { annotationComment: "Earlier unrelated comment" } } });
     await settle();
     expect(item.removeTag).not.toHaveBeenCalled();

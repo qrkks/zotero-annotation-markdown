@@ -28,7 +28,7 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - LaTeX math rendering;
 - showing a floating outline for annotations with multiple headings, enabled by default;
 - adjusting floating outline text size independently from 80% to 200%, with 100% preserving the previous size;
-- adding a `todo` annotation tag when a saved comment contains a `todo:` or `todo：` directive, disabled by default;
+- adding a `todo` annotation tag when a saved comment contains a `todo:`, `todo：`, `t:`, or `t：` directive, disabled by default;
 - optionally removing the lowercase `todo` annotation tag after the directive is removed and the comment is saved, disabled by default and requiring automatic tagging;
 - preview font size from 80% to 200%;
 - annotation rendering strategy.
@@ -49,7 +49,7 @@ If the installed Zotero version does not expose the Reader annotation update cap
 
 The add-on never replaces the Markdown source stored by Zotero with generated HTML.
 
-When automatic todo tagging is enabled, a newly added annotation or a saved comment change with a line starting with `todo:` or `todo：` (indentation allowed, case insensitive, such as `TODO:` or `Todo：`) gains a lowercase `todo` tag on that annotation. An existing todo tag in any letter case is left alone. The rule does not scan older annotations.
+When automatic todo tagging is enabled, a newly added annotation or a saved comment change with a line starting with `todo:`, `todo：`, `t:`, or `t：` (indentation allowed, case insensitive, such as `TODO:` or `T：`) gains a lowercase `todo` tag on that annotation. `t:` is a short form of `todo:` and follows the same cleanup rule. An existing todo tag in any letter case is left alone. The rule does not scan older annotations.
 
 Both options are in the **Annotation Tags** settings group. Automatic cleanup is a separate option. When enabled, a comment edit that removes the directive also removes that annotation's lowercase `todo` tag. Tag-only changes and edits to comments that never had a directive do not run cleanup. Zotero does not record whether the plugin or the user added a particular lowercase `todo` tag; this option can therefore remove a manually added one. It leaves uppercase `TODO` tags untouched. Both options are off by default.
 

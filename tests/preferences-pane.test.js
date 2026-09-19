@@ -27,6 +27,7 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineFontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoTag\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoCleanup\"");
+    expect(source).toContain("Add a todo tag for TODO: or T: lines");
     const readerGroupEnd = source.indexOf("</groupbox>");
     const outlineGroupStart = source.indexOf("<html:h2>Floating Outline</html:h2>");
     const outlineGroupEnd = source.indexOf("</groupbox>", outlineGroupStart);

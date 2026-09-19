@@ -7,12 +7,22 @@
 - Add a separate 80%–200% text size setting for the floating outline. Keep 100% at the previous size and widen the outline panel when enlarged, within the available reader space.
 - Extend the Markdown preview font size choices from 150% up to 200%.
 - Move the Markdown preview font size control into **Reader Annotations** beside its rendering options.
+- Accept `t:` and `t：` as case-insensitive, line-leading shortcuts for automatic `todo` tagging and cleanup.
 
 ### 新增
 
 - 浮动大纲新增独立的 80%–200% 文字大小设置；100% 保持原有大小，放大时在阅读器可用空间内相应加宽面板。
 - Markdown 预览字号上限由 150% 提高到 200%。
 - 将 Markdown 预览字号设置移入 **Reader Annotations** 分组，紧邻渲染选项。
+- 自动 `todo` 标签及清理规则新增行首简写 `t:` 和 `t：`，不区分大小写。
+
+### Fixed
+
+- Keep math in floating outline titles concise by omitting KaTeX's duplicate accessibility and source text.
+
+### 修复
+
+- 浮动大纲的公式标题不再重复拼接 KaTeX 的辅助阅读文字与公式源码。
 
 ## 0.8.0 - 2026-09-19
 

@@ -72,11 +72,11 @@
     <label><html:h2>Annotation Tags</html:h2></label>
     <checkbox id="annotation-markdown-auto-todo-tag"
               preference="extensions.annotationMarkdown.autoTodoTag"
-              label="Add a todo tag when an annotation comment has a TODO: line"/>
-    <description class="annotation-markdown-preference-description">Matches todo: or todo： in any letter case at the start of a line and adds a lowercase todo tag.</description>
+              label="Add a todo tag for TODO: or T: lines"/>
+    <description class="annotation-markdown-preference-description">Matches todo:, todo：, t:, or t： at the start of a line in any letter case and adds a lowercase todo tag.</description>
     <checkbox id="annotation-markdown-auto-todo-cleanup"
               preference="extensions.annotationMarkdown.autoTodoCleanup"
-              label="Remove the todo tag when the TODO: line is removed"/>
+              label="Remove the todo tag when the directive is removed"/>
     <description class="annotation-markdown-preference-description">Optional; works only with automatic tagging. After a comment edit, removes the lowercase todo tag even if it was added manually. Does not scan old annotations.</description>
   </groupbox>
 
