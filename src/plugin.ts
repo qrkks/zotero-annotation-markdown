@@ -8,6 +8,7 @@ import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js"
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
+import { registerAutoTodoTagger, type ZoteroTagApi } from "./auto-todo-tag.js";
 import type {
   PreferenceStore,
   PreferenceValue
@@ -79,7 +80,7 @@ interface ZoteroPrefsApi {
   unregisterObserver?(observerId: unknown): void;
 }
 
-interface ZoteroApi {
+interface ZoteroApi extends ZoteroTagApi {
   Reader?: ZoteroReaderApi;
   Prefs?: ZoteroPrefsApi;
   Weavero?: {
@@ -143,14 +144,15 @@ export function createPlugin({
   let registry: PluginRegistry | undefined;
   let readerEventHandler: ReaderEventHandler | undefined;
   let preferenceObserverIds: unknown[] = [];
+  let stopAutoTodoTagger: (() => void) | undefined;
   const diagnosticsLogger = createLogger(Zotero, logger, diagnostics);
+  const settings = createSettings({ prefs: createPrefsAdapter(Zotero) });
 
   function makeRegistry(): PluginRegistry {
     if (registryFactory) {
       return registryFactory();
     }
 
-    const settings = createSettings({ prefs: createPrefsAdapter(Zotero) });
     return createReaderRegistry({
       controllerFactory(reader) {
         const readerWindow = getReaderWindow(reader) ?? windowRef;
@@ -193,6 +195,12 @@ export function createPlugin({
         Zotero,
         () => activeRegistry.refresh?.()
       );
+      stopAutoTodoTagger = registerAutoTodoTagger({
+        Zotero,
+        isEnabled: () => settings.isAutoTodoTagEnabled(),
+        isCleanupEnabled: () => settings.isAutoTodoCleanupEnabled(),
+        warn: (message, error) => diagnosticsLogger.warn(message, error)
+      });
 
       const openReaders = collectOpenReaders(Zotero);
       diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
@@ -225,6 +233,8 @@ export function createPlugin({
         // Reader teardown must still run when Zotero rejects listener cleanup during shutdown.
         unregisterPreferenceObservers(Zotero, preferenceObserverIds);
         preferenceObserverIds = [];
+        stopAutoTodoTagger?.();
+        stopAutoTodoTagger = undefined;
         readerEventHandler = undefined;
         registry?.shutdown();
         registry = undefined;

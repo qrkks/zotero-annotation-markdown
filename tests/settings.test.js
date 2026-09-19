@@ -228,4 +228,32 @@ describe("createSettings", () => {
     expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", true);
     expect(createSettings({ prefs: { get: () => undefined } }).isOutlineEnabled()).toBe(true);
   });
+
+  test("defaults automatic todo tagging off and persists its choice", () => {
+    const settings = createSettings();
+    expect(settings.isAutoTodoTagEnabled()).toBe(false);
+    settings.setAutoTodoTagEnabled(true);
+    expect(settings.isAutoTodoTagEnabled()).toBe(true);
+
+    const prefs = { get: vi.fn(() => undefined), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.isAutoTodoTagEnabled()).toBe(false);
+    stored.setAutoTodoTagEnabled(true);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoTag", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoTag", true);
+  });
+
+  test("defaults automatic todo cleanup off and persists its choice", () => {
+    const settings = createSettings();
+    expect(settings.isAutoTodoCleanupEnabled()).toBe(false);
+    settings.setAutoTodoCleanupEnabled(true);
+    expect(settings.isAutoTodoCleanupEnabled()).toBe(true);
+
+    const prefs = { get: vi.fn(() => undefined), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.isAutoTodoCleanupEnabled()).toBe(false);
+    stored.setAutoTodoCleanupEnabled(true);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoCleanup", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoCleanup", true);
+  });
 });

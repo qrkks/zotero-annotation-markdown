@@ -24,6 +24,15 @@ describe("preferences pane", () => {
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineEnabled\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoTag\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoCleanup\"");
+    const readerGroupEnd = source.indexOf("</groupbox>");
+    const tagsGroupStart = source.indexOf("<html:h2>Annotation Tags</html:h2>");
+    const tagsGroupEnd = source.indexOf("</groupbox>", tagsGroupStart);
+    expect(readerGroupEnd).toBeLessThan(tagsGroupStart);
+    expect(tagsGroupStart).toBeLessThan(source.indexOf("id=\"annotation-markdown-auto-todo-tag\""));
+    expect(source.indexOf("id=\"annotation-markdown-auto-todo-cleanup\"")).toBeLessThan(tagsGroupEnd);
+    expect(tagsGroupEnd).toBeLessThan(source.indexOf("<html:h2>Rendering Performance</html:h2>"));
     expect(source).toContain(
       "label=\"Show a floating outline for annotations with multiple headings\""
     );
@@ -61,6 +70,8 @@ describe("preferences pane", () => {
     const fastEditorInput = createInput();
     const mathInput = createInput();
     const outlineEnabledInput = createInput();
+    const autoTodoTagInput = createInput();
+    const autoTodoCleanupInput = createInput();
     const renderStrategySelect = createInput();
     const documentRef = {
       getElementById(id) {
@@ -71,6 +82,8 @@ describe("preferences pane", () => {
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
           "annotation-markdown-outline-enabled": outlineEnabledInput,
+          "annotation-markdown-auto-todo-tag": autoTodoTagInput,
+          "annotation-markdown-auto-todo-cleanup": autoTodoCleanupInput,
           "annotation-markdown-render-strategy": renderStrategySelect
         }[id] ?? null;
       }
@@ -84,6 +97,9 @@ describe("preferences pane", () => {
     expect(fastEditorInput.checked).toBe(true);
     expect(mathInput.checked).toBe(true);
     expect(outlineEnabledInput.checked).toBe(true);
+    expect(autoTodoTagInput.checked).toBe(false);
+    expect(autoTodoCleanupInput.checked).toBe(false);
+    expect(autoTodoCleanupInput.disabled).toBe(true);
     expect(renderStrategySelect.value).toBe("auto");
   });
 
@@ -103,6 +119,8 @@ describe("preferences pane", () => {
             "extensions.annotationMarkdown.fastEditor": true,
             "extensions.annotationMarkdown.mathEnabled": true,
             "extensions.annotationMarkdown.outlineEnabled": true,
+            "extensions.annotationMarkdown.autoTodoTag": false,
+            "extensions.annotationMarkdown.autoTodoCleanup": false,
             "extensions.annotationMarkdown.renderStrategy": "auto"
           }[key];
         }),
@@ -115,6 +133,8 @@ describe("preferences pane", () => {
     const fastEditorInput = createInput();
     const mathInput = createInput();
     const outlineEnabledInput = createInput();
+    const autoTodoTagInput = createInput();
+    const autoTodoCleanupInput = createInput();
     const renderStrategySelect = createInput();
     const documentRef = {
       getElementById(id) {
@@ -125,6 +145,8 @@ describe("preferences pane", () => {
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
           "annotation-markdown-outline-enabled": outlineEnabledInput,
+          "annotation-markdown-auto-todo-tag": autoTodoTagInput,
+          "annotation-markdown-auto-todo-cleanup": autoTodoCleanupInput,
           "annotation-markdown-render-strategy": renderStrategySelect
         }[id] ?? null;
       }
@@ -143,6 +165,11 @@ describe("preferences pane", () => {
     mathInput.dispatch("command");
     outlineEnabledInput.checked = false;
     outlineEnabledInput.dispatch("command");
+    autoTodoTagInput.checked = true;
+    autoTodoTagInput.dispatch("command");
+    expect(autoTodoCleanupInput.disabled).toBe(false);
+    autoTodoCleanupInput.checked = true;
+    autoTodoCleanupInput.dispatch("command");
     renderStrategySelect.value = "lazy";
     renderStrategySelect.dispatch("command");
 
@@ -152,6 +179,8 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoTag", true, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoCleanup", true, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy", true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", expect.anything(), true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", expect.anything(), true);

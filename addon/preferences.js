@@ -5,6 +5,8 @@ var ZoteroAnnotationMarkdownPreferences = {
   fastEditorKey: "extensions.annotationMarkdown.fastEditor",
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
   outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
+  autoTodoTagKey: "extensions.annotationMarkdown.autoTodoTag",
+  autoTodoCleanupKey: "extensions.annotationMarkdown.autoTodoCleanup",
   renderStrategyKey: "extensions.annotationMarkdown.renderStrategy",
 
   init(documentRef = document) {
@@ -14,6 +16,8 @@ var ZoteroAnnotationMarkdownPreferences = {
     const fastEditorInput = documentRef.getElementById("annotation-markdown-fast-editor");
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
     const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
+    const autoTodoTagInput = documentRef.getElementById("annotation-markdown-auto-todo-tag");
+    const autoTodoCleanupInput = documentRef.getElementById("annotation-markdown-auto-todo-cleanup");
     const renderStrategySelect = documentRef.getElementById("annotation-markdown-render-strategy");
 
     if (
@@ -23,6 +27,8 @@ var ZoteroAnnotationMarkdownPreferences = {
       !fastEditorInput ||
       !mathEnabledInput ||
       !outlineEnabledInput ||
+      !autoTodoTagInput ||
+      !autoTodoCleanupInput ||
       !renderStrategySelect
     ) {
       return;
@@ -34,6 +40,9 @@ var ZoteroAnnotationMarkdownPreferences = {
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
     outlineEnabledInput.checked = this.getPref(this.outlineEnabledKey, true);
+    autoTodoTagInput.checked = this.getPref(this.autoTodoTagKey, false);
+    autoTodoCleanupInput.checked = this.getPref(this.autoTodoCleanupKey, false);
+    autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
     renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
 
     enabledInput.addEventListener("command", () => {
@@ -58,6 +67,15 @@ var ZoteroAnnotationMarkdownPreferences = {
 
     outlineEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.outlineEnabledKey, Boolean(outlineEnabledInput.checked), true);
+    });
+
+    autoTodoTagInput.addEventListener("command", () => {
+      Zotero.Prefs.set(this.autoTodoTagKey, Boolean(autoTodoTagInput.checked), true);
+      autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
+    });
+
+    autoTodoCleanupInput.addEventListener("command", () => {
+      Zotero.Prefs.set(this.autoTodoCleanupKey, Boolean(autoTodoCleanupInput.checked), true);
     });
 
     renderStrategySelect.addEventListener("command", () => {

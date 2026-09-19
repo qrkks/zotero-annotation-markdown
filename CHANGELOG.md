@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.8.0 - 2026-09-19
+
+### Added
+
+- Optionally add a lowercase `todo` annotation tag when a saved comment contains a line-leading `todo:` or `todo：` directive in any letter case. The option is off by default.
+- Add a separate, off-by-default cleanup option that removes the lowercase `todo` tag after a saved comment no longer contains a todo directive.
+- Place the todo tag options in their own **Annotation Tags** settings group.
+
+### 新增
+
+- 可选功能：标注评论保存后若含行首 `todo:` 或 `todo：` 指令（不区分大小写），自动给标注添加小写 `todo` 标签；默认关闭。
+- 新增独立的自动清理选项：评论保存后不再含待办指令时，移除该标注的小写 `todo` 标签；默认关闭。
+- 将待办标签选项放入独立的 **Annotation Tags** 设置分组。
+
 ## 0.7.1 - 2026-09-17
 
 ### Fixed

@@ -3,6 +3,32 @@ import { describe, expect, test, vi } from "vitest";
 import { createPlugin } from "../src/plugin.ts";
 
 describe("createPlugin", () => {
+  test("registers and removes the saved-annotation todo observer", async () => {
+    const unregisterObserver = vi.fn();
+    const Zotero = {
+      Reader: { registerEventListener: vi.fn() },
+      Prefs: { get: vi.fn(() => false) },
+      Items: { getAsync: vi.fn() },
+      Notifier: {
+        registerObserver: vi.fn(() => "todo-observer"),
+        unregisterObserver
+      }
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ register: vi.fn(), shutdown: vi.fn() })
+    });
+
+    await plugin.startup();
+    expect(Zotero.Notifier.registerObserver).toHaveBeenCalledWith(
+      expect.objectContaining({ notify: expect.any(Function) }),
+      ["item"],
+      "annotation-markdown-auto-todo-tag"
+    );
+    plugin.shutdown();
+    expect(unregisterObserver).toHaveBeenCalledWith("todo-observer");
+  });
+
   test("startup registers existing readers and reader event listener", () => {
     const reader = {};
     const register = vi.fn();

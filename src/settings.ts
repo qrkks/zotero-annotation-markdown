@@ -15,6 +15,8 @@ export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightwei
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
 export const OUTLINE_ENABLED_PREF_KEY = "extensions.annotationMarkdown.outlineEnabled";
 export const OUTLINE_EXPANDED_PREF_KEY = "extensions.annotationMarkdown.outlineExpanded";
+export const AUTO_TODO_TAG_PREF_KEY = "extensions.annotationMarkdown.autoTodoTag";
+export const AUTO_TODO_CLEANUP_PREF_KEY = "extensions.annotationMarkdown.autoTodoCleanup";
 export const RENDER_STRATEGIES = ["auto", "eager", "lazy"] as const;
 export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
 
@@ -40,6 +42,10 @@ export interface Settings {
   setOutlineEnabled(enabled: boolean): void;
   isOutlineExpanded(): boolean;
   setOutlineExpanded(expanded: boolean): void;
+  isAutoTodoTagEnabled(): boolean;
+  setAutoTodoTagEnabled(enabled: boolean): void;
+  isAutoTodoCleanupEnabled(): boolean;
+  setAutoTodoCleanupEnabled(enabled: boolean): void;
 }
 
 interface CreateSettingsOptions {
@@ -54,6 +60,8 @@ interface CreateSettingsOptions {
   renderStrategyKey?: string;
   outlineEnabledKey?: string;
   outlineExpandedKey?: string;
+  autoTodoTagKey?: string;
+  autoTodoCleanupKey?: string;
 }
 
 const DEFAULT_FONT_SCALE = 1;
@@ -76,7 +84,9 @@ export function createSettings({
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
   outlineEnabledKey = OUTLINE_ENABLED_PREF_KEY,
-  outlineExpandedKey = OUTLINE_EXPANDED_PREF_KEY
+  outlineExpandedKey = OUTLINE_EXPANDED_PREF_KEY,
+  autoTodoTagKey = AUTO_TODO_TAG_PREF_KEY,
+  autoTodoCleanupKey = AUTO_TODO_CLEANUP_PREF_KEY
 }: CreateSettingsOptions = {}): Settings {
   let memoryEnabled = true;
   let memoryFontScale = DEFAULT_FONT_SCALE;
@@ -88,6 +98,8 @@ export function createSettings({
   let memoryRenderStrategy: RenderStrategy = "auto";
   let memoryOutlineEnabled = true;
   let memoryOutlineExpanded = false;
+  let memoryAutoTodoTag = false;
+  let memoryAutoTodoCleanup = false;
 
   return {
     isEnabled() {
@@ -269,6 +281,32 @@ export function createSettings({
       }
 
       memoryOutlineExpanded = value;
+    },
+
+    isAutoTodoTagEnabled() {
+      if (prefs?.get) {
+        return prefs.get(autoTodoTagKey, false) === true;
+      }
+      return memoryAutoTodoTag;
+    },
+
+    setAutoTodoTagEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(autoTodoTagKey, value);
+      memoryAutoTodoTag = value;
+    },
+
+    isAutoTodoCleanupEnabled() {
+      if (prefs?.get) {
+        return prefs.get(autoTodoCleanupKey, false) === true;
+      }
+      return memoryAutoTodoCleanup;
+    },
+
+    setAutoTodoCleanupEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(autoTodoCleanupKey, value);
+      memoryAutoTodoCleanup = value;
     }
   };
 }

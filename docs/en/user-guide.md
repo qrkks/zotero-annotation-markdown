@@ -27,6 +27,8 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
 - LaTeX math rendering;
 - showing a floating outline for annotations with multiple headings, enabled by default;
+- adding a `todo` annotation tag when a saved comment contains a `todo:` or `todo：` directive, disabled by default;
+- optionally removing the lowercase `todo` annotation tag after the directive is removed and the comment is saved, disabled by default and requiring automatic tagging;
 - preview font size from 80% to 150%;
 - annotation rendering strategy.
 
@@ -44,7 +46,11 @@ When an annotation is not being edited, its comment is shown as a rendered previ
 
 If the installed Zotero version does not expose the Reader annotation update capability required by the fast editor, the add-on leaves the native editor in control automatically.
 
-The add-on changes presentation only; the Markdown source stored by Zotero is not replaced with generated HTML.
+The add-on never replaces the Markdown source stored by Zotero with generated HTML.
+
+When automatic todo tagging is enabled, a newly added annotation or a saved comment change with a line starting with `todo:` or `todo：` (indentation allowed, case insensitive, such as `TODO:` or `Todo：`) gains a lowercase `todo` tag on that annotation. An existing todo tag in any letter case is left alone. The rule does not scan older annotations.
+
+Both options are in the **Annotation Tags** settings group. Automatic cleanup is a separate option. When enabled, a comment edit that removes the directive also removes that annotation's lowercase `todo` tag. Tag-only changes and edits to comments that never had a directive do not run cleanup. Zotero does not record whether the plugin or the user added a particular lowercase `todo` tag; this option can therefore remove a manually added one. It leaves uppercase `TODO` tags untouched. Both options are off by default.
 
 ## Floating outline
 
