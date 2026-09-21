@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- Show formulas in floating outline entries by cloning the already-rendered visible KaTeX DOM from their headings, without parsing the formulas again.
+
+### 变更
+
+- 浮动大纲条目直接克隆标题中已经渲染的可见 KaTeX DOM 来显示公式，不再将公式降为纯文本，也不重复解析公式。
+
 ## 0.8.1 - 2026-09-21
 
 ### Added

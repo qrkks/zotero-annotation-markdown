@@ -84,12 +84,14 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.85em");
 });
 
-test("uses only the visible KaTeX text in outline labels and tooltips", () => {
+test("clones only visible KaTeX DOM into outline entries", () => {
   setup();
   const rendered = document.createElement("div");
   rendered.innerHTML = createMarkdownRenderer({ windowRef: window })
-    .render("## 它就是课本上的 $A^{-1}XA=\\Lambda X$ 吗？");
+    .render("## [它就是课本上的](https://example.com) $A^{-1}XA=\\Lambda X$ 吗？");
   const heading = rendered.querySelector("h2");
+  const sourceKatex = heading.querySelector(".katex");
+  expect(heading.querySelector("a")).not.toBeNull();
   expect(heading.querySelector(".katex-mathml")).not.toBeNull();
   expect(heading.querySelector(".katex-html")).not.toBeNull();
   expect(heading.textContent).toContain("\\Lambda");
@@ -97,8 +99,16 @@ test("uses only the visible KaTeX text in outline labels and tooltips", () => {
   controller.sync();
 
   const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  const outlineKatex = item.querySelector(".katex");
   expect(item.textContent).toBe("它就是课本上的 A−1XA=ΛX 吗？");
   expect(item.title).toBe(item.textContent);
+  expect(item.getAttribute("aria-label")).toBe(item.textContent);
+  expect(item.querySelector("a")).toBeNull();
+  expect(outlineKatex).not.toBeNull();
+  expect(outlineKatex).not.toBe(sourceKatex);
+  expect(outlineKatex.querySelector(".katex-html")).not.toBeNull();
+  expect(outlineKatex.querySelector(".katex-mathml")).toBeNull();
+  expect(outlineKatex.querySelector("annotation[encoding='application/x-tex']")).toBeNull();
   expect(heading.querySelector(".katex-mathml")).not.toBeNull();
 });
 

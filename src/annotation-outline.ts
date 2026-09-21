@@ -139,7 +139,8 @@ export function trackAnnotationOutline({
       item.type = "button";
       item.className = "annotation-markdown-outline-item";
       item.dataset.level = heading.tagName.slice(1);
-      item.textContent = label;
+      item.setAttribute("aria-label", label);
+      appendHeadingContent(item, heading);
       item.title = label;
       item.addEventListener("click", event => {
         event.preventDefault();
@@ -357,6 +358,43 @@ function getHeadingLabel(heading: HTMLElement): string {
     else math.querySelector("annotation[encoding='application/x-tex']")?.remove();
   }
   return normalizeHeadingText(copy.textContent);
+}
+
+function appendHeadingContent(target: HTMLElement, heading: HTMLElement): void {
+  const doc = target.ownerDocument;
+  const content = doc.createDocumentFragment();
+
+  function appendNode(source: Node, parent: ParentNode): void {
+    if (source.nodeType === 3) {
+      parent.append(doc.createTextNode(source.textContent ?? ""));
+      return;
+    }
+    if (source.nodeType !== 1) return;
+
+    const element = source as HTMLElement;
+    if (element.matches(".katex")) {
+      const math = element.cloneNode(true) as HTMLElement;
+      math.setAttribute("aria-hidden", "true");
+      math.removeAttribute("id");
+      for (const duplicate of math.querySelectorAll(
+        ".katex-mathml, annotation[encoding='application/x-tex']"
+      )) duplicate.remove();
+      for (const identified of math.querySelectorAll<HTMLElement>("[id]")) {
+        identified.removeAttribute("id");
+      }
+      parent.append(math);
+      return;
+    }
+
+    if (element.tagName === "BR") {
+      parent.append(doc.createTextNode(" "));
+      return;
+    }
+    for (const child of Array.from(element.childNodes)) appendNode(child, parent);
+  }
+
+  for (const child of Array.from(heading.childNodes)) appendNode(child, content);
+  target.append(content);
 }
 
 function normalizeHeadingText(value: string | null): string {
