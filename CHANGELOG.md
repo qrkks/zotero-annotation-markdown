@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.1 - 2026-09-21
+
 ### Added
 
 - Add a separate 80%–200% text size setting for the floating outline. Keep 100% at the previous size and widen the outline panel when enlarged, within the available reader space.
