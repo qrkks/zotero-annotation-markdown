@@ -23,6 +23,40 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("<a href=\"https://example.com\">https://example.com</a>");
   });
 
+  test("renders double-equals text as a sanitized highlight", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("ordinary ==highlighted **text**== and \\==literal\\==");
+    const mathHtml = renderer.render("==area is $a^2$==");
+
+    expect(html).toContain("<mark>highlighted <strong>text</strong></mark>");
+    expect(html).toContain("==literal==");
+    expect(mathHtml).toContain('<mark>area is <span class="katex">');
+    expect(mathHtml).toContain("katex");
+  });
+
+  test("applies only supported color suffixes to highlights", () => {
+    const renderer = createMarkdownRenderer();
+    const supportedColors = ["yellow", "red", "orange", "green", "blue", "purple", "gray"];
+    const source = supportedColors
+      .map((color) => `==${color}=={.${color}}`)
+      .join(" ");
+
+    const html = renderer.render(
+      `${source} ==unknown=={.pink} ==spaced== {.red} ==unsafe=={.red onclick=alert(1)}`
+    );
+
+    supportedColors.forEach((color) => {
+      expect(html).toContain(
+        `<mark class="annotation-markdown-mark-${color}">${color}</mark>`
+      );
+    });
+    expect(html).toContain("<mark>unknown</mark>{.pink}");
+    expect(html).toContain("<mark>spaced</mark> {.red}");
+    expect(html).toContain("<mark>unsafe</mark>{.red onclick=alert(1)}");
+    expect(html).not.toContain("annotation-markdown-mark-pink");
+  });
+
   test("preserves and linkifies Zotero links handled by Weavero", () => {
     const renderer = createMarkdownRenderer();
     const url = "zotero://open/library/items/9X3PTDDP?annotation=NXKFRI46";

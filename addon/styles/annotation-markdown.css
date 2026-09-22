@@ -201,6 +201,41 @@
     text-decoration: underline;
 }
 
+.annotation-markdown-rendered mark {
+    background-color: rgba(255, 214, 64, 0.42);
+    border-radius: 0.15em;
+    color: inherit;
+    padding: 0 0.08em;
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-yellow {
+    background-color: rgba(255, 214, 64, 0.42);
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-red {
+    background-color: rgba(239, 83, 80, 0.38);
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-orange {
+    background-color: rgba(255, 167, 38, 0.42);
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-green {
+    background-color: rgba(102, 187, 106, 0.38);
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-blue {
+    background-color: rgba(66, 165, 245, 0.36);
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-purple {
+    background-color: rgba(171, 71, 188, 0.34);
+}
+
+.annotation-markdown-rendered mark.annotation-markdown-mark-gray {
+    background-color: rgba(128, 128, 128, 0.28);
+}
+
 .annotation-markdown-weavero-link-colors a {
     color: var(--wv-link-app, LinkText);
 }

@@ -11,6 +11,7 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 ## Highlights
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
+- `==Highlighted text==` syntax with optional safe color suffixes such as `{.red}`.
 - Automatic links for bare URLs in rendered previews.
 - A persistent floating outline with adjustable text size for navigating long annotations with multiple headings.
 - Optional automatic `todo` tags from `todo:` or `t:` lines in saved annotation comments.

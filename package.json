@@ -18,6 +18,7 @@
     "dompurify": "^3.4.13",
     "katex": "^0.17.0",
     "markdown-it": "^14.3.0",
+    "markdown-it-mark": "4.0.0",
     "markdown-it-texmath": "^1.0.0"
   },
   "devDependencies": {

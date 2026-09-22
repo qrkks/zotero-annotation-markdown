@@ -140,7 +140,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 - Fast-editor keyboard events stay inside the textarea so Backspace, Delete, and arrow keys cannot trigger Reader-level annotation actions.
 - Disabling the preference or missing the required annotation update capability leaves Zotero's native editor in control.
 - Each open Reader has at most one controller. Registration and shutdown remain safe when startup is asynchronous.
-- Raw Markdown HTML is disabled, and DOMPurify is the final boundary for generated HTML.
+- Raw Markdown HTML is disabled, highlight color suffixes map only to namespaced classes from a fixed palette, and DOMPurify is the final boundary for generated HTML.
 - Lazy rendering limits viewport and idle-time work. Performance diagnostics remain opt-in.
 - Shutdown is best-effort per operation and per Reader root because closed Zotero windows can expose dead host objects.
 
@@ -155,9 +155,11 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 | `src/annotation-scroll-target.ts` | Tracks the selected oversized row and applies reversible CSS margins for Zotero's native selection scroll. |
 | `src/annotation-escape-scroll.ts` | Suspends anchoring during Escape preview restoration, recovers a completely offscreen row once, and cancels/cleans pending recovery. |
 | `src/annotation-outline.ts` | Builds and cleans the selected preview's heading navigation, persists explicit expansion choices, and scrolls within the annotation sidebar. |
-| `src/markdown-renderer.ts` | Normalizes annotation text, renders Markdown and optional math, sanitizes output, and provides a plain-text fallback. |
+| `src/markdown-it-mark-colors.ts` | Maps the fixed `==text=={.color}` suffix whitelist to plugin-owned mark classes without enabling arbitrary Markdown attributes. |
+| `src/markdown-renderer.ts` | Normalizes annotation text, renders Markdown with highlighting and optional math, sanitizes output, and provides a plain-text fallback. |
 | `src/settings.ts` | Defines preference keys, defaults, normalization, and the settings API consumed by runtime modules. |
 | `src/types.ts` | Holds small shared contracts that do not depend on Zotero's host-specific object shapes. |
+| `src/markdown-it-mark.d.ts` | Supplies the minimal local TypeScript declaration required by `markdown-it-mark`. |
 | `src/markdown-it-texmath.d.ts` | Supplies the minimal local TypeScript declaration required by `markdown-it-texmath`. |
 
 Host-specific Zotero shapes should stay close to the boundary that consumes them, rather than becoming broad global types.

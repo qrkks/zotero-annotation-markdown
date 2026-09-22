@@ -140,7 +140,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 - 快速编辑器的键盘事件必须留在文本框内，避免 Backspace、Delete 和方向键触发 Reader 层面的标注操作。
 - 关闭偏好设置或缺少必要的标注更新能力时，由 Zotero 原生编辑器继续接管。
 - 每个打开的 Reader 最多只有一个控制器；即使启动是异步的，注册和关闭顺序也必须安全。
-- 禁用 Markdown 原始 HTML，并由 DOMPurify 对最终生成的 HTML 做最后清理。
+- 禁用 Markdown 原始 HTML；高亮颜色后缀只能映射为固定色板中的插件命名空间类，并由 DOMPurify 对最终生成的 HTML 做最后清理。
 - 懒渲染限制视口附近和空闲时段内的工作量；性能诊断默认关闭。
 - Zotero 窗口关闭后可能留下失效的宿主对象，因此关闭流程按操作和 Reader 根节点分别做尽力清理。
 
@@ -155,9 +155,11 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 | `src/annotation-scroll-target.ts` | 跟踪选中的超长标注行，通过可清理的 CSS 边距配合 Zotero 原生选择滚动。 |
 | `src/annotation-escape-scroll.ts` | 在 Esc 退出并恢复预览期间暂停滚动锚定，对完全不可见的标注行补救一次，并负责取消与清理。 |
 | `src/annotation-outline.ts` | 构建并清理选中预览的标题导航，持久化用户主动选择的展开状态，并只滚动标注侧栏。 |
-| `src/markdown-renderer.ts` | 规范化标注文本，渲染 Markdown 和可选数学公式，清理输出，并提供纯文本回退。 |
+| `src/markdown-it-mark-colors.ts` | 把固定的 `==文字=={.color}` 后缀白名单映射为插件自有高亮类，不开放任意 Markdown 属性。 |
+| `src/markdown-renderer.ts` | 规范化标注文本，渲染带高亮扩展和可选数学公式的 Markdown，清理输出，并提供纯文本回退。 |
 | `src/settings.ts` | 定义偏好键、默认值、规范化规则，以及运行模块使用的设置 API。 |
 | `src/types.ts` | 保存不依赖 Zotero 宿主对象形状的小型共享契约。 |
+| `src/markdown-it-mark.d.ts` | 提供 `markdown-it-mark` 所需的最小本地 TypeScript 声明。 |
 | `src/markdown-it-texmath.d.ts` | 提供 `markdown-it-texmath` 所需的最小本地 TypeScript 声明。 |
 
 Zotero 特有的对象形状应保留在实际使用它们的边界附近，不要扩展成宽泛的全局类型。

@@ -6,8 +6,10 @@
  */
 import createDOMPurify, { type WindowLike } from "dompurify";
 import MarkdownIt from "markdown-it";
+import markdownItMark from "markdown-it-mark";
 import markdownItTexmath from "markdown-it-texmath";
 
+import markdownItMarkColors from "./markdown-it-mark-colors.js";
 import type { MarkdownRenderer } from "./types.js";
 
 interface MathPluginOptions {
@@ -102,6 +104,8 @@ export function createMarkdownRenderer({
 
 function createDefaultMarkdownEngine(): MarkdownIt {
   const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
+  markdown.use(markdownItMark);
+  markdown.use(markdownItMarkColors);
   markdown.linkify.add("zotero:", "http:");
   return markdown;
 }

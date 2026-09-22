@@ -8,9 +8,26 @@
 - LaTeX math renders by default with `$...$`, `$$...$$`, `\(...\)`, and `\[...\]` delimiters.
 - Single line breaks remain visible.
 - Bare URLs become clickable links in rendered previews.
+- Text wrapped in `==double equals==` renders with a highlight; an optional color suffix can select a safe preset.
 - Editing shows the original Markdown source text in a fast editor that saves on blur or Escape.
 - Raw HTML is not trusted; rendered output is sanitized.
 - Rendering failures leave the original plain text visible.
+
+### Highlight colors
+
+Use `==text==` for the default yellow highlight. Put one supported color suffix immediately after the closing `==` to select another preset:
+
+```markdown
+==Default yellow==
+==Risk=={.red}
+==Important=={.orange}
+==Confirmed=={.green}
+==Information=={.blue}
+==Idea=={.purple}
+==Secondary=={.gray}
+```
+
+The supported suffixes are `.yellow`, `.red`, `.orange`, `.green`, `.blue`, `.purple`, and `.gray`. Arbitrary classes, multiple classes, style attributes, and custom color values are not interpreted. Unknown or detached suffixes remain visible as ordinary text.
 
 ## Installation
 

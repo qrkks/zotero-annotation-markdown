@@ -69,6 +69,24 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("text-decoration: underline");
   });
 
+  test("styles markdown highlights without replacing their text color", async () => {
+    const addonCss = await readAddonCss();
+
+    const markRule = addonCss.match(/\.annotation-markdown-rendered mark\s*\{([^}]*)\}/)?.[1];
+    expect(markRule).toBeDefined();
+    expect(markRule).toContain("background-color:");
+    expect(markRule).toContain("color: inherit;");
+  });
+
+  test("provides a namespaced background for every supported highlight color", async () => {
+    const addonCss = await readAddonCss();
+
+    ["yellow", "red", "orange", "green", "blue", "purple", "gray"].forEach((color) => {
+      expect(addonCss).toContain(`.annotation-markdown-rendered mark.annotation-markdown-mark-${color}`);
+    });
+    expect(addonCss).not.toContain(".annotation-markdown-rendered mark.red");
+  });
+
   test("keeps the outline compact, fixed, directional, theme-aware, and keyboard visible", async () => {
     const addonCss = await readAddonCss();
 
