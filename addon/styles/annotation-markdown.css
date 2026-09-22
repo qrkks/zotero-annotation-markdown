@@ -136,14 +136,31 @@
     overflow: visible;
 }
 
+.annotation-popup {
+    box-sizing: border-box;
+    width: min(32em, calc(100vw - 3em));
+}
+
+.annotation-popup:not([data-annotation-markdown-popup-ready="true"]) {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.annotation-popup[data-annotation-markdown-popup-ready="true"] {
+    opacity: 1;
+}
+
 .annotation-popup .annotation-markdown-rendered {
     contain-intrinsic-size: none;
     content-visibility: visible;
     -webkit-line-clamp: unset;
     line-clamp: unset;
     display: block;
-    max-height: none;
-    overflow: visible;
+    max-height: min(50vh, 24em);
+    overscroll-behavior: contain;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0.65em 0.8em 0.75em;
 }
 
 .annotation.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"],

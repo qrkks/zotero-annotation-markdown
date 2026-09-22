@@ -25,6 +25,19 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("font-size: var(--annotation-markdown-font-scale, 1em)");
     expect(addonCss).toContain("max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em)");
     expect(addonCss).toContain("max-height: none");
+    expect(addonCss).toMatch(/\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*max-height:\s*min\(50vh, 24em\);/);
+    expect(addonCss).toMatch(/\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*overflow-y:\s*auto;/);
+    expect(addonCss).toMatch(/\.annotation-popup\s*\{[^}]*width:\s*min\(32em, calc\(100vw - 3em\)\);/);
+    expect(addonCss).toMatch(
+      /\.annotation-popup:not\(\[data-annotation-markdown-popup-ready="true"\]\)\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;/
+    );
+    expect(addonCss).toMatch(
+      /\.annotation-popup\[data-annotation-markdown-popup-ready="true"\]\s*\{[^}]*opacity:\s*1;/
+    );
+    expect(addonCss).not.toContain("transition: opacity");
+    expect(addonCss).toMatch(
+      /\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*padding:\s*0\.65em 0\.8em 0\.75em;/
+    );
   });
 
   test("lets the browser skip folded offscreen preview work without containing expanded previews", async () => {

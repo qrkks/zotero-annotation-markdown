@@ -5,10 +5,12 @@
 ### Changed
 
 - Show formulas in floating outline entries by cloning the already-rendered visible KaTeX DOM from their headings, without parsing the formulas again.
+- Render Markdown comments reliably in page annotation popups, including when Zotero reuses popup DOM or replaces native popup content without changing the annotation ID. Native intermediate content and provisional positions stay hidden while Markdown renders; after Zotero's deferred measurement, the popup appears only when its transform, direction, and dimensions remain stable across two consecutive animation frames. Popups use a stable wider viewport-aware width, and padded long previews scroll within a bounded area without entering editing. Clicking regular preview content returns to Zotero's native popup editor; the fast textarea remains sidebar-only.
 
 ### 变更
 
 - 浮动大纲条目直接克隆标题中已经渲染的可见 KaTeX DOM 来显示公式，不再将公式降为纯文本，也不重复解析公式。
+- 页内标注弹窗稳定支持 Markdown 评论渲染，包括 Zotero 复用弹窗 DOM 或在注释 ID 不变时替换原生弹窗内容的情况。Markdown 渲染期间会屏蔽原生中间内容和临时位置；Zotero 根据最终预览尺寸完成延迟测量后，弹窗仅在位置、方向和尺寸连续两个动画帧保持稳定时显示。弹窗使用更宽且受视口约束的固定宽度，带内边距的长预览可纵向滚动且操作滚动条不会进入编辑。点击普通预览内容后恢复原生弹窗编辑器；快速文本框仍只用于侧栏。
 
 ## 0.8.1 - 2026-09-21
 

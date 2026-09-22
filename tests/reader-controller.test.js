@@ -50,6 +50,471 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("renders a page annotation popup and returns to its native editor for changes", async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div class="annotation-popup">
+        <div class="preview">
+          <div class="comment">
+            <div class="editor">
+              <div class="editor-toolbar"><button>Bold</button></div>
+              <div id="ABC12345" class="content" contenteditable="true" tabindex="-1">**old**</div>
+              <div class="renderer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+
+    const comment = document.querySelector(".annotation-popup .comment");
+    const editor = comment.querySelector(".editor");
+    const content = comment.querySelector(".content");
+    const preview = comment.querySelector("[data-annotation-markdown-preview='true']");
+    expect(render).toHaveBeenCalledWith("**old**");
+    expect(editor.hidden).toBe(true);
+    expect(preview?.innerHTML).toBe("<p>**old**</p>");
+
+    preview.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    vi.runAllTimers();
+
+    expect(document.activeElement).toBe(content);
+    expect(editor.hidden).toBe(false);
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    content.textContent = "**new**";
+    document.querySelector("#outside").focus();
+    vi.runAllTimers();
+
+    expect(commitComment).not.toHaveBeenCalled();
+    expect(render).toHaveBeenLastCalledWith("**new**");
+    expect(editor.hidden).toBe(true);
+    expect(comment.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
+      .toBe("<p>**new**</p>");
+
+    controller.stop();
+    vi.useRealTimers();
+  });
+
+  test("reuses one rendered result for sidebar and popup representations of an annotation", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="ABC12345" class="annotation">
+        <div class="comment"><div class="content">**same**</div></div>
+      </div>
+      <div class="annotation-popup">
+        <div class="preview"><div class="comment"><div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**same**</div>
+          <div class="renderer"></div>
+        </div></div></div>
+      </div>
+    `;
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll("[data-annotation-markdown-preview='true']")).toHaveLength(2);
+    controller.stop();
+  });
+
+  test("renders reused popup DOM synchronously even when sidebar rendering is lazy", async () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    const observe = vi.fn();
+    const FakeIntersectionObserver = vi.fn(function FakeIntersectionObserver() {
+      return { observe, disconnect: vi.fn() };
+    });
+    const render = vi.fn((source) => `<p>${source}</p>`);
+    const adapter = createAnnotationSidebarAdapter({ document });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render },
+      settings: {
+        isEnabled: () => true,
+        getRenderStrategy: () => "lazy"
+      },
+      MutationObserver: null,
+      IntersectionObserver: FakeIntersectionObserver
+    });
+
+    await controller.start();
+
+    const comment = document.querySelector(".comment");
+    const content = comment.querySelector(".content");
+    expect(render).toHaveBeenCalledWith("**old**");
+    expect(observe).not.toHaveBeenCalledWith(comment);
+
+    content.id = "DEF67890";
+    content.textContent = "**new**";
+    controller.renderNow();
+
+    expect(render).toHaveBeenLastCalledWith("**new**");
+    expect(comment.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
+      .toBe("<p>**new**</p>");
+    controller.stop();
+  });
+
+  test("reveals popup Markdown once after Zotero's deferred positioning task", async () => {
+    vi.useFakeTimers();
+    const mutationCallbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      mutationCallbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn(), takeRecords: vi.fn(() => []) };
+    });
+    const frameCallbacks = [];
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    window.requestAnimationFrame = vi.fn((callback) => {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    });
+    window.cancelAnimationFrame = vi.fn();
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver,
+      IntersectionObserver: null
+    });
+
+    try {
+      await controller.start();
+      const popup = document.querySelector(".annotation-popup");
+      const content = popup.querySelector(".content");
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(frameCallbacks).toHaveLength(0);
+
+      popup.style.transform = "translate(200px, 120px)";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+
+      vi.runOnlyPendingTimers();
+      expect(frameCallbacks).toHaveLength(1);
+      frameCallbacks.shift()(0);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(frameCallbacks).toHaveLength(1);
+      frameCallbacks.shift()(16);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+
+      // A reused popup can still be marked ready when Zotero starts moving it
+      // for the next click. Any host transform must hide it and restabilize.
+      popup.style.transform = "translate(201px, 120px)";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      vi.runOnlyPendingTimers();
+      frameCallbacks.shift()(32);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      frameCallbacks.shift()(48);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+
+      const hostReplacement = document.createElement("div");
+      hostReplacement.className = "host-popup-update";
+      popup.querySelector(".comment").append(hostReplacement);
+      mutationCallbacks[0]([{
+        type: "childList",
+        target: popup.querySelector(".comment"),
+        addedNodes: [hostReplacement],
+        removedNodes: []
+      }]);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+
+      vi.runOnlyPendingTimers();
+      expect(frameCallbacks).toHaveLength(1);
+      frameCallbacks.shift()(64);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      frameCallbacks.shift()(80);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+
+      content.id = "DEF67890";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "id",
+        target: content,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+
+      controller.stop();
+      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+    } finally {
+      controller.stop();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+      vi.useRealTimers();
+    }
+  });
+
+  test("keeps a popup hidden when Zotero's final transform arrives between stability frames", async () => {
+    vi.useFakeTimers();
+    const mutationCallbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      mutationCallbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn(), takeRecords: vi.fn(() => []) };
+    });
+    const frameCallbacks = new Map();
+    let nextFrameID = 1;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    window.requestAnimationFrame = vi.fn((callback) => {
+      const frameID = nextFrameID++;
+      frameCallbacks.set(frameID, callback);
+      return frameID;
+    });
+    window.cancelAnimationFrame = vi.fn((frameID) => frameCallbacks.delete(frameID));
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver,
+      IntersectionObserver: null
+    });
+    const runNextFrame = (time) => {
+      const next = frameCallbacks.entries().next().value;
+      expect(next).toBeDefined();
+      const [frameID, callback] = next;
+      frameCallbacks.delete(frameID);
+      callback(time);
+    };
+
+    try {
+      await controller.start();
+      const popup = document.querySelector(".annotation-popup");
+      popup.style.transform = "translate(100px, 300px)";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+
+      vi.runOnlyPendingTimers();
+      runNextFrame(0);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(frameCallbacks.size).toBe(1);
+
+      // React commits the authoritative transform one frame later. The old
+      // second-frame reveal must be cancelled rather than exposing the jump.
+      popup.style.transform = "translate(700px, 120px)";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(frameCallbacks.size).toBe(0);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+
+      vi.runOnlyPendingTimers();
+      runNextFrame(16);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      runNextFrame(32);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+    } finally {
+      controller.stop();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+      vi.useRealTimers();
+    }
+  });
+
+  test("keeps a rendered popup hidden until Zotero's deferred position is ready", async () => {
+    vi.useFakeTimers();
+    const frameCallbacks = [];
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    window.requestAnimationFrame = vi.fn((callback) => {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    });
+    window.cancelAnimationFrame = vi.fn();
+    document.body.innerHTML = `
+      <div class="annotation-popup page-popup-top-center" style="transform: translate(100px, 300px)">
+        <div class="preview"><div class="comment"><div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">${"line\n".repeat(40)}</div>
+          <div class="renderer"></div>
+        </div></div></div>
+      </div>
+    `;
+    const popup = document.querySelector(".annotation-popup");
+    Object.defineProperties(popup, {
+      offsetWidth: { configurable: true, get: () => 512 },
+      offsetHeight: {
+        configurable: true,
+        get: () => popup.querySelector("[data-annotation-markdown-preview='true']") ? 300 : 100
+      }
+    });
+    popup.parentElement.getBoundingClientRect = () => ({
+      x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 800, width: 1000, height: 800
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    try {
+      await controller.start();
+
+      expect(popup.querySelector("[data-annotation-markdown-preview='true']")).not.toBeNull();
+      expect(popup.style.transform).toBe("translate(100px, 300px)");
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+
+      // Zotero's queued updatePopupPosition() now measures the final Markdown
+      // dimensions and supplies the authoritative native transform.
+      popup.style.transform = "translate(100px, 100px)";
+      vi.runOnlyPendingTimers();
+      expect(frameCallbacks).toHaveLength(1);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      frameCallbacks.shift()(0);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(frameCallbacks).toHaveLength(1);
+      frameCallbacks.shift()(16);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+    } finally {
+      controller.stop();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+      vi.useRealTimers();
+    }
+  });
+
+  test("keeps observing after a focused popup is removed without focusout", async () => {
+    vi.useFakeTimers();
+    const callbacks = [];
+    const observers = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      callbacks.push(callback);
+      const observer = { observe: vi.fn(), disconnect: vi.fn(), takeRecords: vi.fn(() => []) };
+      observers.push(observer);
+      return observer;
+    });
+    document.body.innerHTML = `
+      <div id="root">
+        <div class="annotation-popup"><div class="preview"><div class="comment">
+          <div class="editor">
+            <div id="ABC12345" class="content" contenteditable="true" tabindex="-1">**old**</div>
+            <div class="renderer"></div>
+          </div>
+        </div></div></div>
+      </div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+    const oldPopup = document.querySelector(".annotation-popup");
+    oldPopup.querySelector("[data-annotation-markdown-preview='true']")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(oldPopup.querySelector(".content"));
+    expect(observers[0].disconnect).not.toHaveBeenCalled();
+
+    oldPopup.remove();
+    const added = document.createElement("div");
+    added.className = "annotation-popup";
+    added.innerHTML = `<div class="preview"><div class="comment"><div class="editor">
+      <div id="DEF67890" class="content" contenteditable="true">**next**</div>
+      <div class="renderer"></div>
+    </div></div></div>`;
+    document.querySelector("#root").append(added);
+    callbacks[0]([{
+      type: "childList",
+      target: document.querySelector("#root"),
+      addedNodes: [added],
+      removedNodes: [oldPopup]
+    }]);
+
+    expect(added.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
+      .toBe("<p>**next**</p>");
+    controller.stop();
+    vi.useRealTimers();
+  });
+
   test("opens the fast editor from Zotero's empty add-comment control and saves on blur", async () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>
@@ -1195,7 +1660,9 @@ describe("createReaderController", () => {
     expect(observe).toHaveBeenCalledWith(document.body, {
       childList: true,
       subtree: true,
-      characterData: false
+      characterData: false,
+      attributes: true,
+      attributeFilter: ["id", "style"]
     });
 
     controller.stop();

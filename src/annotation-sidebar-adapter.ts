@@ -11,6 +11,7 @@ const COMMENT_SELECTORS: string[] = [
 ];
 
 const ANNOTATION_ROW_SELECTOR = "[data-sidebar-annotation-id], [data-annotation-id], .annotation, .annotation-row";
+const ANNOTATION_POPUP_SELECTOR = ".annotation-popup";
 const SELECTED_ANNOTATION_ROW_SELECTOR = [
   ".annotation.selected", ".annotation-row.selected",
   "[data-sidebar-annotation-id].selected", "[data-annotation-id].selected",
@@ -63,6 +64,7 @@ export interface AnnotationSidebarAdapter {
   findRenderedCommentNodes(root?: Node | null): HTMLElement[];
   countNativeNoteEditorComments(root?: Node | null): number;
   isEditable(node: HTMLElement | null | undefined): boolean;
+  isPopupComment(node: HTMLElement | null | undefined): boolean;
   getSourceText(node: HTMLElement | null | undefined): string;
   applyRenderedHtml(node: HTMLElement | null | undefined, html: string): void;
   releaseRenderedHtml(node: HTMLElement | null | undefined): boolean;
@@ -83,6 +85,7 @@ export interface AnnotationSidebarAdapter {
   closeActiveFastEditor(): boolean;
   hasActiveFastEditor(): boolean;
   getSelectedAnnotationScrollbar(event: PointerEvent): HTMLElement | null;
+  getPreviewScrollbar?(event: Event): HTMLElement | null;
   getPreviewMathScrollbar(event: Event): HTMLElement | null;
   preserveActiveFastEditorForScrollbar(event: Event): boolean;
   commitComment(annotationID: string, comment: string): boolean;
@@ -127,7 +130,7 @@ export function createAnnotationSidebarAdapter({
       }
 
       return candidates
-        .filter((node) => node.closest(ANNOTATION_ROW_SELECTOR))
+        .filter(isAnnotationComment)
         .filter((node) => !isInsideNativeNoteEditor(node))
         .filter((node) => !this.isEditable(node))
         .filter((node) => !this.isSuppressed(node));
@@ -193,7 +196,11 @@ export function createAnnotationSidebarAdapter({
         return true;
       }
 
-      return hasEditorControl(node) && !hasDormantSelectedAnnotationEditor(node);
+      return hasEditorControl(node) && !hasDormantAnnotationEditor(node);
+    },
+
+    isPopupComment(node: HTMLElement | null | undefined) {
+      return Boolean(node?.closest(ANNOTATION_POPUP_SELECTOR));
     },
 
     getSourceText(node: HTMLElement | null | undefined) {
@@ -205,6 +212,12 @@ export function createAnnotationSidebarAdapter({
           pendingCommittedSourceByAnnotationID.delete(annotationID);
         }
         return committedSource;
+      }
+      // Zotero reuses the popup component for successive annotations. Its
+      // hidden native `.content` remains the live source of truth, while the
+      // comment-level attribute only describes the preview currently shown.
+      if (this.isPopupComment(node)) {
+        return source;
       }
       return node?.getAttribute(SOURCE_ATTRIBUTE) ?? source;
     },
@@ -502,7 +515,7 @@ export function createAnnotationSidebarAdapter({
     getCommentNodeForTarget(target: EventTarget | null | undefined) {
       const element = getElementTarget(target);
       const comment = element?.closest(COMMENT_SELECTORS.join(","));
-      if (!isHTMLElement(comment) || !comment.closest(ANNOTATION_ROW_SELECTOR)) {
+      if (!isHTMLElement(comment) || !isAnnotationComment(comment)) {
         return null;
       }
 
@@ -546,6 +559,7 @@ export function createAnnotationSidebarAdapter({
       return Boolean(documentRef && fastEditorSessionByDocument.get(documentRef)?.editor.isConnected);
     },
 
+    getPreviewScrollbar,
     getPreviewMathScrollbar,
 
     getSelectedAnnotationScrollbar(event: PointerEvent) {
@@ -872,7 +886,9 @@ function canUseFastEditor(
   node: HTMLElement,
   commitComment: ((annotationID: string, comment: string) => boolean) | undefined
 ): boolean {
-  return typeof commitComment === "function" && Boolean(getAnnotationID(node));
+  return !node.closest(ANNOTATION_POPUP_SELECTOR) &&
+    typeof commitComment === "function" &&
+    Boolean(getAnnotationID(node));
 }
 
 function getAnnotationID(node: HTMLElement): string | null {
@@ -1121,6 +1137,37 @@ function getPreviewMathScrollbar(event: Event): HTMLElement | null {
   return null;
 }
 
+function getPreviewScrollbar(event: Event): HTMLElement | null {
+  const target = getElementTarget(event.target);
+  if (!target || isInsideNativeNoteEditor(target) || target.closest("a[href], button, input, textarea, select, [contenteditable='true']")) {
+    return null;
+  }
+  const preview = target.closest(`[${PREVIEW_ATTRIBUTE}='true'].annotation-markdown-rendered`);
+  if (!preview || !isHTMLElement(preview)) {
+    return null;
+  }
+
+  if (
+    preview.closest(ANNOTATION_POPUP_SELECTOR) &&
+    target === preview &&
+    preview.scrollHeight > preview.clientHeight
+  ) {
+    if (event.type === "focusin") {
+      return preview;
+    }
+    const pointer = event as PointerEvent;
+    if (
+      pointer.button === 0 &&
+      pointer.pointerType !== "touch" &&
+      isPointerInNativeScrollbar(pointer, preview)
+    ) {
+      return preview;
+    }
+  }
+
+  return getPreviewMathScrollbar(event);
+}
+
 function restoreFastEditorViewportAnchor(
   anchor: FastEditorViewportAnchor | null
 ): void {
@@ -1213,7 +1260,7 @@ function createPreviewNode(
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
   preview.addEventListener("pointerdown", (event) => {
-    if (getPreviewMathScrollbar(event)) {
+    if (getPreviewScrollbar(event)) {
       event.stopPropagation();
       return;
     }
@@ -1229,7 +1276,7 @@ function createPreviewNode(
     }
   }, { capture: true });
   preview.addEventListener("mousedown", (event) => {
-    if (getPreviewMathScrollbar(event)) {
+    if (getPreviewScrollbar(event)) {
       event.stopPropagation();
       return;
     }
@@ -1426,6 +1473,16 @@ function getSourceContainer(
     return node;
   }
 
+  // Page annotation popups use a standalone native editor rather than the
+  // sidebar's expandable shell. Hide and restore that complete editor so its
+  // toolbar and internal renderer cannot remain beside the Markdown preview.
+  if (node.closest(ANNOTATION_POPUP_SELECTOR)) {
+    const editor = sourceNode.closest(".editor");
+    if (isHTMLElement(editor) && node.contains(editor)) {
+      return editor;
+    }
+  }
+
   // Zotero 9 hides the whole expandable editor shell, not only `.content`.
   const expandableEditor = sourceNode.closest(".expandable-editor");
   if (isHTMLElement(expandableEditor) && node.contains(expandableEditor)) {
@@ -1587,11 +1644,12 @@ function hasEditorControl(node: HTMLElement): boolean {
   return Boolean(node.querySelector("textarea,input,select,[contenteditable='true']"));
 }
 
-function hasDormantSelectedAnnotationEditor(node: HTMLElement): boolean {
+function hasDormantAnnotationEditor(node: HTMLElement): boolean {
   const annotation = node.closest(ANNOTATION_ROW_SELECTOR);
   const selected = annotation?.classList.contains("selected") ||
     annotation?.getAttribute("aria-selected") === "true";
-  if (!selected) {
+  const popup = Boolean(node.closest(ANNOTATION_POPUP_SELECTOR));
+  if (!selected && !popup) {
     return false;
   }
 
@@ -1600,6 +1658,13 @@ function hasDormantSelectedAnnotationEditor(node: HTMLElement): boolean {
   );
   return controls.length > 0 && controls.every((control) =>
     control.matches(".content[contenteditable='true']")
+  );
+}
+
+function isAnnotationComment(node: HTMLElement): boolean {
+  return Boolean(
+    node.closest(ANNOTATION_ROW_SELECTOR) ||
+    node.closest(ANNOTATION_POPUP_SELECTOR)
   );
 }
 

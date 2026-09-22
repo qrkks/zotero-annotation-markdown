@@ -60,7 +60,9 @@ Settings are saved automatically. Markdown preview font size is in **Reader Anno
 
 ## Preview and editing states
 
-When an annotation is not being edited, its comment is shown as a rendered preview. Selecting its comment opens the faster source editor by default; changes save when focus leaves the editor or when Escape is pressed. Disable **Use the fast annotation comment editor** to restore Zotero's native editing path. Collapsed annotations retain Zotero's compact presentation.
+When an annotation is not being edited, its comment is shown as a rendered preview. Selecting a sidebar comment opens the faster source editor by default; changes save when focus leaves the editor or when Escape is pressed. Disable **Use the fast annotation comment editor** to restore Zotero's native sidebar editing path. Collapsed sidebar annotations retain Zotero's compact presentation.
+
+Page annotation popups also render their comments as Markdown. They use a stable wider width that shrinks for narrow Reader windows, and the preview adds comfortable inner spacing. Long comments scroll within a viewport-bounded area instead of being clipped; dragging or clicking that scrollbar keeps the preview open. The popup stays transparent while Markdown renders and while Zotero's final position and dimensions settle across two consecutive animation frames, so provisional native positions are not exposed. Clicking regular preview content restores Zotero's native popup editor; the fast textarea is not used inside page popups.
 
 If the installed Zotero version does not expose the Reader annotation update capability required by the fast editor, the add-on leaves the native editor in control automatically.
 

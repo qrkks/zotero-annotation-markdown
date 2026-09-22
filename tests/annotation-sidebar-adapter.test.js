@@ -1313,7 +1313,7 @@ describe("createAnnotationSidebarAdapter", () => {
     }
   });
 
-  test("preview click in a popup focuses source even without selected annotation row", () => {
+  test("renders a popup and restores its native editor without opening the fast editor", () => {
     const requestAnimationFrame = globalThis.requestAnimationFrame;
     const callbacks = [];
     globalThis.requestAnimationFrame = (callback) => {
@@ -1322,22 +1322,115 @@ describe("createAnnotationSidebarAdapter", () => {
     };
 
     try {
-      document.body.innerHTML = `<div class="annotation-popup"><div class="comment"><div class="content" tabindex="0">**bold**</div></div></div>`;
+      document.body.innerHTML = `
+        <div class="annotation-popup">
+          <div class="preview">
+            <div class="comment">
+              <div class="editor">
+                <div class="editor-toolbar"><button>Bold</button></div>
+                <div id="ABC12345" class="content" contenteditable="true" tabindex="-1">**bold**</div>
+                <div class="renderer"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
       const node = document.querySelector(".comment");
+      const editor = node.querySelector(".editor");
       const content = node.querySelector(".content");
-      const adapter = createAnnotationSidebarAdapter({ document });
+      const commitComment = vi.fn(() => true);
+      const adapter = createAnnotationSidebarAdapter({
+        document,
+        isFastEditorEnabled: () => true,
+        commitComment
+      });
 
+      expect(adapter.findCommentNodes()).toEqual([node]);
       adapter.applyRenderedHtml(node, "<p><strong>bold</strong></p>");
-      node.querySelector(".annotation-markdown-rendered").dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      const preview = node.querySelector(".annotation-markdown-rendered");
+      expect(editor.hidden).toBe(true);
+      expect(editor.style.display).toBe("none");
+      expect(preview.previousElementSibling).toBe(editor);
+      expect(content.textContent).toBe("**bold**");
+
+      Object.defineProperties(preview, {
+        clientWidth: { configurable: true, value: 500 },
+        offsetWidth: { configurable: true, value: 500 },
+        clientHeight: { configurable: true, value: 200 },
+        offsetHeight: { configurable: true, value: 200 },
+        scrollWidth: { configurable: true, value: 500 },
+        scrollHeight: { configurable: true, value: 600 }
+      });
+      preview.getBoundingClientRect = () => ({
+        x: 0, y: 0, left: 0, top: 0, right: 500, bottom: 200, width: 500, height: 200
+      });
+      preview.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX: 495,
+        clientY: 100,
+        pointerType: "mouse"
+      }));
+      preview.dispatchEvent(new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX: 495,
+        clientY: 100
+      }));
+
+      expect(node.classList.contains("annotation-markdown-editing")).toBe(false);
+      expect(editor.hidden).toBe(true);
+      expect(preview.hidden).toBe(false);
+
+      preview.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
 
       expect(node.classList.contains("annotation-markdown-editing")).toBe(true);
+      expect(editor.hidden).toBe(false);
+      expect(editor.style.display).toBe("");
+      expect(preview.hidden).toBe(true);
+      expect(node.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+      expect(commitComment).not.toHaveBeenCalled();
       callbacks[0]();
       expect(document.activeElement).toBe(content);
       expect(content.textContent).toBe("**bold**");
       expect(adapter.isRendered(node)).toBe(true);
+
+      const foreignPreview = document.createElement("div");
+      foreignPreview.className = "wv-md-preview";
+      node.append(foreignPreview);
+      adapter.clearRenderedState();
+      expect(editor.hidden).toBe(false);
+      expect(editor.style.display).toBe("");
+      expect(node.querySelector(".annotation-markdown-rendered")).toBeNull();
+      expect(node.querySelector(".wv-md-preview")).toBe(foreignPreview);
+      expect(node.classList.contains("annotation-markdown-editing")).toBe(false);
     } finally {
       globalThis.requestAnimationFrame = requestAnimationFrame;
     }
+  });
+
+  test("reads live popup source when Zotero reuses the rendered popup DOM", () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    const node = document.querySelector(".comment");
+    const content = node.querySelector(".content");
+    const adapter = createAnnotationSidebarAdapter({ document });
+
+    adapter.applyRenderedHtml(node, "<p><strong>old</strong></p>");
+    expect(node.getAttribute("data-annotation-markdown-source")).toBe("**old**");
+
+    content.id = "DEF67890";
+    content.textContent = "**new**";
+
+    expect(adapter.getSourceText(node)).toBe("**new**");
   });
 
   test("makes comments renderable again after focus leaves even if focusout was missed", () => {
