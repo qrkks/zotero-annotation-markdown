@@ -40,6 +40,7 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 Open Zotero Settings and select the **Annotation Markdown** pane. The available settings control:
 
 - Markdown rendering for annotation comments;
+- experimental Markdown rendering for page annotation popups, disabled by default;
 - pasting clipboard content into comments as plain text, recommended for AI responses so Markdown remains editable without imported rich-text formatting or hidden HTML;
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
 - LaTeX math rendering;
@@ -62,7 +63,7 @@ Settings are saved automatically. Markdown preview font size is in **Reader Anno
 
 When an annotation is not being edited, its comment is shown as a rendered preview. Selecting a sidebar comment opens the faster source editor by default; changes save when focus leaves the editor or when Escape is pressed. Disable **Use the fast annotation comment editor** to restore Zotero's native sidebar editing path. Collapsed sidebar annotations retain Zotero's compact presentation.
 
-Page annotation popups also render their comments as Markdown. They use a stable wider width that shrinks for narrow Reader windows, and the preview adds comfortable inner spacing. Long comments scroll within a viewport-bounded area instead of being clipped; dragging or clicking that scrollbar keeps the preview open. The popup stays transparent while Markdown renders and Zotero writes its post-render position. It normally appears on the next stable paint, while continued geometry changes fall back to the conservative two-frame stability check so provisional positions are not exposed. Clicking regular preview content opens the same fast textarea when that preference and the Reader update capability are available. The textarea keeps the preview's visible height and saves once on blur or Escape; otherwise Zotero's native popup editor remains the fallback.
+Enable **Render page annotation popups as Markdown (Experimental)** to render page annotation popup comments as Markdown. It is off by default because this integration depends on Zotero's internal popup structure. When disabled, popup sizing, positioning, display, and editing remain fully native. When enabled, popups use a stable wider width that shrinks for narrow Reader windows, and the preview adds comfortable inner spacing. Long comments scroll within a viewport-bounded area instead of being clipped; dragging or clicking that scrollbar keeps the preview open. The popup stays transparent while Markdown renders and Zotero writes its post-render position. It normally appears on the next stable paint, while continued geometry changes fall back to the conservative two-frame stability check so provisional positions are not exposed. Clicking regular preview content opens the same fast textarea when that preference and the Reader update capability are available. The textarea keeps the preview's visible height and saves once on blur or Escape; otherwise Zotero's native popup editor remains the fallback.
 
 If the installed Zotero version does not expose the Reader annotation update capability required by the fast editor, the add-on leaves the native editor in control automatically.
 

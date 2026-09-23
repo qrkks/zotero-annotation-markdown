@@ -5,10 +5,30 @@ import vm from "node:vm";
 import { describe, expect, test, vi } from "vitest";
 
 describe("preferences pane", () => {
+  test("presents popup rendering as an indented dependent option", async () => {
+    const css = await readFile(path.join(process.cwd(), "addon", "preferences.css"), "utf8");
+
+    expect(css).toMatch(/\.annotation-markdown-preference-suboption\s*\{[^}]*margin-inline-start:\s*2em;/);
+    expect(css).toMatch(
+      /\.annotation-markdown-preference-suboption\[data-disabled="true"\] \.annotation-markdown-preference-description\s*\{[^}]*color:\s*GrayText;/
+    );
+  });
+
   test("uses a XUL menulist for the font size picker", async () => {
     const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
 
+    expect(source).toContain('onload="Zotero.AnnotationMarkdownPreferences.init(document)"');
     expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.popupEnabled\"");
+    expect(source).toContain(
+      "label=\"Render page annotation popups as Markdown (Experimental)\""
+    );
+    expect(source).toContain(
+      "Uses Zotero's internal popup structure. Disable this if popup positioning or editing is unstable."
+    );
+    expect(source).toContain(
+      "id=\"annotation-markdown-popup-option\" class=\"annotation-markdown-preference-suboption\""
+    );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fastEditor\"");
@@ -49,6 +69,9 @@ describe("preferences pane", () => {
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.renderStrategy\"");
     expect(source.indexOf("id=\"annotation-markdown-enabled\"")).toBeLessThan(
+      source.indexOf("id=\"annotation-markdown-popup-enabled\"")
+    );
+    expect(source.indexOf("id=\"annotation-markdown-popup-enabled\"")).toBeLessThan(
       source.indexOf("id=\"annotation-markdown-math-enabled\"")
     );
     expect(source.indexOf("id=\"annotation-markdown-math-enabled\"")).toBeLessThan(
@@ -81,6 +104,8 @@ describe("preferences pane", () => {
   test("shows default enabled and 100 percent values when prefs are missing", async () => {
     const preferences = await loadPreferencesScript();
     const enabledInput = createInput();
+    const popupOption = createInput();
+    const popupEnabledInput = createInput();
     const fontScaleSelect = createInput();
     const pasteAsPlainTextInput = createInput();
     const fastEditorInput = createInput();
@@ -94,6 +119,8 @@ describe("preferences pane", () => {
       getElementById(id) {
         return {
           "annotation-markdown-enabled": enabledInput,
+          "annotation-markdown-popup-option": popupOption,
+          "annotation-markdown-popup-enabled": popupEnabledInput,
           "annotation-markdown-font-scale": fontScaleSelect,
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
           "annotation-markdown-fast-editor": fastEditorInput,
@@ -110,6 +137,10 @@ describe("preferences pane", () => {
     preferences.init(documentRef);
 
     expect(enabledInput.checked).toBe(true);
+    expect(popupEnabledInput.checked).toBe(false);
+    expect(popupEnabledInput.disabled).toBe(false);
+    expect(popupEnabledInput.getAttribute("disabled")).toBeNull();
+    expect(popupOption.getAttribute("data-disabled")).toBeNull();
     expect(fontScaleSelect.value).toBe("100");
     expect(pasteAsPlainTextInput.checked).toBe(true);
     expect(fastEditorInput.checked).toBe(true);
@@ -133,6 +164,7 @@ describe("preferences pane", () => {
 
           return {
             "extensions.annotationMarkdown.enabled": true,
+            "extensions.annotationMarkdown.popupEnabled": false,
             "extensions.annotationMarkdown.fontScalePercent": 100,
             "extensions.annotationMarkdown.pasteAsPlainText": true,
             "extensions.annotationMarkdown.fastEditor": true,
@@ -148,6 +180,8 @@ describe("preferences pane", () => {
       }
     });
     const enabledInput = createInput();
+    const popupOption = createInput();
+    const popupEnabledInput = createInput();
     const fontScaleSelect = createInput();
     const pasteAsPlainTextInput = createInput();
     const fastEditorInput = createInput();
@@ -161,6 +195,8 @@ describe("preferences pane", () => {
       getElementById(id) {
         return {
           "annotation-markdown-enabled": enabledInput,
+          "annotation-markdown-popup-option": popupOption,
+          "annotation-markdown-popup-enabled": popupEnabledInput,
           "annotation-markdown-font-scale": fontScaleSelect,
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
           "annotation-markdown-fast-editor": fastEditorInput,
@@ -175,8 +211,18 @@ describe("preferences pane", () => {
     };
 
     preferences.init(documentRef);
+    popupEnabledInput.checked = true;
+    popupEnabledInput.dispatch("command");
     enabledInput.checked = false;
     enabledInput.dispatch("command");
+    expect(popupEnabledInput.disabled).toBe(true);
+    expect(popupEnabledInput.getAttribute("disabled")).toBe("true");
+    expect(popupOption.getAttribute("data-disabled")).toBe("true");
+    enabledInput.checked = true;
+    enabledInput.dispatch("command");
+    expect(popupEnabledInput.disabled).toBe(false);
+    expect(popupEnabledInput.getAttribute("disabled")).toBeNull();
+    expect(popupOption.getAttribute("data-disabled")).toBeNull();
     fontScaleSelect.value = "120";
     fontScaleSelect.dispatch("command");
     pasteAsPlainTextInput.checked = false;
@@ -198,6 +244,7 @@ describe("preferences pane", () => {
     renderStrategySelect.dispatch("command");
 
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.popupEnabled", true, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fontScalePercent", 120, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", false, true);
@@ -216,16 +263,27 @@ async function loadPreferencesScript(Zotero = { Prefs: { get: vi.fn(() => undefi
   const source = await readFile(path.join(process.cwd(), "addon", "preferences.js"), "utf8");
   const context = { Zotero };
   vm.runInNewContext(source, context);
-  return context.ZoteroAnnotationMarkdownPreferences;
+  expect(context.Zotero.AnnotationMarkdownPreferences).toBeDefined();
+  return context.Zotero.AnnotationMarkdownPreferences;
 }
 
 function createInput() {
   const listeners = new Map();
+  const attributes = new Map();
   return {
     checked: undefined,
     value: "",
     addEventListener(eventName, callback) {
       listeners.set(eventName, callback);
+    },
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    removeAttribute(name) {
+      attributes.delete(name);
+    },
+    getAttribute(name) {
+      return attributes.get(name) ?? null;
     },
     dispatch(eventName) {
       listeners.get(eventName)?.();

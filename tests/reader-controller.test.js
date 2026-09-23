@@ -50,6 +50,67 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
+  test("keeps popups fully native while experimental popup rendering is disabled", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation">
+        <div class="comment"><div class="content">**sidebar**</div></div>
+      </div>
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="p1" class="content" contenteditable="true">**popup**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    let popupEnabled = false;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      isPopupEnabled: () => popupEnabled,
+      commitComment: vi.fn(() => true)
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: {
+        isEnabled: () => true,
+        isPopupEnabled: () => popupEnabled
+      },
+      MutationObserver: null,
+      IntersectionObserver: null,
+      styleText: ".annotation-markdown-rendered { display: block; }"
+    });
+
+    await controller.start();
+    const popup = document.querySelector(".annotation-popup");
+    const popupComment = popup.querySelector(".comment");
+    const nativeEditor = popup.querySelector(".editor");
+    expect(document.documentElement.hasAttribute("data-annotation-markdown-popup-enabled")).toBe(false);
+    expect(document.querySelector("[data-annotation-id='a1'] [data-annotation-markdown-preview='true']")).not.toBeNull();
+    expect(popupComment.querySelector("[data-annotation-markdown-preview='true']")).toBeNull();
+    expect(nativeEditor.hidden).toBe(false);
+    expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+    nativeEditor.querySelector(".content").dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true })
+    );
+    expect(popupComment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+
+    popupEnabled = true;
+    controller.refresh();
+    expect(document.documentElement.getAttribute("data-annotation-markdown-popup-enabled")).toBe("true");
+    expect(popupComment.querySelector("[data-annotation-markdown-preview='true']")).not.toBeNull();
+    expect(nativeEditor.hidden).toBe(true);
+
+    popupEnabled = false;
+    controller.refresh();
+    expect(document.documentElement.hasAttribute("data-annotation-markdown-popup-enabled")).toBe(false);
+    expect(popupComment.querySelector("[data-annotation-markdown-preview='true']")).toBeNull();
+    expect(nativeEditor.hidden).toBe(false);
+    expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+    controller.stop();
+  });
+
   test("edits a page annotation popup locally and saves once through the fast editor", async () => {
     vi.useFakeTimers();
     document.body.innerHTML = `

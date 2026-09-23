@@ -545,6 +545,14 @@ describe("createPlugin", () => {
       expect.any(Function),
       true
     );
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith(
+      "extensions.annotationMarkdown.popupEnabled",
+      expect.any(Function),
+      true
+    );
+    observers.get("extensions.annotationMarkdown.popupEnabled")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
     observers.get("extensions.annotationMarkdown.mathEnabled")();
 
     expect(refresh).toHaveBeenCalled();
@@ -570,6 +578,9 @@ describe("createPlugin", () => {
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.outlineFontScalePercent"
+    );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.popupEnabled"
     );
   });
 

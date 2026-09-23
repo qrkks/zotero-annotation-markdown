@@ -1,4 +1,5 @@
 pref("extensions.annotationMarkdown.enabled", true);
+pref("extensions.annotationMarkdown.popupEnabled", false);
 pref("extensions.annotationMarkdown.fontScalePercent", 100);
 pref("extensions.annotationMarkdown.pasteAsPlainText", true);
 pref("extensions.annotationMarkdown.fastEditor", true);

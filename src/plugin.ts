@@ -16,6 +16,7 @@ import type {
 import {
   createSettings,
   ENABLED_PREF_KEY,
+  POPUP_ENABLED_PREF_KEY,
   FAST_EDITOR_PREF_KEY,
   FONT_SCALE_PERCENT_PREF_KEY,
   OUTLINE_FONT_SCALE_PERCENT_PREF_KEY,
@@ -165,6 +166,9 @@ export function createPlugin({
             isFastEditorEnabled: () => (
               settings.isFastEditorEnabled() && canUseReaderFastEditor(reader)
             ),
+            isPopupEnabled: () => (
+              settings.isEnabled() && settings.isPopupEnabled()
+            ),
             commitComment: (annotationID, comment) =>
               commitReaderAnnotationComment(reader, annotationID, comment),
             beginFastEditorKeyboardGuard: () =>
@@ -290,6 +294,7 @@ function registerPreferenceObservers(
   const observerIds: unknown[] = [];
   const preferenceKeys: Array<[string, boolean?]> = [
     [ENABLED_PREF_KEY, true],
+    [POPUP_ENABLED_PREF_KEY, true],
     [FAST_EDITOR_PREF_KEY, true],
     [FONT_SCALE_PERCENT_PREF_KEY, true],
     [MATH_ENABLED_PREF_KEY, true],

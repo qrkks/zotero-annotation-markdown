@@ -1,11 +1,17 @@
 <vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
       xmlns:html="http://www.w3.org/1999/xhtml"
-      onload="ZoteroAnnotationMarkdownPreferences.init(document)">
+      onload="Zotero.AnnotationMarkdownPreferences.init(document)">
   <groupbox>
     <label><html:h2>Reader Annotations</html:h2></label>
     <checkbox id="annotation-markdown-enabled"
               preference="extensions.annotationMarkdown.enabled"
               label="Render annotation comments as Markdown"/>
+    <vbox id="annotation-markdown-popup-option" class="annotation-markdown-preference-suboption">
+      <checkbox id="annotation-markdown-popup-enabled"
+                preference="extensions.annotationMarkdown.popupEnabled"
+                label="Render page annotation popups as Markdown (Experimental)"/>
+      <description class="annotation-markdown-preference-description">Uses Zotero's internal popup structure. Disable this if popup positioning or editing is unstable.</description>
+    </vbox>
     <checkbox id="annotation-markdown-math-enabled"
               preference="extensions.annotationMarkdown.mathEnabled"
               label="Render LaTeX math formulas"/>

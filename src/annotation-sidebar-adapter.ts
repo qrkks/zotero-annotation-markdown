@@ -54,6 +54,7 @@ interface CreateAnnotationSidebarAdapterOptions {
   document?: Document | null;
   openLink?(url: string): void;
   isFastEditorEnabled?(): boolean;
+  isPopupEnabled?(): boolean;
   commitComment?(annotationID: string, comment: string): boolean;
   beginFastEditorKeyboardGuard?(): (() => void) | void;
   useWeaveroLinkColors?(): boolean;
@@ -112,6 +113,7 @@ export function createAnnotationSidebarAdapter({
   document: documentRef = globalThis.document,
   openLink,
   isFastEditorEnabled = () => false,
+  isPopupEnabled = () => true,
   commitComment,
   beginFastEditorKeyboardGuard,
   useWeaveroLinkColors = () => false
@@ -380,7 +382,10 @@ export function createAnnotationSidebarAdapter({
         return false;
       }
 
-      if (isFastEditorEnabled() && canUseFastEditor(node, commitComment)) {
+      if (
+        isFastEditorEnabled() &&
+        canUseFastEditor(node, commitComment, isPopupEnabled)
+      ) {
         showFastEditor(node, this, beginFastEditorKeyboardGuard);
         return true;
       }
@@ -427,7 +432,7 @@ export function createAnnotationSidebarAdapter({
         !nativeEntry ||
         !comment ||
         !canEnterEditing(comment) ||
-        !canUseFastEditor(comment, commitComment)
+        !canUseFastEditor(comment, commitComment, isPopupEnabled)
       ) {
         return false;
       }
@@ -445,7 +450,7 @@ export function createAnnotationSidebarAdapter({
       if (
         !comment ||
         !canEnterEditing(comment) ||
-        !canUseFastEditor(comment, commitComment)
+        !canUseFastEditor(comment, commitComment, isPopupEnabled)
       ) {
         return false;
       }
@@ -889,9 +894,11 @@ function focusFastEditor(editor: HTMLElement): void {
 
 function canUseFastEditor(
   node: HTMLElement,
-  commitComment: ((annotationID: string, comment: string) => boolean) | undefined
+  commitComment: ((annotationID: string, comment: string) => boolean) | undefined,
+  isPopupEnabled: () => boolean
 ): boolean {
-  return typeof commitComment === "function" &&
+  return (!node.closest(ANNOTATION_POPUP_SELECTOR) || isPopupEnabled()) &&
+    typeof commitComment === "function" &&
     Boolean(getAnnotationID(node));
 }
 

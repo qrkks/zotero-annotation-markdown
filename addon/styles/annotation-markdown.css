@@ -136,21 +136,21 @@
     overflow: visible;
 }
 
-.annotation-popup {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup {
     box-sizing: border-box;
     width: min(32em, calc(100vw - 3em));
 }
 
-.annotation-popup:not([data-annotation-markdown-popup-ready="true"]) {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup:not([data-annotation-markdown-popup-ready="true"]) {
     opacity: 0;
     pointer-events: none;
 }
 
-.annotation-popup[data-annotation-markdown-popup-ready="true"] {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup[data-annotation-markdown-popup-ready="true"] {
     opacity: 1;
 }
 
-.annotation-popup .annotation-markdown-rendered {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup .annotation-markdown-rendered {
     contain-intrinsic-size: none;
     content-visibility: visible;
     -webkit-line-clamp: unset;
@@ -163,7 +163,7 @@
     padding: 0.65em 0.8em 0.75em;
 }
 
-.annotation-popup .annotation-markdown-editing > .editor .content {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup .annotation-markdown-editing > .editor .content {
     box-sizing: border-box;
     height: var(--annotation-markdown-popup-editor-height);
     min-height: var(--annotation-markdown-popup-editor-height);
@@ -171,11 +171,11 @@
     overflow-y: auto;
 }
 
-.annotation-popup .annotation-markdown-fast-editor {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup .annotation-markdown-fast-editor {
     margin-block: 0;
 }
 
-.annotation-popup .annotation-markdown-fast-editor-input {
+[data-annotation-markdown-popup-enabled="true"] .annotation-popup .annotation-markdown-fast-editor-input {
     height: var(--annotation-markdown-popup-editor-height);
     min-height: var(--annotation-markdown-popup-editor-height);
     max-height: var(--annotation-markdown-popup-editor-height);

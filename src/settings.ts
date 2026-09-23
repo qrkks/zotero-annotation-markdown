@@ -6,6 +6,7 @@
 import type { PreferenceStore } from "./types.js";
 
 export const ENABLED_PREF_KEY = "extensions.annotationMarkdown.enabled";
+export const POPUP_ENABLED_PREF_KEY = "extensions.annotationMarkdown.popupEnabled";
 export const FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.fontScalePercent";
 export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.pasteAsPlainText";
 export const FAST_EDITOR_PREF_KEY = "extensions.annotationMarkdown.fastEditor";
@@ -25,6 +26,8 @@ export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
 export interface Settings {
   isEnabled(): boolean;
   setEnabled(enabled: boolean): void;
+  isPopupEnabled(): boolean;
+  setPopupEnabled(enabled: boolean): void;
   getFontScale(): number;
   setFontScale(fontScale: number): void;
   isPlainTextPasteEnabled(): boolean;
@@ -54,6 +57,7 @@ export interface Settings {
 interface CreateSettingsOptions {
   prefs?: PreferenceStore;
   key?: string;
+  popupEnabledKey?: string;
   fontScalePercentKey?: string;
   pasteAsPlainTextKey?: string;
   fastEditorKey?: string;
@@ -80,6 +84,7 @@ const MAX_FONT_SCALE = 2;
 export function createSettings({
   prefs,
   key = ENABLED_PREF_KEY,
+  popupEnabledKey = POPUP_ENABLED_PREF_KEY,
   fontScalePercentKey = FONT_SCALE_PERCENT_PREF_KEY,
   pasteAsPlainTextKey = PASTE_AS_PLAIN_TEXT_PREF_KEY,
   fastEditorKey = FAST_EDITOR_PREF_KEY,
@@ -94,6 +99,7 @@ export function createSettings({
   autoTodoCleanupKey = AUTO_TODO_CLEANUP_PREF_KEY
 }: CreateSettingsOptions = {}): Settings {
   let memoryEnabled = true;
+  let memoryPopupEnabled = false;
   let memoryFontScale = DEFAULT_FONT_SCALE;
   let memoryPlainTextPaste = true;
   let memoryFastEditor = true;
@@ -124,6 +130,24 @@ export function createSettings({
       }
 
       memoryEnabled = value;
+    },
+
+    isPopupEnabled() {
+      if (prefs?.get) {
+        return prefs.get(popupEnabledKey, false) === true;
+      }
+
+      return memoryPopupEnabled;
+    },
+
+    setPopupEnabled(enabled) {
+      const value = Boolean(enabled);
+
+      if (prefs?.set) {
+        prefs.set(popupEnabledKey, value);
+      }
+
+      memoryPopupEnabled = value;
     },
 
     getFontScale() {

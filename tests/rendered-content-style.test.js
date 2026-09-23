@@ -18,31 +18,34 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain(".annotation.selected .annotation-markdown-rendered");
     expect(addonCss).toContain(".annotation-row.selected .annotation-markdown-rendered");
     expect(addonCss).toContain("-webkit-line-clamp: unset");
-    expect(addonCss).toContain(".annotation-popup .annotation-markdown-rendered");
+    expect(addonCss).toContain(
+      "[data-annotation-markdown-popup-enabled=\"true\"] .annotation-popup .annotation-markdown-rendered"
+    );
+    expect(addonCss).not.toMatch(/^\.annotation-popup/m);
     expect(addonCss).toContain("[data-annotation-markdown-placeholder=\"true\"]");
     expect(addonCss).toContain(".annotation-markdown-editing .annotation-markdown-rendered");
     expect(addonCss).toContain("display: none !important");
     expect(addonCss).toContain("font-size: var(--annotation-markdown-font-scale, 1em)");
     expect(addonCss).toContain("max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em)");
     expect(addonCss).toContain("max-height: none");
-    expect(addonCss).toMatch(/\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*max-height:\s*min\(50vh, 24em\);/);
-    expect(addonCss).toMatch(/\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*overflow-y:\s*auto;/);
-    expect(addonCss).toMatch(/\.annotation-popup\s*\{[^}]*width:\s*min\(32em, calc\(100vw - 3em\)\);/);
+    expect(addonCss).toMatch(/\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*max-height:\s*min\(50vh, 24em\);/);
+    expect(addonCss).toMatch(/\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*overflow-y:\s*auto;/);
+    expect(addonCss).toMatch(/\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup\s*\{[^}]*width:\s*min\(32em, calc\(100vw - 3em\)\);/);
     expect(addonCss).toMatch(
-      /\.annotation-popup:not\(\[data-annotation-markdown-popup-ready="true"\]\)\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;/
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup:not\(\[data-annotation-markdown-popup-ready="true"\]\)\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;/
     );
     expect(addonCss).toMatch(
-      /\.annotation-popup\[data-annotation-markdown-popup-ready="true"\]\s*\{[^}]*opacity:\s*1;/
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup\[data-annotation-markdown-popup-ready="true"\]\s*\{[^}]*opacity:\s*1;/
     );
     expect(addonCss).not.toContain("transition: opacity");
     expect(addonCss).toMatch(
-      /\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*padding:\s*0\.65em 0\.8em 0\.75em;/
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*padding:\s*0\.65em 0\.8em 0\.75em;/
     );
     expect(addonCss).toMatch(
-      /\.annotation-popup \.annotation-markdown-editing > \.editor \.content\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-editing > \.editor \.content\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/
     );
     expect(addonCss).toMatch(
-      /\.annotation-popup \.annotation-markdown-fast-editor-input\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-fast-editor-input\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/
     );
   });
 
@@ -52,7 +55,7 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toMatch(/\.annotation-markdown-rendered\s*\{[^}]*content-visibility:\s*auto;/);
     expect(addonCss).toMatch(/\.annotation-markdown-rendered\s*\{[^}]*contain-intrinsic-size:\s*auto none auto 4\.5em;/);
     expect(addonCss).toMatch(/\.annotation\.selected \.annotation-markdown-rendered,[\s\S]*?\{[^}]*content-visibility:\s*visible;/);
-    expect(addonCss).toMatch(/\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*content-visibility:\s*visible;/);
+    expect(addonCss).toMatch(/\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*content-visibility:\s*visible;/);
   });
 
   test("keeps markdown headings compact inside annotation previews", async () => {

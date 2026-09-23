@@ -15,3 +15,12 @@
   opacity: 0.75;
   white-space: normal;
 }
+
+.annotation-markdown-preference-suboption {
+  margin-inline-start: 2em;
+}
+
+.annotation-markdown-preference-suboption[data-disabled="true"] .annotation-markdown-preference-description {
+  color: GrayText;
+  opacity: 1;
+}

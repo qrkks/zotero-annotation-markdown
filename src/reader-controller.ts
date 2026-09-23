@@ -107,6 +107,7 @@ const MIN_IDLE_TIME_REMAINING_MS = 8;
 const POPUP_STABLE_LAYOUT_FRAMES = 2;
 const POPUP_POSITIONING_ATTRIBUTE = "data-annotation-markdown-popup-positioning";
 const POPUP_READY_ATTRIBUTE = "data-annotation-markdown-popup-ready";
+const POPUP_ENABLED_ATTRIBUTE = "data-annotation-markdown-popup-enabled";
 const ANNOTATION_SCROLLBAR_EVENTS = [
   "pointerdown", "mousedown", "click", "pointerup", "pointercancel", "dragend", "focusin", "keydown"
 ] as const;
@@ -329,6 +330,7 @@ export function createReaderController({
       stopScrollTargetTracking = undefined;
       clearAnnotationScrollbarInteraction();
       injectStyles();
+      syncPopupFeatureState();
       cancelQueuedRendering();
       visibilityObserver?.disconnect?.();
       visibilityObserver = undefined;
@@ -342,6 +344,7 @@ export function createReaderController({
         observer.disconnect();
         observer = undefined;
       }
+      restoreNativePopupStateWhenDisabled();
       preparePopupPositioning(root, { force: true });
       this.renderNow();
       registerMutationObserver();
@@ -447,6 +450,7 @@ export function createReaderController({
       pausedComment = undefined;
       renderingPausedGlobally = false;
       runShutdownStep(clearPopupPositioning);
+      runShutdownStep(() => documentRef?.documentElement?.removeAttribute(POPUP_ENABLED_ATTRIBUTE));
       runShutdownStep(cancelQueuedRendering);
       lazyRenderDiagnosticSamples = [];
       renderCache.clear();
@@ -533,6 +537,7 @@ export function createReaderController({
 
   function startNow(renderNow: () => void): void {
     injectStyles();
+    syncPopupFeatureState();
     registerPasteHandler();
     registerAnnotationScrollbarHandlers();
     registerFastEditorHandlers();
@@ -616,6 +621,9 @@ export function createReaderController({
     searchRoot: Node | null | undefined,
     { force = false }: { force?: boolean } = {}
   ): void {
+    if (!isPopupRenderingEnabled()) {
+      return;
+    }
     for (const popup of findAnnotationPopups(searchRoot)) {
       schedulePopupReveal(popup, force);
     }
@@ -624,6 +632,9 @@ export function createReaderController({
   function preparePopupPositioningFromMutations(
     mutations: MutationRecord[] = []
   ): void {
+    if (!isPopupRenderingEnabled()) {
+      return;
+    }
     for (const mutation of mutations) {
       if (mutation.type === "childList" && !isPluginOwnedMutation(mutation)) {
         const target = getElementTarget(mutation.target);
@@ -860,6 +871,39 @@ export function createReaderController({
     readyPopupLayoutSignatures = new WeakMap<HTMLElement, string>();
   }
 
+  function isPopupRenderingEnabled(): boolean {
+    return settings.isEnabled() && (settings.isPopupEnabled?.() ?? true);
+  }
+
+  function syncPopupFeatureState(): void {
+    const documentElement = documentRef?.documentElement;
+    if (!documentElement) {
+      return;
+    }
+    if (isPopupRenderingEnabled()) {
+      documentElement.setAttribute(POPUP_ENABLED_ATTRIBUTE, "true");
+      return;
+    }
+    documentElement.removeAttribute(POPUP_ENABLED_ATTRIBUTE);
+    clearPopupPositioning();
+  }
+
+  function restoreNativePopupStateWhenDisabled(): void {
+    if (isPopupRenderingEnabled()) {
+      return;
+    }
+    const popups = findAnnotationPopups(root);
+    if (
+      popups.some((popup) => popup.querySelector("[data-annotation-markdown-fast-editor='true']")) &&
+      adapter.closeActiveFastEditor?.() === false
+    ) {
+      return;
+    }
+    for (const popup of popups) {
+      adapter.clearRenderedState?.(popup);
+    }
+  }
+
   function getReaderReadyPromise(): PromiseLike<void> | null {
     if (typeof reader?._waitForReader === "function") {
       return reader._waitForReader();
@@ -908,15 +952,17 @@ export function createReaderController({
     // Popups are short-lived and Zotero can reuse the same DOM node for a new
     // annotation. Render them immediately instead of waiting for a visibility
     // callback that may never fire again for an already-observed node.
-    const popupNodes = adapter.isPopupComment
+    const discoveredPopupNodes = adapter.isPopupComment
       ? nodes.filter((node) => adapter.isPopupComment?.(node))
       : [];
-    const regularNodes = popupNodes.length > 0
+    const popupNodes = isPopupRenderingEnabled() ? discoveredPopupNodes : [];
+    const popupFiltered = discoveredPopupNodes.length - popupNodes.length;
+    const regularNodes = discoveredPopupNodes.length > 0
       ? nodes.filter((node) => !adapter.isPopupComment?.(node))
       : nodes;
     const popupHandled = renderNodes(popupNodes);
     if (regularNodes.length === 0) {
-      return { mode: "sync", handled: popupHandled, filtered: 0 };
+      return { mode: "sync", handled: popupHandled, filtered: popupFiltered };
     }
 
     if (force || !canLazyRender()) {
@@ -924,7 +970,7 @@ export function createReaderController({
       return {
         mode: "sync",
         handled: popupHandled + renderNodes(targetNodes),
-        filtered: regularNodes.length - targetNodes.length
+        filtered: popupFiltered + regularNodes.length - targetNodes.length
       };
     }
 
@@ -932,14 +978,14 @@ export function createReaderController({
       return {
         mode: "eager",
         handled: popupHandled + observeAndQueueEagerNodes(regularNodes),
-        filtered: 0
+        filtered: popupFiltered
       };
     }
 
     return {
       mode: "lazy",
       handled: popupHandled + observeCommentNodes(regularNodes),
-      filtered: 0
+      filtered: popupFiltered
     };
   }
 

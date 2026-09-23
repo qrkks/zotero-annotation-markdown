@@ -1,5 +1,6 @@
-var ZoteroAnnotationMarkdownPreferences = {
+Zotero.AnnotationMarkdownPreferences = {
   enabledKey: "extensions.annotationMarkdown.enabled",
+  popupEnabledKey: "extensions.annotationMarkdown.popupEnabled",
   fontScalePercentKey: "extensions.annotationMarkdown.fontScalePercent",
   pasteAsPlainTextKey: "extensions.annotationMarkdown.pasteAsPlainText",
   fastEditorKey: "extensions.annotationMarkdown.fastEditor",
@@ -12,6 +13,8 @@ var ZoteroAnnotationMarkdownPreferences = {
 
   init(documentRef = document) {
     const enabledInput = documentRef.getElementById("annotation-markdown-enabled");
+    const popupOption = documentRef.getElementById("annotation-markdown-popup-option");
+    const popupEnabledInput = documentRef.getElementById("annotation-markdown-popup-enabled");
     const fontScaleSelect = documentRef.getElementById("annotation-markdown-font-scale");
     const pasteAsPlainTextInput = documentRef.getElementById("annotation-markdown-paste-as-plain-text");
     const fastEditorInput = documentRef.getElementById("annotation-markdown-fast-editor");
@@ -24,6 +27,8 @@ var ZoteroAnnotationMarkdownPreferences = {
 
     if (
       !enabledInput ||
+      !popupOption ||
+      !popupEnabledInput ||
       !fontScaleSelect ||
       !pasteAsPlainTextInput ||
       !fastEditorInput ||
@@ -38,6 +43,8 @@ var ZoteroAnnotationMarkdownPreferences = {
     }
 
     enabledInput.checked = this.getPref(this.enabledKey, true);
+    popupEnabledInput.checked = this.getPref(this.popupEnabledKey, false);
+    this.setPopupOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
     fontScaleSelect.value = String(this.getPref(this.fontScalePercentKey, 100));
     pasteAsPlainTextInput.checked = this.getPref(this.pasteAsPlainTextKey, true);
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
@@ -51,6 +58,14 @@ var ZoteroAnnotationMarkdownPreferences = {
 
     enabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.enabledKey, Boolean(enabledInput.checked), true);
+      this.setPopupOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+    });
+    enabledInput.addEventListener("syncfrompreference", () => {
+      this.setPopupOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+    });
+
+    popupEnabledInput.addEventListener("command", () => {
+      Zotero.Prefs.set(this.popupEnabledKey, Boolean(popupEnabledInput.checked), true);
     });
 
     fontScaleSelect.addEventListener("command", () => {
@@ -97,5 +112,17 @@ var ZoteroAnnotationMarkdownPreferences = {
   getPref(key, defaultValue) {
     const value = Zotero.Prefs.get(key, true);
     return typeof value === typeof defaultValue ? value : defaultValue;
+  },
+
+  setPopupOptionEnabled(container, input, enabled) {
+    const disabled = !Boolean(enabled);
+    input.disabled = disabled;
+    if (disabled) {
+      input.setAttribute("disabled", "true");
+      container.setAttribute("data-disabled", "true");
+      return;
+    }
+    input.removeAttribute("disabled");
+    container.removeAttribute("data-disabled");
   }
 };

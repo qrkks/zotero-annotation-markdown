@@ -92,6 +92,20 @@ describe("createSettings", () => {
     expect(settings.isFastEditorEnabled()).toBe(true);
   });
 
+  test("defaults experimental popup rendering off and persists its choice", () => {
+    const settings = createSettings();
+    expect(settings.isPopupEnabled()).toBe(false);
+    settings.setPopupEnabled(true);
+    expect(settings.isPopupEnabled()).toBe(true);
+
+    const prefs = { get: vi.fn(() => undefined), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.isPopupEnabled()).toBe(false);
+    stored.setPopupEnabled(true);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.popupEnabled", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.popupEnabled", true);
+  });
+
   test("reads and writes the fast comment editor preference", () => {
     const prefs = {
       get: vi.fn(() => false),
