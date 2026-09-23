@@ -1,16 +1,26 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 - 2026-09-23
 
-### Changed
+### Added
+
+- Add safe optional color suffixes for highlighted Markdown, such as `==Risk=={.red}`, with yellow, red, orange, green, blue, purple, and gray presets.
+- Add an off-by-default **Render page annotation popups as Markdown (Experimental)** setting. When enabled, popup comments use Markdown previews and the fast editor when Zotero exposes the required update capability; disabling it returns popup sizing, positioning, display, and editing fully to Zotero.
+
+### Improved
 
 - Show formulas in floating outline entries by cloning the already-rendered visible KaTeX DOM from their headings, without parsing the formulas again. Hover tooltips preserve the source TeX so complex formula structure remains unambiguous.
-- Render Markdown comments reliably in page annotation popups, including when Zotero reuses popup DOM or replaces native popup content without changing the annotation ID. Native intermediate content and provisional positions stay hidden while Markdown renders; after Zotero's deferred measurement, the popup appears only when its transform, direction, and dimensions remain stable across two consecutive animation frames. Popups use a stable wider viewport-aware width, and padded long previews scroll within a bounded area without entering editing. Clicking regular preview content returns to Zotero's native popup editor; the fast textarea remains sidebar-only.
+- Render Markdown comments reliably in page annotation popups, including when Zotero reuses popup DOM or replaces native popup content without changing the annotation ID. Native intermediate content and provisional positions stay hidden while Markdown renders; after Zotero's deferred measurement, the popup appears at its final native position without visible flicker or jumping. Popups use a stable wider viewport-aware width, and padded long previews scroll within a bounded area without entering editing.
 
-### 变更
+### 新增
+
+- 高亮 Markdown 新增安全的可选颜色后缀，例如 `==风险=={.red}`；支持黄色、红色、橙色、绿色、蓝色、紫色和灰色预设。
+- 新增默认关闭的 **Render page annotation popups as Markdown (Experimental)** 设置。开启后，页内标注弹窗使用 Markdown 预览，并在 Zotero 提供所需更新能力时使用快速编辑器；关闭后，弹窗尺寸、定位、显示和编辑完全交还 Zotero。
+
+### 改进
 
 - 浮动大纲条目直接克隆标题中已经渲染的可见 KaTeX DOM 来显示公式，不再将公式降为纯文本，也不重复解析公式；鼠标悬停提示保留源 TeX，使复杂公式的结构保持明确。
-- 页内标注弹窗稳定支持 Markdown 评论渲染，包括 Zotero 复用弹窗 DOM 或在注释 ID 不变时替换原生弹窗内容的情况。Markdown 渲染期间会屏蔽原生中间内容和临时位置；Zotero 根据最终预览尺寸完成延迟测量后，弹窗仅在位置、方向和尺寸连续两个动画帧保持稳定时显示。弹窗使用更宽且受视口约束的固定宽度，带内边距的长预览可纵向滚动且操作滚动条不会进入编辑。点击普通预览内容后恢复原生弹窗编辑器；快速文本框仍只用于侧栏。
+- 页内标注弹窗稳定支持 Markdown 评论渲染，包括 Zotero 复用弹窗 DOM 或在注释 ID 不变时替换原生弹窗内容的情况。Markdown 渲染期间会屏蔽原生中间内容和临时位置；Zotero 延迟测量完成后，弹窗直接显示在最终原生位置，不再出现可见闪烁或跳动。弹窗使用更宽且受视口约束的稳定宽度，带内边距的长预览可纵向滚动且操作滚动条不会进入编辑。
 
 ## 0.8.1 - 2026-09-21
 
