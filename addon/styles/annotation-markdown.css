@@ -163,6 +163,14 @@
     padding: 0.65em 0.8em 0.75em;
 }
 
+.annotation-popup .annotation-markdown-editing > .editor .content {
+    box-sizing: border-box;
+    height: var(--annotation-markdown-popup-editor-height);
+    min-height: var(--annotation-markdown-popup-editor-height);
+    max-height: var(--annotation-markdown-popup-editor-height);
+    overflow-y: auto;
+}
+
 .annotation.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"],
 .annotation-row.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"] {
     display: -webkit-box;

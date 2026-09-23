@@ -185,7 +185,7 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("reveals popup Markdown once after Zotero's deferred positioning task", async () => {
+  test("reveals popup Markdown on the next frame after Zotero's post-render positioning task", async () => {
     vi.useFakeTimers();
     const mutationCallbacks = [];
     const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
@@ -239,15 +239,25 @@ describe("createReaderController", () => {
       vi.runOnlyPendingTimers();
       expect(frameCallbacks).toHaveLength(1);
       frameCallbacks.shift()(0);
-      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
-      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-      expect(frameCallbacks).toHaveLength(1);
-      frameCallbacks.shift()(16);
       expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      expect(frameCallbacks).toHaveLength(0);
+
+      // React can write an unchanged transform when reopening the same popup.
+      // It must stay visible instead of blinking at the same coordinates.
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      expect(frameCallbacks).toHaveLength(0);
 
       // A reused popup can still be marked ready when Zotero starts moving it
-      // for the next click. Any host transform must hide it and restabilize.
+      // for the next click. A changed transform must hide and restabilize it.
       popup.style.transform = "translate(201px, 120px)";
       mutationCallbacks[0]([{
         type: "attributes",
@@ -259,9 +269,7 @@ describe("createReaderController", () => {
       expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
       vi.runOnlyPendingTimers();
-      frameCallbacks.shift()(32);
-      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-      frameCallbacks.shift()(48);
+      frameCallbacks.shift()(16);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
 
       const hostReplacement = document.createElement("div");
@@ -278,9 +286,9 @@ describe("createReaderController", () => {
 
       vi.runOnlyPendingTimers();
       expect(frameCallbacks).toHaveLength(1);
-      frameCallbacks.shift()(64);
+      frameCallbacks.shift()(32);
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-      frameCallbacks.shift()(80);
+      frameCallbacks.shift()(48);
       expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
 
@@ -306,7 +314,7 @@ describe("createReaderController", () => {
     }
   });
 
-  test("keeps a popup hidden when Zotero's final transform arrives between stability frames", async () => {
+  test("keeps a popup hidden when Zotero updates its transform before the fast reveal frame", async () => {
     vi.useFakeTimers();
     const mutationCallbacks = [];
     const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
@@ -360,12 +368,11 @@ describe("createReaderController", () => {
       }]);
 
       vi.runOnlyPendingTimers();
-      runNextFrame(0);
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
       expect(frameCallbacks.size).toBe(1);
 
-      // React commits the authoritative transform one frame later. The old
-      // second-frame reveal must be cancelled rather than exposing the jump.
+      // React commits a newer authoritative transform before the scheduled
+      // reveal. The old frame must be cancelled rather than exposing a jump.
       popup.style.transform = "translate(700px, 120px)";
       mutationCallbacks[0]([{
         type: "attributes",
@@ -374,13 +381,11 @@ describe("createReaderController", () => {
         addedNodes: [],
         removedNodes: []
       }]);
-      expect(frameCallbacks.size).toBe(0);
+      expect(frameCallbacks.size).toBe(1);
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
 
       vi.runOnlyPendingTimers();
       runNextFrame(16);
-      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-      runNextFrame(32);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
     } finally {
       controller.stop();

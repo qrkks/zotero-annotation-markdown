@@ -79,6 +79,7 @@ interface PopupRevealTask {
   timeout?: number;
   layoutSignature?: string;
   stableFrames: number;
+  renderComplete?: boolean;
 }
 
 interface CreateReaderControllerOptions {
@@ -164,6 +165,7 @@ export function createReaderController({
   let pausedMutationDiagnosticsTimer: number | undefined;
   let pausedMutationDiagnostics: PausedMutationDiagnostics | undefined;
   let preparedPopups = new WeakSet<HTMLElement>();
+  let readyPopupLayoutSignatures = new WeakMap<HTMLElement, string>();
   const popupRevealTasks = new Map<HTMLElement, PopupRevealTask>();
   let observedComments = new WeakSet<HTMLElement>();
   let visibleComments = new WeakSet<HTMLElement>();
@@ -651,9 +653,29 @@ export function createReaderController({
           isHTMLElement(target) &&
           !target.querySelector(".annotation-markdown-editing")
         ) {
+          const layoutSignature = getPopupLayoutSignature(target);
+          if (
+            target.hasAttribute(POPUP_READY_ATTRIBUTE) &&
+            readyPopupLayoutSignatures.get(target) === layoutSignature
+          ) {
+            // React can write the same inline position again when reopening a
+            // cached popup. Keep it visible when nothing moved or resized.
+            continue;
+          }
+          const activeTask = popupRevealTasks.get(target);
+          if (
+            activeTask?.renderComplete ||
+            target.querySelector("[data-annotation-markdown-preview='true']")
+          ) {
+            // Once Markdown has changed the popup's dimensions, a subsequent
+            // host style write is the positioning signal we were waiting for.
+            // Reveal on the next paint unless geometry changes again first.
+            schedulePopupRevealAfterHostPosition(target);
+            continue;
+          }
           // A reused popup can still carry the previous ready marker when
           // Zotero starts positioning it for another click. Hide it again and
-          // restart stabilization for every host-owned transform update.
+          // restart stabilization when the host-owned layout actually changes.
           schedulePopupReveal(target, true);
         }
       }
@@ -695,6 +717,61 @@ export function createReaderController({
     schedulePopupStabilityFrame(popup, task);
   }
 
+  function schedulePopupRevealAfterHostPosition(popup: HTMLElement): void {
+    cancelPopupRevealTask(popup);
+    preparedPopups.add(popup);
+    popup.removeAttribute(POPUP_READY_ATTRIBUTE);
+    popup.setAttribute(POPUP_POSITIONING_ATTRIBUTE, "true");
+    const task: PopupRevealTask = {
+      stableFrames: 0,
+      renderComplete: true,
+      layoutSignature: getPopupLayoutSignature(popup)
+    };
+    popupRevealTasks.set(popup, task);
+
+    if (typeof windowRef?.requestAnimationFrame !== "function") {
+      revealPopup(popup);
+      return;
+    }
+
+    task.frame = windowRef.requestAnimationFrame(() => {
+      task.frame = undefined;
+      if (popupRevealTasks.get(popup) !== task) {
+        return;
+      }
+      if (!popup.isConnected) {
+        cancelPopupRevealTask(popup);
+        return;
+      }
+
+      const layoutSignature = getPopupLayoutSignature(popup);
+      if (task.layoutSignature === layoutSignature) {
+        revealPopup(popup);
+        return;
+      }
+
+      // Width, height, pointer class, or transform changed without another
+      // observed style mutation. Fall back to the conservative stability gate.
+      task.layoutSignature = layoutSignature;
+      task.stableFrames = 1;
+      schedulePopupStabilityFrame(popup, task);
+    });
+  }
+
+  function markPopupRenderComplete(node: HTMLElement): void {
+    if (!adapter.isPopupComment?.(node)) {
+      return;
+    }
+    const popup = node.closest(".annotation-popup");
+    if (!popup || !isHTMLElement(popup)) {
+      return;
+    }
+    const task = popupRevealTasks.get(popup);
+    if (task) {
+      task.renderComplete = true;
+    }
+  }
+
   function schedulePopupStabilityFrame(
     popup: HTMLElement,
     task: PopupRevealTask
@@ -718,12 +795,7 @@ export function createReaderController({
         return;
       }
 
-      const layoutSignature = [
-        popup.style.transform,
-        popup.className,
-        popup.offsetWidth,
-        popup.offsetHeight
-      ].join("|");
+      const layoutSignature = getPopupLayoutSignature(popup);
       if (task.layoutSignature === layoutSignature) {
         task.stableFrames += 1;
       } else {
@@ -742,7 +814,17 @@ export function createReaderController({
   function revealPopup(popup: HTMLElement): void {
     popup.removeAttribute(POPUP_POSITIONING_ATTRIBUTE);
     popup.setAttribute(POPUP_READY_ATTRIBUTE, "true");
+    readyPopupLayoutSignatures.set(popup, getPopupLayoutSignature(popup));
     popupRevealTasks.delete(popup);
+  }
+
+  function getPopupLayoutSignature(popup: HTMLElement): string {
+    return [
+      popup.style.transform,
+      popup.className,
+      popup.offsetWidth,
+      popup.offsetHeight
+    ].join("|");
   }
 
   function cancelPopupRevealTask(popup: HTMLElement): void {
@@ -775,6 +857,7 @@ export function createReaderController({
       }
     }
     preparedPopups = new WeakSet<HTMLElement>();
+    readyPopupLayoutSignatures = new WeakMap<HTMLElement, string>();
   }
 
   function getReaderReadyPromise(): PromiseLike<void> | null {
@@ -864,6 +947,7 @@ export function createReaderController({
     let handled = 0;
     for (const node of nodes) {
       renderNode(node);
+      markPopupRenderComplete(node);
       handled += 1;
     }
     return handled;

@@ -38,6 +38,9 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toMatch(
       /\.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*padding:\s*0\.65em 0\.8em 0\.75em;/
     );
+    expect(addonCss).toMatch(
+      /\.annotation-popup \.annotation-markdown-editing > \.editor \.content\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/
+    );
   });
 
   test("lets the browser skip folded offscreen preview work without containing expanded previews", async () => {

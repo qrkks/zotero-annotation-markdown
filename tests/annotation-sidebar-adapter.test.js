@@ -1390,6 +1390,7 @@ describe("createAnnotationSidebarAdapter", () => {
       expect(editor.hidden).toBe(false);
       expect(editor.style.display).toBe("");
       expect(preview.hidden).toBe(true);
+      expect(node.style.getPropertyValue("--annotation-markdown-popup-editor-height")).toBe("200px");
       expect(node.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
       expect(commitComment).not.toHaveBeenCalled();
       callbacks[0]();
@@ -1406,6 +1407,7 @@ describe("createAnnotationSidebarAdapter", () => {
       expect(node.querySelector(".annotation-markdown-rendered")).toBeNull();
       expect(node.querySelector(".wv-md-preview")).toBe(foreignPreview);
       expect(node.classList.contains("annotation-markdown-editing")).toBe(false);
+      expect(node.style.getPropertyValue("--annotation-markdown-popup-editor-height")).toBe("");
     } finally {
       globalThis.requestAnimationFrame = requestAnimationFrame;
     }

@@ -39,6 +39,7 @@ const FAST_EDITOR_ATTRIBUTE = "data-annotation-markdown-fast-editor";
 const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-closing";
 const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
 const WEAVERO_LINK_COLORS_CLASS = "annotation-markdown-weavero-link-colors";
+const POPUP_EDITOR_HEIGHT_PROPERTY = "--annotation-markdown-popup-editor-height";
 const OVERLAY_SCROLLBAR_HIT_WIDTH_PX = 16;
 export const FAST_EDITOR_CLOSED_EVENT = "annotation-markdown-fast-editor-closed";
 
@@ -362,6 +363,7 @@ export function createAnnotationSidebarAdapter({
         node.removeAttribute(SOURCE_ATTRIBUTE);
         node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
         node.removeAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE);
+        node.style.removeProperty(POPUP_EDITOR_HEIGHT_PROPERTY);
 
         showSourceNode(getSourceContainer(node));
         showSourceNode(getSourceNode(node));
@@ -386,6 +388,7 @@ export function createAnnotationSidebarAdapter({
       const sourceNode = getSourceNode(node);
       const sourceContainer = getSourceContainer(node, sourceNode);
       const preview = getPreviewNode(node);
+      preservePopupEditorHeight(node, preview);
 
       showSourceNode(sourceContainer);
       showSourceNode(sourceNode);
@@ -1418,6 +1421,7 @@ function getSourceNode(
 }
 
 function hideSourceNode(node: HTMLElement): void {
+  node.style.removeProperty(POPUP_EDITOR_HEIGHT_PROPERTY);
   const sourceNode = ensureSourceNode(node);
   const sourceContainer = getSourceContainer(node, sourceNode);
   if (sourceContainer !== node) {
@@ -1533,9 +1537,29 @@ function restoreSourceDom(node: HTMLElement | null | undefined): void {
   unwrapSourceNode(node);
   node.classList?.remove(EDITING_CLASS);
   node.classList?.remove(FAST_EDITING_CLASS);
+  node.style.removeProperty(POPUP_EDITOR_HEIGHT_PROPERTY);
   node.removeAttribute(RENDERED_ATTRIBUTE);
   node.removeAttribute(SOURCE_ATTRIBUTE);
   node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);
+}
+
+function preservePopupEditorHeight(
+  node: HTMLElement,
+  preview: HTMLElement | null | undefined
+): void {
+  if (!preview || !node.closest(ANNOTATION_POPUP_SELECTOR)) {
+    return;
+  }
+
+  const measuredHeight = preview.getBoundingClientRect?.().height ||
+    preview.offsetHeight || preview.clientHeight;
+  if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) {
+    node.style.removeProperty(POPUP_EDITOR_HEIGHT_PROPERTY);
+    return;
+  }
+
+  const roundedHeight = Math.round(measuredHeight * 100) / 100;
+  node.style.setProperty(POPUP_EDITOR_HEIGHT_PROPERTY, `${roundedHeight}px`);
 }
 
 function canEnterEditing(node: HTMLElement): boolean {
