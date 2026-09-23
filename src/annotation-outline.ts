@@ -81,7 +81,9 @@ export function trackAnnotationOutline({
     const nextPreview = findSelectedPreview(doc, isEnabled);
     const nextHeadings = nextPreview ? collectHeadings(nextPreview) : [];
     const nextSignature = nextHeadings
-      .map(heading => `${heading.tagName}:${getHeadingLabel(heading)}`)
+      .map(heading => (
+        `${heading.tagName}:${getHeadingLabel(heading)}:${getHeadingTooltip(heading)}`
+      ))
       .join("\n");
 
     if (!nextPreview || nextHeadings.length < 2) {
@@ -141,7 +143,7 @@ export function trackAnnotationOutline({
       item.dataset.level = heading.tagName.slice(1);
       item.setAttribute("aria-label", label);
       appendHeadingContent(item, heading);
-      item.title = label;
+      item.title = getHeadingTooltip(heading);
       item.addEventListener("click", event => {
         event.preventDefault();
         event.stopPropagation();
@@ -355,9 +357,36 @@ function getHeadingLabel(heading: HTMLElement): string {
   for (const math of copy.querySelectorAll<HTMLElement>(".katex")) {
     const visible = math.querySelector<HTMLElement>(".katex-html");
     if (visible) math.replaceWith(visible.textContent ?? "");
-    else math.querySelector("annotation[encoding='application/x-tex']")?.remove();
+    else math.querySelector(".katex-mathml annotation")?.remove();
   }
   return normalizeHeadingText(copy.textContent);
+}
+
+function getHeadingTooltip(heading: HTMLElement): string {
+  if (!heading.querySelector(".katex")) return normalizeHeadingText(heading.textContent);
+  const copy = heading.cloneNode(true) as HTMLElement;
+  for (const math of copy.querySelectorAll<HTMLElement>(".katex")) {
+    const source = getKatexSource(math);
+    const fallback = math.querySelector<HTMLElement>(".katex-html")?.textContent ?? "";
+    math.replaceWith(source ? `$${source}$` : fallback);
+  }
+  return normalizeHeadingText(copy.textContent);
+}
+
+function getKatexSource(math: HTMLElement): string {
+  const annotation = math.querySelector<HTMLElement>(".katex-mathml annotation")
+    ?.textContent?.trim();
+  if (annotation) return annotation;
+
+  // DOMPurify can unwrap KaTeX's annotation element while retaining its TeX
+  // as a direct text node under <math>. MathML presentation text remains in
+  // descendant elements, so direct text nodes are the stable sanitized fallback.
+  const mathml = math.querySelector<HTMLElement>(".katex-mathml math");
+  return Array.from(mathml?.childNodes ?? [])
+    .filter(node => node.nodeType === 3)
+    .map(node => node.textContent?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ");
 }
 
 function appendHeadingContent(target: HTMLElement, heading: HTMLElement): void {

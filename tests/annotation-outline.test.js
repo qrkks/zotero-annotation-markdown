@@ -84,7 +84,7 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.85em");
 });
 
-test("clones only visible KaTeX DOM into outline entries", () => {
+test("clones visible KaTeX DOM and preserves source TeX in tooltips", () => {
   setup();
   const rendered = document.createElement("div");
   rendered.innerHTML = createMarkdownRenderer({ windowRef: window })
@@ -101,7 +101,7 @@ test("clones only visible KaTeX DOM into outline entries", () => {
   const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
   const outlineKatex = item.querySelector(".katex");
   expect(item.textContent).toBe("它就是课本上的 A−1XA=ΛX 吗？");
-  expect(item.title).toBe(item.textContent);
+  expect(item.title).toBe("它就是课本上的 $A^{-1}XA=\\Lambda X$ 吗？");
   expect(item.getAttribute("aria-label")).toBe(item.textContent);
   expect(item.querySelector("a")).toBeNull();
   expect(outlineKatex).not.toBeNull();
