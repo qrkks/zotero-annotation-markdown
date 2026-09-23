@@ -1313,7 +1313,7 @@ describe("createAnnotationSidebarAdapter", () => {
     }
   });
 
-  test("renders a popup and restores its native editor without opening the fast editor", () => {
+  test("renders a popup and opens the fast editor at the preview height", () => {
     const requestAnimationFrame = globalThis.requestAnimationFrame;
     const callbacks = [];
     globalThis.requestAnimationFrame = (callback) => {
@@ -1387,16 +1387,30 @@ describe("createAnnotationSidebarAdapter", () => {
       preview.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
 
       expect(node.classList.contains("annotation-markdown-editing")).toBe(true);
-      expect(editor.hidden).toBe(false);
-      expect(editor.style.display).toBe("");
+      expect(editor.hidden).toBe(true);
+      expect(editor.style.display).toBe("none");
       expect(preview.hidden).toBe(true);
       expect(node.style.getPropertyValue("--annotation-markdown-popup-editor-height")).toBe("200px");
-      expect(node.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+      const fastEditor = node.querySelector("[data-annotation-markdown-fast-editor='true']");
+      const textarea = fastEditor.querySelector("textarea");
+      expect(textarea.value).toBe("**bold**");
       expect(commitComment).not.toHaveBeenCalled();
       callbacks[0]();
-      expect(document.activeElement).toBe(content);
+      expect(document.activeElement).toBe(textarea);
       expect(content.textContent).toBe("**bold**");
       expect(adapter.isRendered(node)).toBe(true);
+
+      textarea.value = "**changed**";
+      textarea.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText"
+      }));
+      expect(commitComment).not.toHaveBeenCalled();
+
+      textarea.dispatchEvent(new FocusEvent("blur"));
+      expect(commitComment).toHaveBeenCalledOnce();
+      expect(commitComment).toHaveBeenCalledWith("ABC12345", "**changed**");
+      expect(node.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
 
       const foreignPreview = document.createElement("div");
       foreignPreview.className = "wv-md-preview";
@@ -1457,6 +1471,34 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(nodes).toEqual([node]);
     expect(node.classList.contains("annotation-markdown-editing")).toBe(false);
     expect(adapter.getSourceText(node)).toBe("**changed**");
+  });
+
+  test("keeps Zotero's native popup editor when the fast editor is disabled", () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => false,
+      commitComment
+    });
+    const comment = document.querySelector(".comment");
+    const nativeEditor = comment.querySelector(".editor");
+
+    adapter.applyRenderedHtml(comment, "<p><strong>old</strong></p>");
+    comment.querySelector("[data-annotation-markdown-preview='true']")
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+
+    expect(nativeEditor.hidden).toBe(false);
+    expect(nativeEditor.style.display).toBe("");
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    expect(commitComment).not.toHaveBeenCalled();
   });
 
   test("does not re-render while focus remains inside the comment content", () => {

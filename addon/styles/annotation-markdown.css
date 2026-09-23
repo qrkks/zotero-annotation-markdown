@@ -171,6 +171,17 @@
     overflow-y: auto;
 }
 
+.annotation-popup .annotation-markdown-fast-editor {
+    margin-block: 0;
+}
+
+.annotation-popup .annotation-markdown-fast-editor-input {
+    height: var(--annotation-markdown-popup-editor-height);
+    min-height: var(--annotation-markdown-popup-editor-height);
+    max-height: var(--annotation-markdown-popup-editor-height);
+    overflow-y: auto;
+}
+
 .annotation.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"],
 .annotation-row.selected .annotation-markdown-rendered[data-annotation-markdown-placeholder="true"] {
     display: -webkit-box;

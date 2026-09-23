@@ -1319,11 +1319,15 @@ export function createReaderController({
     fastEditorClosedHandler = (event: Event) => {
       clearEscapeScrollRecovery();
       const detail = getFastEditorClosedDetail(event);
+      const eventComment = adapter.getCommentNodeForTarget?.(event.target);
       const currentComment = detail?.committed
         ? adapter.getCommentNodeForAnnotationID?.(detail.annotationID)
         : null;
-      const comment = currentComment ??
-        adapter.getCommentNodeForTarget?.(event.target) ??
+      // Prefer the live node that actually owned the editor. One annotation can
+      // have both sidebar and popup representations, and the generic ID lookup
+      // intentionally prefers the sidebar copy.
+      const comment = (eventComment?.isConnected ? eventComment : null) ??
+        currentComment ??
         pausedComment;
       if (comment) {
         if (detail?.committed) {

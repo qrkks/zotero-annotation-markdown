@@ -50,10 +50,13 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("renders a page annotation popup and returns to its native editor for changes", async () => {
+  test("edits a page annotation popup locally and saves once through the fast editor", async () => {
     vi.useFakeTimers();
     document.body.innerHTML = `
       <button id="outside">outside</button>
+      <div data-annotation-id="ABC12345" class="annotation">
+        <div class="comment"><div class="content">**old**</div></div>
+      </div>
       <div class="annotation-popup">
         <div class="preview">
           <div class="comment">
@@ -87,6 +90,8 @@ describe("createReaderController", () => {
     const comment = document.querySelector(".annotation-popup .comment");
     const editor = comment.querySelector(".editor");
     const content = comment.querySelector(".content");
+    const nativeInput = vi.fn();
+    content.addEventListener("input", nativeInput);
     const preview = comment.querySelector("[data-annotation-markdown-preview='true']");
     expect(render).toHaveBeenCalledWith("**old**");
     expect(editor.hidden).toBe(true);
@@ -95,18 +100,29 @@ describe("createReaderController", () => {
     preview.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     vi.runAllTimers();
 
-    expect(document.activeElement).toBe(content);
-    expect(editor.hidden).toBe(false);
-    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
-    content.textContent = "**new**";
+    const fastEditor = comment.querySelector("[data-annotation-markdown-fast-editor='true']");
+    const textarea = fastEditor.querySelector("textarea");
+    expect(document.activeElement).toBe(textarea);
+    expect(editor.hidden).toBe(true);
+    textarea.value = "**new**";
+    textarea.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText"
+    }));
+    expect(nativeInput).not.toHaveBeenCalled();
+    expect(commitComment).not.toHaveBeenCalled();
+
     document.querySelector("#outside").focus();
     vi.runAllTimers();
 
-    expect(commitComment).not.toHaveBeenCalled();
+    expect(commitComment).toHaveBeenCalledOnce();
+    expect(commitComment).toHaveBeenCalledWith("ABC12345", "**new**");
     expect(render).toHaveBeenLastCalledWith("**new**");
     expect(editor.hidden).toBe(true);
     expect(comment.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
       .toBe("<p>**new**</p>");
+    expect(document.querySelector("[data-annotation-id='ABC12345'] [data-annotation-markdown-preview='true']")?.innerHTML)
+      .toBe("<p>**old**</p>");
 
     controller.stop();
     vi.useRealTimers();
@@ -462,7 +478,7 @@ describe("createReaderController", () => {
     }
   });
 
-  test("keeps observing after a focused popup is removed without focusout", async () => {
+  test("saves a fast popup draft once and keeps observing when Zotero removes it without focusout", async () => {
     vi.useFakeTimers();
     const callbacks = [];
     const observers = [];
@@ -482,9 +498,14 @@ describe("createReaderController", () => {
         </div></div></div>
       </div>
     `;
+    const commitComment = vi.fn(() => true);
     const controller = createReaderController({
       reader: { document },
-      adapter: createAnnotationSidebarAdapter({ document }),
+      adapter: createAnnotationSidebarAdapter({
+        document,
+        isFastEditorEnabled: () => true,
+        commitComment
+      }),
       renderer: { render: (source) => `<p>${source}</p>` },
       settings: { isEnabled: () => true },
       MutationObserver: FakeMutationObserver,
@@ -496,10 +517,20 @@ describe("createReaderController", () => {
     oldPopup.querySelector("[data-annotation-markdown-preview='true']")
       .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     vi.runAllTimers();
-    expect(document.activeElement).toBe(oldPopup.querySelector(".content"));
+    const textarea = oldPopup.querySelector("[data-annotation-markdown-fast-editor='true'] textarea");
+    expect(document.activeElement).toBe(textarea);
     expect(observers[0].disconnect).not.toHaveBeenCalled();
+    textarea.value = "**saved before popup removal**";
 
     oldPopup.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(commitComment).toHaveBeenCalledOnce();
+    expect(commitComment).toHaveBeenCalledWith(
+      "ABC12345",
+      "**saved before popup removal**"
+    );
+
     const added = document.createElement("div");
     added.className = "annotation-popup";
     added.innerHTML = `<div class="preview"><div class="comment"><div class="editor">
@@ -517,6 +548,7 @@ describe("createReaderController", () => {
     expect(added.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
       .toBe("<p>**next**</p>");
     controller.stop();
+    expect(commitComment).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
 

@@ -818,8 +818,10 @@ function showFastEditor(
   });
 
   const sourceNode = getSourceNode(node);
+  const preview = getPreviewNode(node);
   hideSourceNode(node);
-  hidePreviewNode(getPreviewNode(node));
+  preservePopupEditorHeight(node, preview);
+  hidePreviewNode(preview);
   getSourceContainer(node, sourceNode).after(editor);
   node.classList.add(EDITING_CLASS, FAST_EDITING_CLASS);
   adapter.suppressRendering(node, 60_000);
@@ -889,8 +891,7 @@ function canUseFastEditor(
   node: HTMLElement,
   commitComment: ((annotationID: string, comment: string) => boolean) | undefined
 ): boolean {
-  return !node.closest(ANNOTATION_POPUP_SELECTOR) &&
-    typeof commitComment === "function" &&
+  return typeof commitComment === "function" &&
     Boolean(getAnnotationID(node));
 }
 
