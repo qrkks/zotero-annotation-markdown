@@ -57,6 +57,11 @@ describe("release workflow", () => {
     expect(workflow).toContain("pnpm audit --prod");
     expect(workflow).toContain('pnpm run release:verify "$RELEASE_TAG"');
     expect(workflow).toContain("git diff --exit-code -- updates.json");
+    expect(workflow).toContain(
+      'node scripts/extract-release-notes.mjs "$RELEASE_TAG" CHANGELOG.md dist/release-notes.md'
+    );
+    expect(workflow).toContain('--notes-file "dist/release-notes.md"');
+    expect(workflow).not.toContain("--generate-notes");
     expect(workflow).toContain('gh release download "$RELEASE_TAG"');
     expect(workflow).toContain("sha256sum --check --strict");
     expect(workflow.indexOf("pnpm audit --prod"))

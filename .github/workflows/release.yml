@@ -65,6 +65,10 @@ jobs:
             exit 1
           fi
 
+      - name: Prepare release notes
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: node scripts/extract-release-notes.mjs "$RELEASE_TAG" CHANGELOG.md dist/release-notes.md
+
       - name: Publish GitHub release
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: |
@@ -73,7 +77,7 @@ jobs:
             "dist/zotero-annotation-markdown.xpi" \
             --verify-tag \
             --title "Zotero Annotation Markdown $version" \
-            --generate-notes \
+            --notes-file "dist/release-notes.md" \
             --latest
 
       - name: Verify published asset
