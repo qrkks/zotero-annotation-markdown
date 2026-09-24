@@ -262,7 +262,7 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("reveals popup Markdown on the next frame after Zotero's post-render positioning task", async () => {
+  test("reveals popup Markdown and outline together after two stable layout frames", async () => {
     vi.useFakeTimers();
     const mutationCallbacks = [];
     const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
@@ -288,8 +288,12 @@ describe("createReaderController", () => {
     const controller = createReaderController({
       reader: { document },
       adapter: createAnnotationSidebarAdapter({ document }),
-      renderer: { render: (source) => `<p>${source}</p>` },
-      settings: { isEnabled: () => true },
+      renderer: { render: () => `<h1>弹窗第一章</h1><p>内容</p><h2>弹窗细节</h2>` },
+      settings: {
+        isEnabled: () => true,
+        isOutlineEnabled: () => true,
+        isOutlineExpanded: () => true
+      },
       MutationObserver: FakeMutationObserver,
       IntersectionObserver: null
     });
@@ -298,8 +302,18 @@ describe("createReaderController", () => {
       await controller.start();
       const popup = document.querySelector(".annotation-popup");
       const content = popup.querySelector(".content");
+      const preview = popup.querySelector("[data-annotation-markdown-preview='true']");
+      popup.getBoundingClientRect = () => ({
+        left: 100, top: 90, right: 500, bottom: 390, width: 400, height: 300
+      });
+      Object.defineProperty(preview, "clientHeight", { configurable: true, value: 200 });
+      Object.defineProperty(preview, "scrollHeight", { configurable: true, value: 600 });
+      preview.getBoundingClientRect = () => ({
+        left: 110, top: 100, right: 490, bottom: 300, width: 380, height: 200
+      });
       expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
       expect(frameCallbacks).toHaveLength(0);
 
       popup.style.transform = "translate(200px, 120px)";
@@ -313,11 +327,20 @@ describe("createReaderController", () => {
       expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
 
-      vi.runOnlyPendingTimers();
+      vi.advanceTimersByTime(0);
       expect(frameCallbacks).toHaveLength(1);
       frameCallbacks.shift()(0);
+      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+      expect(frameCallbacks).toHaveLength(1);
+      frameCallbacks.shift()(16);
       expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      const popupOutline = document.querySelector("[data-annotation-markdown-outline='true']");
+      expect(popupOutline).not.toBeNull();
+      expect(popupOutline.hidden).toBe(false);
+      expect(popupOutline.parentElement).toBe(document.body);
       expect(frameCallbacks).toHaveLength(0);
 
       // React can write an unchanged transform when reopening the same popup.
@@ -333,41 +356,41 @@ describe("createReaderController", () => {
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
       expect(frameCallbacks).toHaveLength(0);
 
-      // A reused popup can still be marked ready when Zotero starts moving it
-      // for the next click. A changed transform must hide and restabilize it.
-      popup.style.transform = "translate(201px, 120px)";
-      mutationCallbacks[0]([{
-        type: "attributes",
-        attributeName: "style",
-        target: popup,
-        addedNodes: [],
-        removedNodes: []
-      }]);
-      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
-      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-      vi.runOnlyPendingTimers();
-      frameCallbacks.shift()(16);
-      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      // Once this popup instance is visible, late host position corrections
+      // may move it but must never toggle it back to hidden. Structural or ID
+      // changes below still begin a fresh hidden positioning lifecycle.
+      for (const x of [201, 202, 203]) {
+        popup.style.transform = `translate(${x}px, 120px)`;
+        mutationCallbacks[0]([{
+          type: "attributes",
+          attributeName: "style",
+          target: popup,
+          addedNodes: [],
+          removedNodes: []
+        }]);
+        expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+        expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+        expect(popupOutline.hidden).toBe(false);
+        expect(frameCallbacks).toHaveLength(0);
+      }
 
-      const hostReplacement = document.createElement("div");
-      hostReplacement.className = "host-popup-update";
-      popup.querySelector(".comment").append(hostReplacement);
-      mutationCallbacks[0]([{
-        type: "childList",
-        target: popup.querySelector(".comment"),
-        addedNodes: [hostReplacement],
-        removedNodes: []
-      }]);
-      expect(popup.getAttribute("data-annotation-markdown-popup-positioning")).toBe("true");
-      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-
-      vi.runOnlyPendingTimers();
-      expect(frameCallbacks).toHaveLength(1);
-      frameCallbacks.shift()(32);
-      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
-      frameCallbacks.shift()(48);
-      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
-      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      // Host and editor child-list commits can continue after reveal. They
+      // must never revoke READY and create a hide/reveal feedback loop.
+      for (let index = 0; index < 3; index++) {
+        const hostUpdate = document.createElement("div");
+        hostUpdate.className = `host-popup-update-${index}`;
+        popup.querySelector(".comment").append(hostUpdate);
+        mutationCallbacks[0]([{
+          type: "childList",
+          target: popup.querySelector(".comment"),
+          addedNodes: [hostUpdate],
+          removedNodes: []
+        }]);
+        expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+        expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+        expect(popupOutline.hidden).toBe(false);
+        expect(frameCallbacks).toHaveLength(0);
+      }
 
       content.id = "DEF67890";
       mutationCallbacks[0]([{
@@ -391,7 +414,7 @@ describe("createReaderController", () => {
     }
   });
 
-  test("keeps a popup hidden when Zotero updates its transform before the fast reveal frame", async () => {
+  test("keeps a popup hidden across late transform writes until two quiet frames pass", async () => {
     vi.useFakeTimers();
     const mutationCallbacks = [];
     const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
@@ -444,7 +467,7 @@ describe("createReaderController", () => {
         removedNodes: []
       }]);
 
-      vi.runOnlyPendingTimers();
+      vi.advanceTimersByTime(0);
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
       expect(frameCallbacks.size).toBe(1);
 
@@ -461,8 +484,40 @@ describe("createReaderController", () => {
       expect(frameCallbacks.size).toBe(1);
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
 
-      vi.runOnlyPendingTimers();
+      vi.advanceTimersByTime(0);
       runNextFrame(16);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(frameCallbacks.size).toBe(1);
+
+      // A correction can arrive after one apparently stable frame. Restart
+      // the quiet-frame count instead of briefly revealing between writes.
+      popup.style.transform = "translate(702px, 120px)";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(frameCallbacks.size).toBe(1);
+      const pendingFrameIDs = [...frameCallbacks.keys()];
+      const cancelledFrames = window.cancelAnimationFrame.mock.calls.length;
+
+      // React may write the same inline transform on every commit. Identical
+      // writes must not cancel and restart the quiet-frame gate forever.
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect([...frameCallbacks.keys()]).toEqual(pendingFrameIDs);
+      expect(window.cancelAnimationFrame).toHaveBeenCalledTimes(cancelledFrames);
+      runNextFrame(32);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+      expect(frameCallbacks.size).toBe(1);
+      runNextFrame(48);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
     } finally {
       controller.stop();
@@ -521,7 +576,7 @@ describe("createReaderController", () => {
       // Zotero's queued updatePopupPosition() now measures the final Markdown
       // dimensions and supplies the authoritative native transform.
       popup.style.transform = "translate(100px, 100px)";
-      vi.runOnlyPendingTimers();
+      vi.advanceTimersByTime(0);
       expect(frameCallbacks).toHaveLength(1);
       expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
       frameCallbacks.shift()(0);
@@ -531,6 +586,74 @@ describe("createReaderController", () => {
       frameCallbacks.shift()(16);
       expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
       expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+    } finally {
+      controller.stop();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
+      vi.useRealTimers();
+    }
+  });
+
+  test("reveals a popup after a bounded wait when Zotero's final position commit stalls", async () => {
+    vi.useFakeTimers();
+    const mutationCallbacks = [];
+    const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+      mutationCallbacks.push(callback);
+      return { observe: vi.fn(), disconnect: vi.fn(), takeRecords: vi.fn(() => []) };
+    });
+    const frameCallbacks = new Map();
+    let nextFrameID = 1;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    window.requestAnimationFrame = vi.fn((callback) => {
+      const frameID = nextFrameID++;
+      frameCallbacks.set(frameID, callback);
+      return frameID;
+    });
+    window.cancelAnimationFrame = vi.fn((frameID) => frameCallbacks.delete(frameID));
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div>
+      </div></div></div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: FakeMutationObserver,
+      IntersectionObserver: null
+    });
+
+    try {
+      await controller.start();
+      const popup = document.querySelector(".annotation-popup");
+
+      vi.advanceTimersByTime(0);
+      expect(frameCallbacks.size).toBe(1);
+      vi.advanceTimersByTime(749);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+
+      vi.advanceTimersByTime(1);
+      expect(popup.hasAttribute("data-annotation-markdown-popup-positioning")).toBe(false);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      expect(frameCallbacks.size).toBe(0);
+
+      // The late authoritative transform is allowed to move the visible popup,
+      // but it must not start another hidden lifecycle.
+      popup.style.transform = "translate(800px, 120px)";
+      mutationCallbacks[0]([{
+        type: "attributes",
+        attributeName: "style",
+        target: popup,
+        addedNodes: [],
+        removedNodes: []
+      }]);
+      expect(popup.getAttribute("data-annotation-markdown-popup-ready")).toBe("true");
+      expect(frameCallbacks.size).toBe(0);
     } finally {
       controller.stop();
       window.requestAnimationFrame = originalRequestAnimationFrame;

@@ -109,11 +109,12 @@ describe("rendered annotation styles", () => {
     expect(addonCss).not.toContain(".annotation-markdown-rendered mark.red");
   });
 
-  test("keeps the outline compact, fixed, directional, theme-aware, and keyboard visible", async () => {
+  test("keeps sidebar and popup outlines compact, directional, theme-aware, and keyboard visible", async () => {
     const addonCss = await readAddonCss();
 
     expect(addonCss).toContain(".annotation-markdown-outline");
     expect(addonCss).toContain("position: fixed");
+    expect(addonCss).toMatch(/\.annotation-markdown-outline\[data-context="popup"\]\s*\{[^}]*position:\s*fixed;/);
     expect(addonCss).toContain(".annotation-markdown-outline[data-side=\"right\"]");
     expect(addonCss).toContain(".annotation-markdown-outline[data-side=\"left\"]");
     expect(addonCss).toContain("--annotation-markdown-outline-panel-width");
@@ -121,7 +122,8 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("color: CanvasText");
     expect(addonCss).toContain(".annotation-markdown-outline-toggle:focus-visible");
     expect(addonCss).toContain(".annotation-markdown-outline-item[aria-current=\"location\"]");
-    expect(addonCss).toContain("max-height: min(45vh, 20em)");
+    expect(addonCss).toContain("--annotation-markdown-outline-panel-max-height");
+    expect(addonCss).toMatch(/\.annotation-markdown-outline-toggle\s*\{[^}]*white-space:\s*nowrap;/);
   });
 
   test("keeps Zotero's refreshed native comment shell hidden while the fast editor is open", async () => {

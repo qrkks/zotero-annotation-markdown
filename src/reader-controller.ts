@@ -105,6 +105,10 @@ const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
 const POPUP_STABLE_LAYOUT_FRAMES = 2;
+// Keep the normal quiet-frame path for a clean first paint, but never leave a
+// popup invisible when Zotero delays its final position commit. Real Reader
+// traces occasionally showed that commit arriving five to eight seconds late.
+const POPUP_MAX_HIDDEN_MS = 750;
 const POPUP_POSITIONING_ATTRIBUTE = "data-annotation-markdown-popup-positioning";
 const POPUP_READY_ATTRIBUTE = "data-annotation-markdown-popup-ready";
 const POPUP_ENABLED_ATTRIBUTE = "data-annotation-markdown-popup-enabled";
@@ -166,8 +170,8 @@ export function createReaderController({
   let pausedMutationDiagnosticsTimer: number | undefined;
   let pausedMutationDiagnostics: PausedMutationDiagnostics | undefined;
   let preparedPopups = new WeakSet<HTMLElement>();
-  let readyPopupLayoutSignatures = new WeakMap<HTMLElement, string>();
   const popupRevealTasks = new Map<HTMLElement, PopupRevealTask>();
+  const popupRevealDeadlines = new Map<HTMLElement, number>();
   let observedComments = new WeakSet<HTMLElement>();
   let visibleComments = new WeakSet<HTMLElement>();
   let visibilityKnownComments = new WeakSet<HTMLElement>();
@@ -644,10 +648,14 @@ export function createReaderController({
           isHTMLElement(popup) &&
           !popup.querySelector(".annotation-markdown-editing")
         ) {
-          // Zotero can retain the same popup and source ID while replacing
-          // its native preview subtree. Treat that host-owned replacement as
-          // a fresh mount so the intermediate native DOM never becomes visible.
-          schedulePopupReveal(popup, true);
+          if (popup.hasAttribute(POPUP_READY_ATTRIBUTE)) {
+            // React/editor child-list commits can continue indefinitely after
+            // the popup is visible. Rendering is handled synchronously later
+            // in this observer callback; never revoke READY for the same popup
+            // instance or it becomes a hide/reveal feedback loop.
+          } else {
+            schedulePopupReveal(popup, true);
+          }
         }
       }
       if (mutation.type === "attributes" && mutation.attributeName === "id") {
@@ -664,23 +672,29 @@ export function createReaderController({
           isHTMLElement(target) &&
           !target.querySelector(".annotation-markdown-editing")
         ) {
-          const layoutSignature = getPopupLayoutSignature(target);
-          if (
-            target.hasAttribute(POPUP_READY_ATTRIBUTE) &&
-            readyPopupLayoutSignatures.get(target) === layoutSignature
-          ) {
-            // React can write the same inline position again when reopening a
-            // cached popup. Keep it visible when nothing moved or resized.
+          if (target.hasAttribute(POPUP_READY_ATTRIBUTE)) {
+            // This popup instance has already completed its hidden render and
+            // reveal lifecycle. Zotero may continue refining its transform an
+            // arbitrary number of times; allow it to move without ever
+            // toggling opacity again. New subtree/ID mutations still start a
+            // fresh hidden lifecycle through the branches above.
             continue;
           }
+          const layoutSignature = getPopupLayoutSignature(target);
           const activeTask = popupRevealTasks.get(target);
+          if (activeTask?.layoutSignature === layoutSignature) {
+            // React may commit the same inline transform repeatedly while the
+            // popup is positioning. Keep the existing quiet-frame progress;
+            // restarting here can prevent the popup from ever settling.
+            continue;
+          }
           if (
             activeTask?.renderComplete ||
             target.querySelector("[data-annotation-markdown-preview='true']")
           ) {
             // Once Markdown has changed the popup's dimensions, a subsequent
             // host style write is the positioning signal we were waiting for.
-            // Reveal on the next paint unless geometry changes again first.
+            // Begin the quiet-frame gate unless geometry changes again first.
             schedulePopupRevealAfterHostPosition(target);
             continue;
           }
@@ -705,17 +719,22 @@ export function createReaderController({
     }
   }
 
-  function schedulePopupReveal(popup: HTMLElement, force: boolean): void {
+  function schedulePopupReveal(
+    popup: HTMLElement,
+    force: boolean
+  ): void {
     if (!force && preparedPopups.has(popup)) {
       return;
     }
 
-    cancelPopupRevealTask(popup);
+    cancelPopupRevealTask(popup, { keepDeadline: true });
     preparedPopups.add(popup);
     popup.removeAttribute(POPUP_READY_ATTRIBUTE);
     popup.setAttribute(POPUP_POSITIONING_ATTRIBUTE, "true");
+    outlineController?.sync();
     const task: PopupRevealTask = { stableFrames: 0 };
     popupRevealTasks.set(popup, task);
+    ensurePopupRevealDeadline(popup);
 
     if (typeof windowRef?.setTimeout === "function") {
       task.timeout = windowRef.setTimeout(() => {
@@ -729,44 +748,22 @@ export function createReaderController({
   }
 
   function schedulePopupRevealAfterHostPosition(popup: HTMLElement): void {
-    cancelPopupRevealTask(popup);
+    cancelPopupRevealTask(popup, { keepDeadline: true });
     preparedPopups.add(popup);
     popup.removeAttribute(POPUP_READY_ATTRIBUTE);
     popup.setAttribute(POPUP_POSITIONING_ATTRIBUTE, "true");
+    outlineController?.sync();
     const task: PopupRevealTask = {
       stableFrames: 0,
       renderComplete: true,
       layoutSignature: getPopupLayoutSignature(popup)
     };
     popupRevealTasks.set(popup, task);
-
-    if (typeof windowRef?.requestAnimationFrame !== "function") {
-      revealPopup(popup);
-      return;
-    }
-
-    task.frame = windowRef.requestAnimationFrame(() => {
-      task.frame = undefined;
-      if (popupRevealTasks.get(popup) !== task) {
-        return;
-      }
-      if (!popup.isConnected) {
-        cancelPopupRevealTask(popup);
-        return;
-      }
-
-      const layoutSignature = getPopupLayoutSignature(popup);
-      if (task.layoutSignature === layoutSignature) {
-        revealPopup(popup);
-        return;
-      }
-
-      // Width, height, pointer class, or transform changed without another
-      // observed style mutation. Fall back to the conservative stability gate.
-      task.layoutSignature = layoutSignature;
-      task.stableFrames = 1;
-      schedulePopupStabilityFrame(popup, task);
-    });
+    ensurePopupRevealDeadline(popup);
+    // A host style write is not necessarily the final position. Zotero can
+    // commit several transforms over consecutive frames, so require the same
+    // quiet-frame gate as the initial popup mount before revealing anything.
+    schedulePopupStabilityFrame(popup, task);
   }
 
   function markPopupRenderComplete(node: HTMLElement): void {
@@ -823,10 +820,47 @@ export function createReaderController({
   }
 
   function revealPopup(popup: HTMLElement): void {
+    // A max-wait reveal can run while a quiet-frame callback is still queued.
+    // Cancel every remaining callback before making READY permanent for this
+    // popup instance.
+    cancelPopupRevealTask(popup);
+    // Mount the outline only after Zotero's popup geometry is stable. It stays
+    // hidden until READY is applied below, so popup and outline become visible
+    // atomically without inserting DOM during the host positioning lifecycle.
+    outlineController?.preparePopup(popup);
     popup.removeAttribute(POPUP_POSITIONING_ATTRIBUTE);
     popup.setAttribute(POPUP_READY_ATTRIBUTE, "true");
-    readyPopupLayoutSignatures.set(popup, getPopupLayoutSignature(popup));
-    popupRevealTasks.delete(popup);
+    outlineController?.sync();
+  }
+
+  function ensurePopupRevealDeadline(popup: HTMLElement): void {
+    if (
+      popupRevealDeadlines.has(popup) ||
+      typeof windowRef?.setTimeout !== "function"
+    ) {
+      return;
+    }
+
+    const deadline = windowRef.setTimeout(() => {
+      popupRevealDeadlines.delete(popup);
+      if (
+        !popup.isConnected ||
+        popup.hasAttribute(POPUP_READY_ATTRIBUTE) ||
+        !popupRevealTasks.has(popup)
+      ) {
+        return;
+      }
+      revealPopup(popup);
+    }, POPUP_MAX_HIDDEN_MS);
+    popupRevealDeadlines.set(popup, deadline);
+  }
+
+  function clearPopupRevealDeadline(popup: HTMLElement): void {
+    const deadline = popupRevealDeadlines.get(popup);
+    if (deadline !== undefined) {
+      windowRef?.clearTimeout?.(deadline);
+      popupRevealDeadlines.delete(popup);
+    }
   }
 
   function getPopupLayoutSignature(popup: HTMLElement): string {
@@ -838,19 +872,23 @@ export function createReaderController({
     ].join("|");
   }
 
-  function cancelPopupRevealTask(popup: HTMLElement): void {
+  function cancelPopupRevealTask(
+    popup: HTMLElement,
+    { keepDeadline = false }: { keepDeadline?: boolean } = {}
+  ): void {
     const task = popupRevealTasks.get(popup);
-    if (!task) {
-      return;
+    if (task) {
+      if (task.frame !== undefined) {
+        windowRef?.cancelAnimationFrame?.(task.frame);
+      }
+      if (task.timeout !== undefined) {
+        windowRef?.clearTimeout?.(task.timeout);
+      }
+      popupRevealTasks.delete(popup);
     }
-
-    if (task.frame !== undefined) {
-      windowRef?.cancelAnimationFrame?.(task.frame);
+    if (!keepDeadline) {
+      clearPopupRevealDeadline(popup);
     }
-    if (task.timeout !== undefined) {
-      windowRef?.clearTimeout?.(task.timeout);
-    }
-    popupRevealTasks.delete(popup);
   }
 
   function clearPopupPositioning(): void {
@@ -858,6 +896,9 @@ export function createReaderController({
       cancelPopupRevealTask(popup);
       popup.removeAttribute(POPUP_POSITIONING_ATTRIBUTE);
       popup.removeAttribute(POPUP_READY_ATTRIBUTE);
+    }
+    for (const popup of popupRevealDeadlines.keys()) {
+      clearPopupRevealDeadline(popup);
     }
     for (const cleanupRoot of collectShutdownRoots()) {
       for (const popup of cleanupRoot.querySelectorAll?.(
@@ -868,7 +909,6 @@ export function createReaderController({
       }
     }
     preparedPopups = new WeakSet<HTMLElement>();
-    readyPopupLayoutSignatures = new WeakMap<HTMLElement, string>();
   }
 
   function isPopupRenderingEnabled(): boolean {

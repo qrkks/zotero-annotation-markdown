@@ -17,7 +17,8 @@ function setup({
   fontScale = 1,
   viewportWidth = 800,
   viewportHeight = 700,
-  scrollerRect = { left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600 }
+  scrollerRect = { left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600 },
+  MutationObserverRef = window.MutationObserver
 } = {}) {
   document.documentElement.lang = "zh-CN";
   document.body.innerHTML = `<section id="annotation-tab-panel">
@@ -41,7 +42,7 @@ function setup({
   const setExpanded = vi.fn(value => { expanded = value; });
   controller = trackAnnotationOutline({
     document,
-    MutationObserver: window.MutationObserver,
+    MutationObserver: MutationObserverRef,
     isEnabled: () => enabled,
     isExpanded: () => expanded,
     setExpanded,
@@ -58,6 +59,43 @@ function setup({
     }
   };
 }
+
+test("ignores outline-owned style mutations instead of scheduling a render loop", () => {
+  let mutationCallback;
+  const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+    mutationCallback = callback;
+    return { observe: vi.fn(), disconnect: vi.fn() };
+  });
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = vi.fn(() => 1);
+
+  try {
+    const { scroller } = setup({ MutationObserverRef: FakeMutationObserver });
+    const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+
+    mutationCallback([{
+      type: "attributes",
+      attributeName: "style",
+      target: outline,
+      addedNodes: [],
+      removedNodes: []
+    }]);
+    expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+
+    mutationCallback([{
+      type: "attributes",
+      attributeName: "style",
+      target: scroller,
+      addedNodes: [],
+      removedNodes: []
+    }]);
+    expect(window.requestAnimationFrame).toHaveBeenCalledOnce();
+  } finally {
+    controller?.stop();
+    controller = undefined;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  }
+});
 
 async function flushMutations() {
   await Promise.resolve();
@@ -202,6 +240,132 @@ test("temporarily hides during editing without changing the stored choice", asyn
   expect(setExpanded).not.toHaveBeenCalled();
 });
 
+test("prepares a popup outline only when the stable popup is about to reveal", async () => {
+  const { setExpanded } = setup({ initialExpanded: true });
+  document.body.insertAdjacentHTML("beforeend", `<div class="annotation-popup" data-annotation-markdown-popup-positioning="true">
+    <div class="preview"><div class="comment">
+      <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true" style="overflow-y:auto">
+        <h1>弹窗第一章</h1><p>内容</p><h2>弹窗细节</h2>
+      </div>
+    </div></div>
+  </div>`);
+  const popup = document.querySelector(".annotation-popup");
+  const preview = popup.querySelector("[data-annotation-markdown-preview='true']");
+  popup.getBoundingClientRect = () => ({
+    left: 100, top: 90, right: 500, bottom: 390, width: 400, height: 300
+  });
+  Object.defineProperty(preview, "clientHeight", { configurable: true, value: 200 });
+  Object.defineProperty(preview, "scrollHeight", { configurable: true, value: 600 });
+  preview.getBoundingClientRect = () => ({
+    left: 110, top: 100, right: 490, bottom: 300, width: 380, height: 200
+  });
+  await flushMutations();
+
+  const popupOutline = popup.querySelector("[data-annotation-markdown-outline='true']");
+  expect(popupOutline).toBeNull();
+  expect(document.body.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+
+  controller.preparePopup(popup);
+  const preparedOutline = document.body.querySelector("[data-annotation-markdown-outline='true']");
+  expect(preparedOutline).not.toBeNull();
+  expect(preparedOutline.parentElement).toBe(document.body);
+  expect(preparedOutline.hidden).toBe(true);
+  const outlineBeforeReveal = preparedOutline;
+  const outline = outlineBeforeReveal;
+  expect(outline.dataset.context).toBe("popup");
+  expect(outline.dataset.side).toBe("right");
+  expect(outline.style.left).toBe("506px");
+  expect(outline.style.top).toBe("98px");
+  expect(outline.querySelector(".annotation-markdown-outline-toggle").getAttribute("aria-expanded"))
+    .toBe("true");
+  expect(outline.querySelector(".annotation-markdown-outline-panel").hidden).toBe(false);
+
+  popup.removeAttribute("data-annotation-markdown-popup-positioning");
+  popup.setAttribute("data-annotation-markdown-popup-ready", "true");
+  controller.sync();
+  expect(document.body.querySelector("[data-annotation-markdown-outline='true']")).toBe(outlineBeforeReveal);
+  expect(outlineBeforeReveal.hidden).toBe(false);
+
+  const hostOutsidePointer = vi.fn();
+  window.addEventListener("mousedown", hostOutsidePointer);
+  const pointer = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+  outlineBeforeReveal.querySelector(".annotation-markdown-outline-toggle").dispatchEvent(pointer);
+  window.removeEventListener("mousedown", hostOutsidePointer);
+  expect(pointer.defaultPrevented).toBe(true);
+  expect(hostOutsidePointer).not.toHaveBeenCalled();
+
+  outline.querySelector(".annotation-markdown-outline-toggle").click();
+  expect(outline.querySelector(".annotation-markdown-outline-panel").hidden).toBe(true);
+  expect(setExpanded).toHaveBeenCalledWith(false);
+});
+
+test("scrolls the popup preview and cleans the outline while positioning or editing", async () => {
+  setup();
+  document.body.insertAdjacentHTML("beforeend", `<div class="annotation-popup" data-annotation-markdown-popup-ready="true">
+    <div class="preview"><div class="comment">
+      <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true" style="overflow-y:auto">
+        <h1>弹窗第一章</h1><p>内容</p><h2>弹窗细节</h2>
+      </div>
+    </div></div>
+  </div>`);
+  const popup = document.querySelector(".annotation-popup");
+  const comment = popup.querySelector(".comment");
+  const preview = popup.querySelector("[data-annotation-markdown-preview='true']");
+  popup.getBoundingClientRect = () => ({
+    left: 100, top: 90, right: 500, bottom: 390, width: 400, height: 300
+  });
+  Object.defineProperties(preview, {
+    clientHeight: { configurable: true, value: 200 },
+    scrollHeight: { configurable: true, value: 600 },
+    scrollTop: { configurable: true, writable: true, value: 40 }
+  });
+  preview.getBoundingClientRect = () => ({
+    left: 110, top: 100, right: 490, bottom: 300, width: 380, height: 200
+  });
+  preview.scrollTo = vi.fn();
+  preview.querySelector("h2").getBoundingClientRect = () => ({ top: 250 });
+  await flushMutations();
+
+  document.querySelectorAll(".annotation-markdown-outline-item")[1].click();
+  expect(preview.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 182, behavior: "smooth" });
+
+  popup.removeAttribute("data-annotation-markdown-popup-ready");
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+
+  popup.setAttribute("data-annotation-markdown-popup-ready", "true");
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).not.toBeNull();
+
+  comment.classList.add("annotation-markdown-fast-editing");
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+});
+
+test("does not replace the sidebar outline for a non-overflowing ready popup", async () => {
+  setup();
+  document.body.insertAdjacentHTML("beforeend", `<div class="annotation-popup" data-annotation-markdown-popup-ready="true">
+    <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true" style="overflow-y:auto">
+      <h1>短弹窗</h1><h2>无需导航</h2>
+    </div>
+  </div>`);
+  const popup = document.querySelector(".annotation-popup");
+  const preview = popup.querySelector("[data-annotation-markdown-preview='true']");
+  popup.getBoundingClientRect = () => ({
+    left: 100, top: 90, right: 500, bottom: 290, width: 400, height: 200
+  });
+  Object.defineProperties(preview, {
+    clientHeight: { configurable: true, value: 160 },
+    scrollHeight: { configurable: true, value: 160 }
+  });
+  preview.getBoundingClientRect = () => ({
+    left: 110, top: 100, right: 490, bottom: 260, width: 380, height: 160
+  });
+  await flushMutations();
+
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+});
+
 test("hides when the annotation tab is not visible while a page popup is open", async () => {
   const { scroller, setExpanded } = setup({ initialExpanded: true });
   const panel = document.querySelector("#annotation-tab-panel");
@@ -216,6 +380,10 @@ test("hides when the annotation tab is not visible while a page popup is open", 
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
 
   panel.removeAttribute("aria-hidden");
+  await flushMutations();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+
+  document.querySelector(".annotation-popup").remove();
   await flushMutations();
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).not.toBeNull();
 

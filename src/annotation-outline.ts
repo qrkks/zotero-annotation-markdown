@@ -1,5 +1,6 @@
-/** A small, persistent outline for the currently selected Markdown preview. */
+/** A small outline for the active sidebar or page-popup Markdown preview. */
 const PREVIEW = "[data-annotation-markdown-preview='true'].annotation-markdown-rendered:not([data-annotation-markdown-placeholder='true'])";
+const READY_POPUP = ".annotation-popup[data-annotation-markdown-popup-ready='true']";
 const SELECTED = [
   ".annotation.selected",
   ".annotation-row.selected",
@@ -26,8 +27,19 @@ const PANEL_MAX_SCALED_WIDTH_PX = 320;
 const PANEL_MIN_OUTSIDE_WIDTH_PX = 168;
 let nextPanelID = 0;
 
+type OutlineContext = "sidebar" | "popup";
+
+interface OutlineTarget {
+  context: OutlineContext;
+  mount: HTMLElement;
+  popup: HTMLElement | null;
+  preview: HTMLElement;
+  scroller: HTMLElement;
+}
+
 export interface AnnotationOutlineController {
   sync(): void;
+  preparePopup(popup: HTMLElement): void;
   stop(): void;
 }
 
@@ -52,6 +64,9 @@ export function trackAnnotationOutline({
 }: AnnotationOutlineOptions): AnnotationOutlineController {
   const win = doc.defaultView;
   let active = true;
+  let context: OutlineContext | null = null;
+  let mount: HTMLElement | null = null;
+  let popup: HTMLElement | null = null;
   let preview: HTMLElement | null = null;
   let outline: HTMLElement | null = null;
   let panel: HTMLElement | null = null;
@@ -67,18 +82,25 @@ export function trackAnnotationOutline({
   for (const staleTarget of doc.querySelectorAll<HTMLElement>(`[${TARGET}]`)) staleTarget.removeAttribute(TARGET);
 
   const observer = MutationObserverRef && doc.body
-    ? new MutationObserverRef(() => sync())
+    ? new MutationObserverRef(mutations => {
+      if (mutations.length > 0 && mutations.every(isOutlineOwnedMutation)) return;
+      sync();
+    })
     : undefined;
   observer?.observe(doc.body, {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["class", "aria-selected", "aria-hidden", "hidden", "inert", "style"]
+    attributeFilter: [
+      "class", "aria-selected", "aria-hidden", "hidden", "inert", "style",
+      "data-annotation-markdown-popup-ready", "data-annotation-markdown-popup-positioning"
+    ]
   });
 
-  function sync(): void {
+  function sync(preparingPopup: HTMLElement | null = null): void {
     if (!active) return;
-    const nextPreview = findSelectedPreview(doc, isEnabled);
+    const nextTarget = findOutlineTarget(doc, isEnabled, preparingPopup);
+    const nextPreview = nextTarget?.preview ?? null;
     const nextHeadings = nextPreview ? collectHeadings(nextPreview) : [];
     const nextSignature = nextHeadings
       .map(heading => (
@@ -86,12 +108,14 @@ export function trackAnnotationOutline({
       ))
       .join("\n");
 
-    if (!nextPreview || nextHeadings.length < 2) {
+    if (!nextTarget || !nextPreview || nextHeadings.length < 2) {
       clearCurrent();
       return;
     }
     if (
       preview === nextPreview &&
+      context === nextTarget.context &&
+      mount === nextTarget.mount &&
       outline?.isConnected &&
       headings.length === nextHeadings.length &&
       headings.every((heading, index) => heading === nextHeadings[index]) &&
@@ -99,12 +123,22 @@ export function trackAnnotationOutline({
     ) {
       applyFontScale();
       applyExpandedState();
-      scheduleViewportUpdate();
+      const wasHidden = outline.hidden;
+      applyPopupVisibility();
+      // A just-prepared popup outline was already positioned synchronously
+      // while hidden. Revealing it needs no follow-up animation frame.
+      if (context !== "popup" || !wasHidden || outline.hidden) {
+        scheduleViewportUpdate();
+      }
       return;
     }
 
     clearCurrent();
+    context = nextTarget.context;
+    mount = nextTarget.mount;
+    popup = nextTarget.popup;
     preview = nextPreview;
+    scroller = nextTarget.scroller;
     headings = nextHeadings;
     signature = nextSignature;
     mountOutline();
@@ -115,6 +149,7 @@ export function trackAnnotationOutline({
     const labels = getLabels(doc);
     const nav = doc.createElement("nav");
     nav.className = "annotation-markdown-outline";
+    nav.dataset.context = context ?? "sidebar";
     nav.setAttribute(OUTLINE, "true");
     nav.setAttribute("aria-label", labels.outline);
 
@@ -160,23 +195,28 @@ export function trackAnnotationOutline({
     button.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
-      const expanded = !isExpanded();
+      const expanded = !getCurrentExpanded();
       setExpanded(expanded);
       applyExpandedState(expanded);
       if (expanded) scheduleViewportUpdate();
     });
-    nav.addEventListener("pointerdown", event => event.stopPropagation());
-    nav.addEventListener("mousedown", event => event.stopPropagation());
+    const keepInteractionInOutline = (event: Event) => {
+      if (context === "popup") event.preventDefault();
+      event.stopPropagation();
+    };
+    nav.addEventListener("pointerdown", keepInteractionInOutline);
+    nav.addEventListener("mousedown", keepInteractionInOutline);
     nav.addEventListener("click", event => event.stopPropagation());
 
-    // The portal deliberately lives outside the annotation row so Zotero's row
-    // overflow and recycling cannot clip it or scroll it away.
-    doc.body.append(nav);
+    // Both modes use a Reader-level portal. Popup callers can prepare the
+    // portal synchronously after Zotero's layout has stabilized; it remains
+    // hidden until the ready marker is set later in the same JavaScript turn.
+    mount?.append(nav);
     outline = nav;
     panel = menu;
     toggle = button;
     applyFontScale();
-    scroller = findScroller(preview);
+    applyPopupVisibility();
     scroller?.addEventListener("scroll", scheduleViewportUpdate, { passive: true });
     win?.addEventListener?.("resize", scheduleViewportUpdate);
     if (ResizeObserverRef && scroller) {
@@ -187,12 +227,22 @@ export function trackAnnotationOutline({
     updateViewport();
   }
 
-  function applyExpandedState(expanded = isExpanded()): void {
+  function getCurrentExpanded(): boolean {
+    return isExpanded();
+  }
+
+  function applyExpandedState(expanded = getCurrentExpanded()): void {
     if (!outline || !panel || !toggle) return;
     const value = String(expanded);
     if (outline.dataset.expanded !== value) outline.dataset.expanded = value;
     if (panel.hidden !== !expanded) panel.hidden = !expanded;
     if (toggle.getAttribute("aria-expanded") !== value) toggle.setAttribute("aria-expanded", value);
+  }
+
+  function applyPopupVisibility(): void {
+    if (!outline) return;
+    const hidden = context === "popup" && !popup?.matches(READY_POPUP);
+    if (outline.hidden !== hidden) outline.hidden = hidden;
   }
 
   function applyFontScale(): void {
@@ -236,6 +286,10 @@ export function trackAnnotationOutline({
 
   function positionOutline(): void {
     if (!outline?.isConnected || !scroller?.isConnected) return;
+    if (context === "popup" && popup?.isConnected) {
+      positionPopupOutline(popup);
+      return;
+    }
     const rect = scroller.getBoundingClientRect();
     const viewportWidth = Math.max(doc.documentElement.clientWidth, win?.innerWidth ?? 0);
     const viewportHeight = Math.max(doc.documentElement.clientHeight, win?.innerHeight ?? 0);
@@ -256,9 +310,50 @@ export function trackAnnotationOutline({
     const side = canOpenOutside ? "right" : "left";
 
     if (outline.dataset.side !== side) outline.dataset.side = side;
-    outline.style.left = `${Math.round(anchor)}px`;
-    outline.style.top = `${Math.round(top)}px`;
-    outline.style.setProperty("--annotation-markdown-outline-panel-width", `${Math.round(panelWidth)}px`);
+    setStyleProperty(outline, "left", `${Math.round(anchor)}px`);
+    setStyleProperty(outline, "top", `${Math.round(top)}px`);
+    setStyleProperty(outline, "--annotation-markdown-outline-panel-width", `${Math.round(panelWidth)}px`);
+  }
+
+  function positionPopupOutline(popupElement: HTMLElement): void {
+    if (!outline) return;
+    const rect = popupElement.getBoundingClientRect();
+    const viewportWidth = Math.max(doc.documentElement.clientWidth, win?.innerWidth ?? 0);
+    const viewportHeight = Math.max(doc.documentElement.clientHeight, win?.innerHeight ?? 0);
+    const rightSpace = Math.max(0, viewportWidth - rect.right - VIEWPORT_INSET_PX - OUTSIDE_GAP_PX);
+    const leftSpace = Math.max(0, rect.left - VIEWPORT_INSET_PX - OUTSIDE_GAP_PX);
+    let side: "right" | "left";
+    let anchor: number;
+    let availableWidth: number;
+
+    if (rightSpace >= PANEL_MIN_OUTSIDE_WIDTH_PX) {
+      side = "right";
+      anchor = rect.right + OUTSIDE_GAP_PX;
+      availableWidth = rightSpace;
+    } else if (leftSpace >= PANEL_MIN_OUTSIDE_WIDTH_PX) {
+      side = "left";
+      anchor = rect.left - OUTSIDE_GAP_PX;
+      availableWidth = leftSpace;
+    } else {
+      side = "left";
+      anchor = Math.max(VIEWPORT_INSET_PX, rect.right - SCROLLBAR_RESERVE_PX - OUTSIDE_GAP_PX);
+      availableWidth = Math.max(0, anchor - VIEWPORT_INSET_PX);
+    }
+
+    const panelMaxWidth = Math.min(PANEL_MAX_SCALED_WIDTH_PX, PANEL_MAX_WIDTH_PX +
+      Math.max(0, getFontScale() - 1) * PANEL_WIDTH_PER_SCALE_PX);
+    const panelWidth = Math.min(panelMaxWidth, availableWidth);
+    const panelMaxHeight = Math.max(80, viewportHeight - rect.top - VIEWPORT_INSET_PX - 44);
+
+    if (outline.dataset.side !== side) outline.dataset.side = side;
+    setStyleProperty(outline, "left", `${Math.round(anchor)}px`);
+    setStyleProperty(
+      outline,
+      "top",
+      `${Math.round(Math.max(VIEWPORT_INSET_PX, rect.top + VIEWPORT_INSET_PX))}px`
+    );
+    setStyleProperty(outline, "--annotation-markdown-outline-panel-width", `${Math.round(panelWidth)}px`);
+    setStyleProperty(outline, "--annotation-markdown-outline-panel-max-height", `${Math.round(panelMaxHeight)}px`);
   }
 
   function updateActiveHeading(): void {
@@ -288,6 +383,9 @@ export function trackAnnotationOutline({
     resizeObserver = undefined;
     for (const heading of headings) heading.removeAttribute(TARGET);
     outline?.remove();
+    context = null;
+    mount = null;
+    popup = null;
     preview = null;
     outline = null;
     panel = null;
@@ -300,7 +398,10 @@ export function trackAnnotationOutline({
 
   sync();
   return {
-    sync,
+    sync: () => sync(),
+    preparePopup(popupToPrepare: HTMLElement): void {
+      sync(popupToPrepare);
+    },
     stop(): void {
       if (!active) return;
       active = false;
@@ -312,19 +413,86 @@ export function trackAnnotationOutline({
   };
 }
 
-function findSelectedPreview(doc: Document, isEnabled: () => boolean): HTMLElement | null {
+function isOutlineOwnedMutation(mutation: MutationRecord): boolean {
+  if (isOutlineOwnedNode(mutation.target)) return true;
+  const changedNodes = [
+    ...Array.from(mutation.addedNodes ?? []),
+    ...Array.from(mutation.removedNodes ?? [])
+  ];
+  return changedNodes.length > 0 && changedNodes.every(isOutlineOwnedNode);
+}
+
+function isOutlineOwnedNode(node: Node | null): boolean {
+  if (!node) return false;
+  const element = node.nodeType === 1 ? node as Element : node.parentElement;
+  return Boolean(
+    element?.getAttribute(OUTLINE) === "true" ||
+    element?.closest(`[${OUTLINE}='true']`)
+  );
+}
+
+function setStyleProperty(element: HTMLElement, property: string, value: string): void {
+  if (element.style.getPropertyValue(property) !== value) {
+    element.style.setProperty(property, value);
+  }
+}
+
+function findOutlineTarget(
+  doc: Document,
+  isEnabled: () => boolean,
+  preparingPopup: HTMLElement | null = null
+): OutlineTarget | null {
   if (!isEnabled()) return null;
+  const renderedPopups = Array.from(doc.querySelectorAll<HTMLElement>(".annotation-popup"))
+    .filter(candidate => isVisibleElement(candidate) && Boolean(candidate.querySelector(PREVIEW)));
+  if (renderedPopups.length > 0) {
+    if (
+      renderedPopups.length !== 1 ||
+      (!renderedPopups[0].matches(READY_POPUP) && renderedPopups[0] !== preparingPopup)
+    ) return null;
+    const popup = renderedPopups[0];
+    if (popup.querySelector(EDITING)) return null;
+    const popupPreviews = Array.from(popup.querySelectorAll<HTMLElement>(PREVIEW))
+      .filter(candidate => !candidate.hidden && !candidate.closest(EDITING) && isVisibleElement(candidate));
+    if (popupPreviews.length !== 1) return null;
+    const popupPreview = popupPreviews[0];
+    const rect = popupPreview.getBoundingClientRect();
+    if (
+      rect.width <= 0 || rect.height <= 0 ||
+      popupPreview.scrollHeight <= popupPreview.clientHeight + 1
+    ) {
+      return null;
+    }
+    return {
+      context: "popup",
+      mount: doc.body,
+      popup,
+      preview: popupPreview,
+      scroller: popupPreview
+    };
+  }
+
   const previews = Array.from(doc.querySelectorAll<HTMLElement>(PREVIEW)).filter(candidate => {
     if (candidate.hidden || candidate.closest(EXCLUDED) || candidate.closest(EDITING)) return false;
     if (!candidate.closest(SELECTED)) return false;
     return isVisibleSidebarPreview(candidate);
   });
-  return previews.length === 1 ? previews[0] : null;
+  if (previews.length !== 1) return null;
+  const preview = previews[0];
+  const scroller = findScroller(preview);
+  if (!scroller) return null;
+  return {
+    context: "sidebar",
+    mount: doc.body,
+    popup: null,
+    preview,
+    scroller
+  };
 }
 
-function isVisibleSidebarPreview(preview: HTMLElement): boolean {
-  const win = preview.ownerDocument.defaultView;
-  let ancestor: HTMLElement | null = preview;
+function isVisibleElement(element: HTMLElement): boolean {
+  const win = element.ownerDocument.defaultView;
+  let ancestor: HTMLElement | null = element;
   while (ancestor) {
     const style = win?.getComputedStyle(ancestor);
     if (
@@ -339,6 +507,11 @@ function isVisibleSidebarPreview(preview: HTMLElement): boolean {
     }
     ancestor = ancestor.parentElement;
   }
+  return true;
+}
+
+function isVisibleSidebarPreview(preview: HTMLElement): boolean {
+  if (!isVisibleElement(preview)) return false;
 
   const scroller = findScroller(preview);
   if (!scroller) return false;
