@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.10.0 - 2026-09-25
+
+### Added
+
+- Extend the floating outline to long rendered page annotation popups with at least two headings. The popup outline stays outside Zotero's annotation DOM, follows the remembered open/closed preference, and remains hidden while editing.
+
+### Improved
+
+- Reveal popup Markdown and its outline together only after layout settles, keep them visible through repeated Zotero position and child-list updates, and cap the initial hidden wait when Zotero's final position is delayed.
+- Keep the compact popup outline label on one line and constrain the expanded panel to the available viewport height.
+
+### 新增
+
+- 浮动大纲现已支持包含至少两个标题的长页内标注弹窗。弹窗大纲位于 Zotero 标注 DOM 之外，沿用已记住的展开/收起偏好，并在编辑时保持隐藏。
+
+### 改进
+
+- 仅在布局稳定后同时显示弹窗 Markdown 与大纲；Zotero 后续反复更新位置或子节点时保持可见，并在最终定位延迟时限制首次隐藏等待时间。
+- 弹窗大纲的小标签保持单行，展开面板高度限制在当前视口可用空间内。
+
 ## 0.9.0 - 2026-09-23
 
 ### Added
