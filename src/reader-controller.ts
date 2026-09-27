@@ -1317,12 +1317,9 @@ export function createReaderController({
         adapter.isOutlineTarget?.(event.target) &&
         (event.type === "pointerdown" || event.type === "mousedown" || event.type === "focusin")
       ) {
-        // Zotero's FocusManager can deselect and fold the annotation before
-        // the outline's own bubbling handlers run. Guard at window capture;
-        // cancelling the press prevents pointer focus, while the later click
-        // still reaches the outline control and keyboard focus remains usable.
-        if (event.type !== "focusin") event.preventDefault();
-        event.stopImmediatePropagation();
+        // The outline's plugin-owned host scope makes Zotero's earlier capture
+        // handlers treat it as annotation UI. Let the event reach the actual
+        // button; the outline stops bubbling at its own boundary.
         return;
       }
       if (adapter.preserveActiveFastEditorForScrollbar?.(event)) {

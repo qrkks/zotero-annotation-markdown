@@ -272,6 +272,7 @@ test("prepares a popup outline only when the stable popup is about to reveal", a
   expect(preparedOutline.hidden).toBe(true);
   const outlineBeforeReveal = preparedOutline;
   const outline = outlineBeforeReveal;
+  const toggle = outline.querySelector(".annotation-markdown-outline-toggle");
   expect(outline.dataset.context).toBe("popup");
   expect(outline.dataset.side).toBe("right");
   expect(outline.style.left).toBe("506px");
@@ -285,13 +286,15 @@ test("prepares a popup outline only when the stable popup is about to reveal", a
   controller.sync();
   expect(document.body.querySelector("[data-annotation-markdown-outline='true']")).toBe(outlineBeforeReveal);
   expect(outlineBeforeReveal.hidden).toBe(false);
+  expect(toggle.closest("[data-annotation-markdown-outline-host-scope='true'].annotation"))
+    .not.toBeNull();
 
   const hostOutsidePointer = vi.fn();
   window.addEventListener("mousedown", hostOutsidePointer);
   const pointer = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
-  outlineBeforeReveal.querySelector(".annotation-markdown-outline-toggle").dispatchEvent(pointer);
+  toggle.dispatchEvent(pointer);
   window.removeEventListener("mousedown", hostOutsidePointer);
-  expect(pointer.defaultPrevented).toBe(true);
+  expect(pointer.defaultPrevented).toBe(false);
   expect(hostOutsidePointer).not.toHaveBeenCalled();
 
   outline.querySelector(".annotation-markdown-outline-toggle").click();
@@ -340,6 +343,53 @@ test("scrolls the popup preview and cleans the outline while positioning or edit
   comment.classList.add("annotation-markdown-fast-editing");
   await flushMutations();
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+});
+
+test("keeps popup outline controls mounted when the host replaces equivalent preview DOM", async () => {
+  setup({ initialExpanded: true });
+  document.body.insertAdjacentHTML("beforeend", `<div class="annotation-popup" data-annotation-markdown-popup-ready="true">
+    <div class="preview"><div class="comment">
+      <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true" style="overflow-y:auto">
+        <h1>弹窗第一章</h1><p>内容</p><h2>弹窗细节</h2>
+      </div>
+    </div></div>
+  </div>`);
+  const popup = document.querySelector(".annotation-popup");
+  const preview = popup.querySelector("[data-annotation-markdown-preview='true']");
+  popup.getBoundingClientRect = () => ({
+    left: 100, top: 90, right: 500, bottom: 390, width: 400, height: 300
+  });
+  Object.defineProperties(preview, {
+    clientHeight: { configurable: true, value: 200 },
+    scrollHeight: { configurable: true, value: 600 },
+    scrollTop: { configurable: true, writable: true, value: 40 }
+  });
+  preview.getBoundingClientRect = () => ({
+    left: 110, top: 100, right: 490, bottom: 300, width: 380, height: 200
+  });
+  await flushMutations();
+
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  const item = outline.querySelectorAll(".annotation-markdown-outline-item")[1];
+  const replacement = preview.cloneNode(true);
+  Object.defineProperties(replacement, {
+    clientHeight: { configurable: true, value: 200 },
+    scrollHeight: { configurable: true, value: 600 },
+    scrollTop: { configurable: true, writable: true, value: 40 }
+  });
+  replacement.getBoundingClientRect = preview.getBoundingClientRect;
+  replacement.scrollTo = vi.fn();
+  replacement.querySelector("h2").getBoundingClientRect = () => ({ top: 250 });
+  preview.replaceWith(replacement);
+  await flushMutations();
+
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect(document.querySelectorAll(".annotation-markdown-outline-item")[1]).toBe(item);
+  expect(item.title).toBe("弹窗细节");
+  expect(item.isConnected).toBe(true);
+
+  item.click();
+  expect(replacement.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 182, behavior: "smooth" });
 });
 
 test("does not replace the sidebar outline for a non-overflowing ready popup", async () => {

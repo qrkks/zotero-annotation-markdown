@@ -4,6 +4,37 @@ import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapte
 import { createReaderController } from "../src/reader-controller.ts";
 
 describe("createReaderController", () => {
+  test("lets outline controls receive pointerdown instead of consuming it at root capture", async () => {
+    document.body.innerHTML = "";
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({ document }),
+      renderer: { render: (source) => source },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+    await controller.start();
+
+    const outline = document.createElement("nav");
+    outline.setAttribute("data-annotation-markdown-outline", "true");
+    const button = document.createElement("button");
+    outline.append(button);
+    document.body.append(outline);
+    const targetPointerDown = vi.fn();
+    button.addEventListener("pointerdown", targetPointerDown);
+
+    button.dispatchEvent(new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      pointerType: "mouse"
+    }));
+
+    expect(targetPointerDown).toHaveBeenCalledOnce();
+    controller.stop();
+  });
+
   test("renders comments during the initial render pass when enabled", () => {
     document.body.innerHTML = `<div data-annotation-id="a1"><div class="comment">**bold**</div></div>`;
     const controller = createReaderController({

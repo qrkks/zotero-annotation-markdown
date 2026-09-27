@@ -14,6 +14,7 @@ const SELECTED = [
 const EXCLUDED = ".annotation-popup, .note-editor, .zotero-note-editor, [data-note-editor], .ProseMirror";
 const EDITING = ".annotation-markdown-editing, .annotation-markdown-fast-editing";
 const OUTLINE = "data-annotation-markdown-outline";
+const HOST_SCOPE = "data-annotation-markdown-outline-host-scope";
 const TARGET = "data-annotation-markdown-outline-target";
 const ACTIVE = "aria-current";
 const HEADING_SELECTOR = "h1,h2,h3,h4,h5,h6";
@@ -113,14 +114,18 @@ export function trackAnnotationOutline({
       return;
     }
     if (
-      preview === nextPreview &&
       context === nextTarget.context &&
       mount === nextTarget.mount &&
+      popup === nextTarget.popup &&
       outline?.isConnected &&
       headings.length === nextHeadings.length &&
-      headings.every((heading, index) => heading === nextHeadings[index]) &&
       signature === nextSignature
     ) {
+      // Zotero can replace a popup's rendered subtree with equivalent DOM
+      // after it is already visible. Keep the plugin-owned controls mounted
+      // so a hover tooltip or pointer gesture is not interrupted midway, and
+      // only redirect navigation to the replacement headings/scroller.
+      rebindTarget(nextTarget, nextHeadings, nextSignature);
       applyFontScale();
       applyExpandedState();
       const wasHidden = outline.hidden;
@@ -155,6 +160,14 @@ export function trackAnnotationOutline({
 
     const surface = doc.createElement("div");
     surface.className = "annotation-markdown-outline-surface";
+    // Zotero's FocusManager treats controls outside known annotation UI as an
+    // external click during window capture. Keep this compatibility marker on
+    // a plugin-owned, box-less wrapper so normal pointer/focus events can reach
+    // the outline without changing the host-owned popup DOM.
+    const hostScope = doc.createElement("div");
+    hostScope.className = "annotation";
+    hostScope.setAttribute(HOST_SCOPE, "true");
+    hostScope.style.display = "contents";
     const button = doc.createElement("button");
     button.type = "button";
     button.className = "annotation-markdown-outline-toggle";
@@ -182,7 +195,7 @@ export function trackAnnotationOutline({
       item.addEventListener("click", event => {
         event.preventDefault();
         event.stopPropagation();
-        scrollToHeading(heading);
+        scrollToHeadingAt(index);
         setActiveHeading(index);
       });
       return item;
@@ -190,7 +203,8 @@ export function trackAnnotationOutline({
     list.append(...buttons);
     menu.append(list);
     surface.append(button, menu);
-    nav.append(surface);
+    hostScope.append(surface);
+    nav.append(hostScope);
 
     button.addEventListener("click", event => {
       event.preventDefault();
@@ -201,7 +215,6 @@ export function trackAnnotationOutline({
       if (expanded) scheduleViewportUpdate();
     });
     const keepInteractionInOutline = (event: Event) => {
-      if (context === "popup") event.preventDefault();
       event.stopPropagation();
     };
     nav.addEventListener("pointerdown", keepInteractionInOutline);
@@ -253,7 +266,37 @@ export function trackAnnotationOutline({
     }
   }
 
-  function scrollToHeading(heading: HTMLElement): void {
+  function rebindTarget(
+    nextTarget: OutlineTarget,
+    nextHeadings: HTMLElement[],
+    nextSignature: string
+  ): void {
+    for (const heading of headings) heading.removeAttribute(TARGET);
+    nextHeadings.forEach((heading, index) => heading.setAttribute(TARGET, String(index)));
+
+    if (scroller !== nextTarget.scroller) {
+      scroller?.removeEventListener("scroll", scheduleViewportUpdate);
+      resizeObserver?.disconnect();
+      resizeObserver = undefined;
+      scroller = nextTarget.scroller;
+      scroller.addEventListener("scroll", scheduleViewportUpdate, { passive: true });
+      if (ResizeObserverRef) {
+        resizeObserver = new ResizeObserverRef(scheduleViewportUpdate);
+        resizeObserver.observe(scroller);
+      }
+    }
+
+    context = nextTarget.context;
+    mount = nextTarget.mount;
+    popup = nextTarget.popup;
+    preview = nextTarget.preview;
+    headings = nextHeadings;
+    signature = nextSignature;
+  }
+
+  function scrollToHeadingAt(index: number): void {
+    const heading = headings[index];
+    if (!heading?.isConnected) return;
     if (scroller?.isConnected) {
       const scrollerRect = scroller.getBoundingClientRect();
       const headingRect = heading.getBoundingClientRect();

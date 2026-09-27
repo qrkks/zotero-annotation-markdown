@@ -177,23 +177,37 @@ describe("createPlugin", () => {
     expect(toggle?.textContent).toBe("Outline · 2");
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
 
-    const hostPointerDown = vi.fn(() => row.classList.remove("selected"));
-    const hostMouseDown = vi.fn(() => row.classList.remove("selected"));
-    const hostFocusIn = vi.fn(() => row.classList.remove("selected"));
+    const hostPointerDown = vi.fn(event => {
+      if (!event.target.closest(".annotation, input, textarea, select, [contenteditable='true']")) {
+        row.classList.remove("selected");
+      }
+    });
+    const hostMouseDown = vi.fn(event => {
+      if (!event.target.closest(".annotation, input, textarea, select, [contenteditable='true']")) {
+        row.classList.remove("selected");
+      }
+    });
+    const hostFocusIn = vi.fn(event => {
+      if (!event.target.closest(".annotation, .annotation-popup, .selection-popup, .label-popup")) {
+        row.classList.remove("selected");
+      }
+    });
     document.addEventListener("pointerdown", hostPointerDown, true);
     document.addEventListener("mousedown", hostMouseDown, true);
     document.addEventListener("focusin", hostFocusIn, true);
+    expect(toggle.closest("[data-annotation-markdown-outline-host-scope='true'].annotation"))
+      .not.toBeNull();
     expect(toggle.dispatchEvent(new PointerEvent("pointerdown", {
       bubbles: true, cancelable: true, button: 0, pointerType: "mouse"
-    }))).toBe(false);
+    }))).toBe(true);
     expect(toggle.dispatchEvent(new MouseEvent("mousedown", {
       bubbles: true, cancelable: true, button: 0
-    }))).toBe(false);
+    }))).toBe(true);
     toggle.focus();
     expect(document.activeElement).toBe(toggle);
-    expect(hostPointerDown).not.toHaveBeenCalled();
-    expect(hostMouseDown).not.toHaveBeenCalled();
-    expect(hostFocusIn).not.toHaveBeenCalled();
+    expect(hostPointerDown).toHaveBeenCalledOnce();
+    expect(hostMouseDown).toHaveBeenCalledOnce();
+    expect(hostFocusIn).toHaveBeenCalledOnce();
     expect(row.classList.contains("selected")).toBe(true);
 
     toggle.click();
