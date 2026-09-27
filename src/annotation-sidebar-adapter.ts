@@ -886,7 +886,16 @@ function closeFastEditor(
     node.setAttribute(SOURCE_ATTRIBUTE, source);
     node.setAttribute(FAST_EDITOR_COMMITTED_ATTRIBUTE, "true");
   }
-  hidePreviewNode(getPreviewNode(node));
+  if (!source.trim()) {
+    // An empty comment has no Markdown preview for the resume pass to reveal.
+    // Restore Zotero's native Add Comment shell immediately; otherwise the
+    // fast editor disappears while its hidden source remains hidden too.
+    const sourceNode = getSourceNode(node);
+    if (sourceNode && sourceNode !== node) sourceNode.textContent = "";
+    restoreSourceDom(node);
+  } else {
+    hidePreviewNode(getPreviewNode(node));
+  }
 
   node.classList.remove(EDITING_CLASS, FAST_EDITING_CLASS);
   node.removeAttribute(SUPPRESS_UNTIL_ATTRIBUTE);

@@ -82,6 +82,36 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
   });
 
+  test("restores the native popup Add Comment entry when an empty fast editor closes", () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true" placeholder="Add comment"></div>
+          <div class="renderer">Add comment</div>
+        </div>
+      </div></div></div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const comment = document.querySelector(".comment");
+    const nativeEditor = comment.querySelector(".editor");
+
+    expect(adapter.tryShowFastEditorForTarget(comment.querySelector(".content"))).toBe(true);
+    expect(nativeEditor.hidden).toBe(true);
+    expect(nativeEditor.getAttribute("data-annotation-markdown-source-hidden")).toBe("true");
+
+    expect(adapter.closeActiveFastEditor()).toBe(true);
+
+    expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    expect(nativeEditor.hidden).toBe(false);
+    expect(nativeEditor.style.display).toBe("");
+    expect(nativeEditor.hasAttribute("data-annotation-markdown-source-hidden")).toBe(false);
+    expect(comment.querySelector(".renderer").textContent).toBe("Add comment");
+  });
+
   test("uses the first Escape to save and exit popup editing before Zotero closes the popup", () => {
     document.body.innerHTML = `
       <div class="annotation-popup">

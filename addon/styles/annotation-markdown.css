@@ -184,7 +184,8 @@
 [data-annotation-markdown-popup-enabled="true"] .annotation-popup .annotation-markdown-fast-editor-input {
     height: var(--annotation-markdown-popup-editor-height);
     min-height: var(--annotation-markdown-popup-editor-height);
-    max-height: var(--annotation-markdown-popup-editor-height);
+    /* Empty first-open popups have no rendered preview to measure yet. */
+    max-height: var(--annotation-markdown-popup-editor-height, min(50vh, 24em));
     overflow-y: auto;
 }
 

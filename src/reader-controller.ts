@@ -1375,6 +1375,14 @@ export function createReaderController({
       }
 
       if (event.type === "focusin") {
+        const comment = adapter.getCommentNodeForTarget?.(event.target);
+        if (comment && adapter.isPopupComment?.(comment)) {
+          // Zotero may focus a newly mounted empty popup while its React tree
+          // is still settling. Keep the native Add Comment entry until an
+          // actual pointer gesture chooses the fast editor; auto-converting
+          // this focus creates timing-dependent first-open states.
+          return;
+        }
         const annotationID = adapter.getAnnotationIDForTarget?.(event.target);
         if (annotationID) {
           scheduleFastEditorAfterNativeFocus(annotationID);

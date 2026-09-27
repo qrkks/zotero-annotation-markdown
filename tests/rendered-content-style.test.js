@@ -47,6 +47,9 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toMatch(
       /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-fast-editor-input\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/
     );
+    expect(addonCss).toMatch(
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-fast-editor-input\s*\{[^}]*max-height:\s*var\(--annotation-markdown-popup-editor-height, min\(50vh, 24em\)\);/
+    );
   });
 
   test("lets the browser skip folded offscreen preview work without containing expanded previews", async () => {

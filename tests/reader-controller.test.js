@@ -220,6 +220,67 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
+  test("does not turn a newly focused empty popup into a fast editor before it is clicked", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const callbacks = [];
+    window.requestAnimationFrame = (callback) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    };
+    document.body.innerHTML = `
+      <div data-sidebar-annotation-id="ABC12345" class="annotation selected">
+        <div class="comment"><div class="content">sidebar copy</div></div>
+      </div>
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true" placeholder="Add comment"></div>
+          <div class="renderer">Add comment</div>
+        </div>
+      </div></div></div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const controller = createReaderController({
+      reader: { document },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    try {
+      await controller.start();
+      const popupContent = document.querySelector(".annotation-popup .content");
+      popupContent.focus();
+
+      expect(callbacks).toHaveLength(0);
+      expect(document.querySelector("[data-annotation-markdown-fast-editor='true']"))
+        .toBeNull();
+      expect(document.querySelector(".annotation-popup .renderer").textContent)
+        .toBe("Add comment");
+
+      const pointer = new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0
+      });
+      popupContent.dispatchEvent(pointer);
+
+      expect(pointer.defaultPrevented).toBe(true);
+      expect(document.querySelector(".annotation-popup [data-annotation-markdown-fast-editor='true']"))
+        .not.toBeNull();
+      expect(document.querySelector("[data-sidebar-annotation-id] [data-annotation-markdown-fast-editor='true']"))
+        .toBeNull();
+    } finally {
+      controller.stop();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
+
   test("reuses one rendered result for sidebar and popup representations of an annotation", async () => {
     document.body.innerHTML = `
       <div data-annotation-id="ABC12345" class="annotation">
