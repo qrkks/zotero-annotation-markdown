@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.1 - 2026-09-27
+
+### Fixed
+
+- Keep page annotation popups open when Escape exits the fast editor, returning to the Markdown preview on the first press.
+- Stabilize popup outline clicks and hover tooltips while Zotero continues updating popup DOM and position.
+- Make first-time editing of empty popup comments predictable, retain scrolling after large pastes, restore the native Add Comment entry when left empty, and keep newly rendered long previews inside the Reader viewport.
+
+### 修复
+
+- 在快速编辑器中首次按下 Escape 时仅退出编辑并返回 Markdown 预览，不再同时关闭页内标注弹窗。
+- Zotero 持续更新弹窗 DOM 和位置时，保持弹出大纲的点击与悬停提示稳定可用。
+- 统一空弹出评论的首次编辑行为；大量粘贴后保持可滚动，内容仍为空时恢复原生“添加评论”入口，并将新生成的长预览限制在 Reader 可视区域内。
+
 ## 0.10.0 - 2026-09-25
 
 ### Added
