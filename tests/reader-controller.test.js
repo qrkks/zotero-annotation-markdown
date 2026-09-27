@@ -163,13 +163,17 @@ describe("createReaderController", () => {
     `;
     const render = vi.fn((source) => `<p>${source}</p>`);
     const commitComment = vi.fn(() => true);
+    const repositionPopups = vi.fn();
     const adapter = createAnnotationSidebarAdapter({
       document,
       isFastEditorEnabled: () => true,
       commitComment
     });
     const controller = createReaderController({
-      reader: { document },
+      reader: {
+        document,
+        _internalReader: { _views: [{ _repositionPopups: repositionPopups }] }
+      },
       adapter,
       renderer: { render },
       settings: { isEnabled: () => true },
@@ -215,6 +219,7 @@ describe("createReaderController", () => {
       .toBe("<p>**new**</p>");
     expect(document.querySelector("[data-annotation-id='ABC12345'] [data-annotation-markdown-preview='true']")?.innerHTML)
       .toBe("<p>**old**</p>");
+    expect(repositionPopups).not.toHaveBeenCalled();
 
     controller.stop();
     vi.useRealTimers();
@@ -278,6 +283,88 @@ describe("createReaderController", () => {
     } finally {
       controller.stop();
       window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
+
+  test("repositions a popup after an empty fast editor saves its first preview", async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <div class="annotation-popup" style="transform: translate(45px, 90px)"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true" placeholder="Add comment"></div>
+          <div class="renderer">Add comment</div>
+        </div>
+      </div></div></div>
+    `;
+    const repositionPopups = vi.fn();
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: vi.fn(() => true)
+    });
+    const controller = createReaderController({
+      reader: {
+        document,
+        _internalReader: { _views: [{ _repositionPopups: repositionPopups }] }
+      },
+      adapter,
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    try {
+      await controller.start();
+      const popup = document.querySelector(".annotation-popup");
+      popup.getBoundingClientRect = () => ({
+        x: 45,
+        y: 90,
+        left: 45,
+        top: 90,
+        right: 461,
+        bottom: 550,
+        width: 416,
+        height: 460,
+        toJSON: () => ({})
+      });
+      document.body.getBoundingClientRect = () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 500,
+        bottom: 400,
+        width: 500,
+        height: 400,
+        toJSON: () => ({})
+      });
+      const popupContent = document.querySelector(".annotation-popup .content");
+      popupContent.dispatchEvent(new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        button: 0
+      }));
+      const textarea = document.querySelector(
+        ".annotation-popup [data-annotation-markdown-fast-editor='true'] textarea"
+      );
+      textarea.value = "# First comment\n\n" + "long content ".repeat(80);
+      textarea.dispatchEvent(new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Escape"
+      }));
+
+      expect(repositionPopups).not.toHaveBeenCalled();
+      vi.runAllTimers();
+
+      expect(document.querySelector(".annotation-popup [data-annotation-markdown-preview='true']"))
+        .not.toBeNull();
+      expect(repositionPopups).toHaveBeenCalledOnce();
+      expect(popup.style.transform).toBe("translate(45px, 20px)");
+    } finally {
+      controller.stop();
+      vi.useRealTimers();
     }
   });
 

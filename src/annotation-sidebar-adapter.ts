@@ -48,6 +48,7 @@ export interface FastEditorClosedDetail {
   annotationID: string;
   source: string;
   committed: boolean;
+  startedEmpty: boolean;
   reason?: "escape";
 }
 
@@ -905,7 +906,13 @@ function closeFastEditor(
     clearFastEditorScrollbarInteraction(session);
     fastEditorSessionByDocument.delete(editor.ownerDocument);
   }
-  dispatchFastEditorClosed(node, { annotationID, source, committed, ...(reason ? { reason } : {}) });
+  dispatchFastEditorClosed(node, {
+    annotationID,
+    source,
+    committed,
+    startedEmpty: !originalSource.trim(),
+    ...(reason ? { reason } : {})
+  });
   endFastEditorKeyboardGuard(editor);
   editor.remove();
   return true;

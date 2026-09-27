@@ -15,10 +15,19 @@ import { trackAnnotationScrollTarget } from "./annotation-scroll-target.js";
 import { createAnnotationEscapeRecovery, type EscapeScrollRecovery } from "./annotation-escape-scroll.js";
 import { trackAnnotationOutline, type AnnotationOutlineController } from "./annotation-outline.js";
 
-interface ReaderLike {
+interface ReaderViewLike {
+  _repositionPopups?(): void;
+}
+
+interface InternalReaderLike extends ReaderViewLike {
+  _views?: ReaderViewLike[];
+}
+
+interface ReaderLike extends ReaderViewLike {
   document?: Document | null;
   window?: Window | null;
   _iframeWindow?: Window | null;
+  _internalReader?: unknown;
   _waitForReader?(): PromiseLike<void> | null;
   _initPromise?: PromiseLike<void> | null;
 }
@@ -105,6 +114,7 @@ const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
 const POPUP_STABLE_LAYOUT_FRAMES = 2;
+const POPUP_VIEWPORT_PADDING_PX = 20;
 // Keep the normal quiet-frame path for a clean first paint, but never leave a
 // popup invisible when Zotero delays its final position commit. Real Reader
 // traces occasionally showed that commit arriving five to eight seconds late.
@@ -162,6 +172,7 @@ export function createReaderController({
   let fastEditorWindowFocusHandler: EventListener | undefined;
   let skipNextFastEditorWindowBlur = false;
   let fastEditorFocusFrame: number | undefined;
+  let popupRepositionFrame: number | undefined;
   let focusInHandler: EventListener | undefined;
   let focusOutHandler: EventListener | undefined;
   let editingResumeTimer: number | undefined;
@@ -426,6 +437,12 @@ export function createReaderController({
         }
       });
       fastEditorFocusFrame = undefined;
+      runShutdownStep(() => {
+        if (popupRepositionFrame !== undefined) {
+          windowRef?.cancelAnimationFrame?.(popupRepositionFrame);
+        }
+      });
+      popupRepositionFrame = undefined;
       runShutdownStep(() => {
         if (focusInHandler) {
           root?.removeEventListener?.("focusin", focusInHandler, true);
@@ -1438,7 +1455,12 @@ export function createReaderController({
             })
           };
         }
-        scheduleEditingResume(comment);
+        scheduleEditingResume(comment, Boolean(
+          detail?.committed &&
+          detail.startedEmpty &&
+          detail.source.trim() &&
+          adapter.isPopupComment?.(comment)
+        ));
       }
     };
 
@@ -1549,9 +1571,12 @@ export function createReaderController({
     logEditLifecycle("pause");
   }
 
-  function scheduleEditingResume(comment: HTMLElement): void {
+  function scheduleEditingResume(
+    comment: HTMLElement,
+    repositionPopupAfterRender = false
+  ): void {
     if (!windowRef?.setTimeout) {
-      resumeRenderingAfterEditing(comment);
+      resumeRenderingAfterEditing(comment, repositionPopupAfterRender);
       return;
     }
 
@@ -1561,11 +1586,14 @@ export function createReaderController({
 
     editingResumeTimer = windowRef.setTimeout(() => {
       editingResumeTimer = undefined;
-      resumeRenderingAfterEditing(comment);
+      resumeRenderingAfterEditing(comment, repositionPopupAfterRender);
     }, 0);
   }
 
-  function resumeRenderingAfterEditing(comment: HTMLElement): void {
+  function resumeRenderingAfterEditing(
+    comment: HTMLElement,
+    repositionPopupAfterRender = false
+  ): void {
     if (adapter.hasActiveFastEditor?.()) {
       clearEscapeScrollRecovery();
       return;
@@ -1588,6 +1616,7 @@ export function createReaderController({
     adapter.finishEditing?.(comment);
     const startedAt = isPerformanceDiagnosticsEnabled() ? nowRef() : 0;
     const result = handleCommentNodes([comment], { force: true });
+    if (repositionPopupAfterRender) schedulePopupRepositionAfterRender(comment);
     if (escapeScrollRecovery?.comment === comment) escapeScrollRecovery.recovery.afterRender();
     if (isPerformanceDiagnosticsEnabled()) {
       logger?.log?.(
@@ -1597,6 +1626,48 @@ export function createReaderController({
     }
     restoreLazyObservationAfterEditing();
     registerMutationObserver();
+  }
+
+  function schedulePopupRepositionAfterRender(comment: HTMLElement): void {
+    const reposition = () => {
+      popupRepositionFrame = undefined;
+      if (!comment.isConnected || !adapter.isPopupComment?.(comment)) {
+        return;
+      }
+      const popup = comment.closest(".annotation-popup");
+      if (!popup || !isHTMLElement(popup)) {
+        return;
+      }
+      repositionReaderPopups(reader);
+      schedulePopupViewportClamp(popup);
+    };
+
+    if (typeof windowRef?.requestAnimationFrame === "function") {
+      if (popupRepositionFrame !== undefined) {
+        windowRef.cancelAnimationFrame?.(popupRepositionFrame);
+      }
+      popupRepositionFrame = windowRef.requestAnimationFrame(reposition);
+      return;
+    }
+
+    reposition();
+  }
+
+  function schedulePopupViewportClamp(popup: HTMLElement): void {
+    const clamp = () => {
+      popupRepositionFrame = undefined;
+      const livePopup = popup.isConnected
+        ? popup
+        : findAnnotationPopups(root)[0];
+      if (livePopup) clampPopupToViewport(livePopup);
+    };
+
+    if (typeof windowRef?.requestAnimationFrame === "function") {
+      popupRepositionFrame = windowRef.requestAnimationFrame(clamp);
+      return;
+    }
+
+    clamp();
   }
 
   function isRenderingPaused(): boolean {
@@ -2183,11 +2254,88 @@ function getFastEditorClosedDetail(event: Event): FastEditorClosedDetail | null 
   if (
     typeof candidate.annotationID !== "string" ||
     typeof candidate.source !== "string" ||
-    typeof candidate.committed !== "boolean"
+    typeof candidate.committed !== "boolean" ||
+    typeof candidate.startedEmpty !== "boolean"
   ) {
     return null;
   }
   return candidate as FastEditorClosedDetail;
+}
+
+function repositionReaderPopups(reader: ReaderLike): void {
+  const internalReader = (reader._internalReader ?? reader) as InternalReaderLike;
+  const targets = internalReader._views?.length
+    ? internalReader._views
+    : [internalReader];
+  const repositioned = new Set<ReaderViewLike>();
+
+  for (const target of targets) {
+    if (repositioned.has(target) || typeof target?._repositionPopups !== "function") {
+      continue;
+    }
+    repositioned.add(target);
+    try {
+      target._repositionPopups();
+    } catch {
+      // Zotero's private Reader shape can vary between releases. A failed
+      // optional reposition must not break the completed comment save.
+    }
+  }
+}
+
+function clampPopupToViewport(popup: HTMLElement): void {
+  const parent = popup.parentElement;
+  if (!parent) {
+    return;
+  }
+
+  const popupRect = popup.getBoundingClientRect();
+  const viewportRect = parent.getBoundingClientRect();
+  if (
+    popupRect.width <= 0 ||
+    popupRect.height <= 0 ||
+    viewportRect.width <= 0 ||
+    viewportRect.height <= 0
+  ) {
+    return;
+  }
+
+  const minLeft = viewportRect.left + POPUP_VIEWPORT_PADDING_PX;
+  const minTop = viewportRect.top + POPUP_VIEWPORT_PADDING_PX;
+  const maxRight = viewportRect.right - POPUP_VIEWPORT_PADDING_PX;
+  const maxBottom = viewportRect.bottom - POPUP_VIEWPORT_PADDING_PX;
+  const targetLeft = clampPopupAxis(popupRect.left, popupRect.width, minLeft, maxRight);
+  const targetTop = clampPopupAxis(popupRect.top, popupRect.height, minTop, maxBottom);
+  const deltaX = targetLeft - popupRect.left;
+  const deltaY = targetTop - popupRect.top;
+  if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+    return;
+  }
+
+  const numberPattern = "[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)";
+  const match = popup.style.transform.match(new RegExp(
+    `^translate\\(\\s*(${numberPattern})px\\s*,\\s*(${numberPattern})px\\s*\\)$`,
+    "i"
+  ));
+  if (!match) {
+    return;
+  }
+
+  const left = Number(match[1]) + deltaX;
+  const top = Number(match[2]) + deltaY;
+  popup.style.transform = `translate(${formatPopupCoordinate(left)}px, ${formatPopupCoordinate(top)}px)`;
+}
+
+function clampPopupAxis(start: number, size: number, min: number, max: number): number {
+  if (size >= max - min) {
+    return min;
+  }
+  return Math.min(Math.max(start, min), max - size);
+}
+
+function formatPopupCoordinate(value: number): string {
+  const rounded = Math.round(value * 1000) / 1000;
+  return String(Object.is(rounded, -0) ? 0 : rounded);
 }
 
 function isTextControl(
