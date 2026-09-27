@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { extractReleaseNotes } from "../scripts/extract-release-notes.mjs";
+import {
+  createReleaseNotes,
+  extractReleaseNotes
+} from "../scripts/extract-release-notes.mjs";
 
 describe("release notes", () => {
   test("extracts the exact bilingual section for a v-prefixed tag", () => {
@@ -61,5 +64,39 @@ describe("release notes", () => {
       "## 2.0.0 - 2026-09-25\n\n## 1.0.0 - 2026-09-01\n\n- Old.\n",
       "v2.0.0"
     )).toThrow("CHANGELOG.md contains an empty 2.0.0 release section");
+  });
+
+  test("appends linked commits and the full changelog comparison", () => {
+    const changelog = `# Changelog
+
+## 1.2.0 - 2026-09-27
+
+### Fixed
+
+- Fixed the popup.
+
+## 1.1.0 - 2026-09-20
+
+- Previous release.
+`;
+
+    expect(createReleaseNotes(changelog, "v1.2.0", {
+      previousTag: "v1.1.0",
+      repository: "example/project",
+      gitLog: [
+        "abc1234\tabc123456789\tfix: first issue",
+        "def5678\tdef567890123\tchore: release 1.2.0"
+      ].join("\n")
+    })).toBe(`### Fixed
+
+- Fixed the popup.
+
+### Commits
+
+- [\`abc1234\`](https://github.com/example/project/commit/abc123456789) fix: first issue
+- [\`def5678\`](https://github.com/example/project/commit/def567890123) chore: release 1.2.0
+
+**Full Changelog**: https://github.com/example/project/compare/v1.1.0...v1.2.0
+`);
   });
 });

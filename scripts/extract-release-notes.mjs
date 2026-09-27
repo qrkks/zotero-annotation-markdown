@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -33,11 +34,54 @@ export function extractReleaseNotes(changelog, releaseTag) {
   return `${notes}\n`;
 }
 
+export function createReleaseNotes(
+  changelog,
+  releaseTag,
+  { previousTag, repository, gitLog }
+) {
+  const notes = extractReleaseNotes(changelog, releaseTag).trimEnd();
+  const commits = String(gitLog ?? "")
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      const [shortHash, fullHash, ...subjectParts] = line.split("\t");
+      const subject = subjectParts.join("\t");
+      if (!shortHash || !fullHash || !subject) {
+        throw new Error(`Invalid release commit entry: ${line}`);
+      }
+      return `- [\`${shortHash}\`](https://github.com/${repository}/commit/${fullHash}) ${subject}`;
+    })
+    .join("\n");
+
+  if (!previousTag || !repository || !commits) {
+    throw new Error("Previous tag, repository, and release commits are required");
+  }
+
+  return `${notes}\n\n### Commits\n\n${commits}\n\n` +
+    `**Full Changelog**: https://github.com/${repository}/compare/${previousTag}...${releaseTag}\n`;
+}
+
 async function main() {
   const [releaseTag, changelogPath = "CHANGELOG.md", outputPath] =
     process.argv.slice(2);
   const changelog = await readFile(changelogPath, "utf8");
-  const notes = extractReleaseNotes(changelog, releaseTag);
+  const previousTag = execFileSync(
+    "git",
+    ["describe", "--tags", "--abbrev=0", `${releaseTag}^`],
+    { encoding: "utf8" }
+  ).trim();
+  const gitLog = execFileSync(
+    "git",
+    ["log", "--reverse", "--format=%h%x09%H%x09%s", `${previousTag}..${releaseTag}`],
+    { encoding: "utf8" }
+  );
+  const repository = process.env.GITHUB_REPOSITORY ?? "qrkks/zotero-annotation-markdown";
+  const notes = createReleaseNotes(changelog, releaseTag, {
+    previousTag,
+    repository,
+    gitLog
+  });
 
   if (outputPath) {
     await writeFile(outputPath, notes, "utf8");
