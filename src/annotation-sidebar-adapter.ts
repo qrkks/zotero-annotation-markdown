@@ -38,6 +38,7 @@ const FAST_EDITING_CLASS = "annotation-markdown-fast-editing";
 const FAST_EDITOR_ATTRIBUTE = "data-annotation-markdown-fast-editor";
 const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-closing";
 const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
+const POPUP_KEYBOARD_SCOPE_ATTRIBUTE = "data-annotation-markdown-popup-keyboard-scope";
 const WEAVERO_LINK_COLORS_CLASS = "annotation-markdown-weavero-link-colors";
 const POPUP_EDITOR_HEIGHT_PROPERTY = "--annotation-markdown-popup-editor-height";
 const OVERLAY_SCROLLBAR_HIT_WIDTH_PX = 16;
@@ -715,7 +716,21 @@ function showFastEditor(
   textarea.title = "Blur or press Escape to save";
   textarea.spellcheck = true;
   textarea.rows = originalSource.trim() ? 3 : 1;
-  editor.append(textarea);
+  if (node.closest(ANNOTATION_POPUP_SELECTOR)) {
+    // Zotero's window-capture KeyboardManager checks for `.annotation .content`
+    // before deciding whether Escape should leave a comment editor or deselect
+    // the annotation (which closes its popup). Give only the plugin-owned popup
+    // editor that narrow compatibility shape; display: contents avoids adding a
+    // layout box or modifying Zotero's host-owned popup DOM.
+    const hostKeyboardScope = documentRef.createElement("span");
+    hostKeyboardScope.className = "annotation";
+    hostKeyboardScope.setAttribute(POPUP_KEYBOARD_SCOPE_ATTRIBUTE, "true");
+    hostKeyboardScope.style.display = "contents";
+    hostKeyboardScope.append(textarea);
+    editor.append(hostKeyboardScope);
+  } else {
+    editor.append(textarea);
+  }
   const endKeyboardGuard = beginFastEditorKeyboardGuard?.();
   if (typeof endKeyboardGuard === "function") {
     fastEditorCleanupByEditor.set(editor, endKeyboardGuard);
@@ -815,7 +830,7 @@ function showFastEditor(
     commitAndClose();
   });
   textarea.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && !event.isComposing && event.keyCode !== 229) {
       event.preventDefault();
       event.stopPropagation();
       commitAndClose("escape");

@@ -82,6 +82,186 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
   });
 
+  test("uses the first Escape to save and exit popup editing before Zotero closes the popup", () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup">
+        <div class="preview"><div class="comment"><div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true">**old**</div>
+          <div class="renderer"></div>
+        </div></div></div>
+      </div>
+    `;
+    let selectionTriggeredFromView = true;
+    const closePopup = vi.fn(() => document.querySelector(".annotation-popup")?.remove());
+    const hostKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      if (document.activeElement?.closest(".annotation .content")) {
+        if (selectionTriggeredFromView) closePopup();
+        return;
+      }
+      closePopup();
+    };
+    window.addEventListener("keydown", hostKeyDown, true);
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment,
+      beginFastEditorKeyboardGuard: () => {
+        const previous = selectionTriggeredFromView;
+        selectionTriggeredFromView = false;
+        return () => { selectionTriggeredFromView = previous; };
+      }
+    });
+
+    try {
+      const comment = document.querySelector(".comment");
+      adapter.applyRenderedHtml(comment, "<p><strong>old</strong></p>");
+      comment.querySelector("[data-annotation-markdown-preview='true']")
+        .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      const textarea = comment.querySelector("textarea");
+      textarea.value = "**new**";
+      textarea.focus();
+
+      textarea.dispatchEvent(new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Escape"
+      }));
+
+      expect(closePopup).not.toHaveBeenCalled();
+      expect(document.querySelector(".annotation-popup")).not.toBeNull();
+      expect(commitComment).toHaveBeenCalledWith("ABC12345", "**new**");
+      expect(comment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+      expect(selectionTriggeredFromView).toBe(true);
+
+      document.querySelector(".annotation-popup").dispatchEvent(new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Escape"
+      }));
+
+      expect(closePopup).toHaveBeenCalledOnce();
+      expect(document.querySelector(".annotation-popup")).toBeNull();
+    } finally {
+      window.removeEventListener("keydown", hostKeyDown, true);
+    }
+  });
+
+  test("keeps popup editing active when Escape cannot save", () => {
+    const requestAnimationFrame = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = (callback) => {
+      callback();
+      return 1;
+    };
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment"><div class="editor">
+        <div id="ABC12345" class="content" contenteditable="true">old</div>
+        <div class="renderer"></div>
+      </div></div></div></div>
+    `;
+    let selectionTriggeredFromView = true;
+    const closePopup = vi.fn(() => document.querySelector(".annotation-popup")?.remove());
+    const hostKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      if (document.activeElement?.closest(".annotation .content") && !selectionTriggeredFromView) return;
+      closePopup();
+    };
+    window.addEventListener("keydown", hostKeyDown, true);
+    const commitComment = vi.fn(() => false);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment,
+      beginFastEditorKeyboardGuard: () => {
+        const previous = selectionTriggeredFromView;
+        selectionTriggeredFromView = false;
+        return () => { selectionTriggeredFromView = previous; };
+      }
+    });
+
+    try {
+      const comment = document.querySelector(".comment");
+      adapter.applyRenderedHtml(comment, "<p>old</p>");
+      comment.querySelector("[data-annotation-markdown-preview='true']")
+        .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      const textarea = comment.querySelector("textarea");
+      textarea.value = "unsaved";
+      textarea.focus();
+      textarea.dispatchEvent(new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Escape"
+      }));
+
+      expect(closePopup).not.toHaveBeenCalled();
+      expect(document.querySelector(".annotation-popup")).not.toBeNull();
+      expect(comment.querySelector("[data-annotation-markdown-fast-editor='true'] textarea")).toBe(textarea);
+      expect(document.activeElement).toBe(textarea);
+      expect(selectionTriggeredFromView).toBe(false);
+
+      commitComment.mockReturnValue(true);
+      expect(adapter.closeActiveFastEditor()).toBe(true);
+    } finally {
+      globalThis.requestAnimationFrame = requestAnimationFrame;
+      window.removeEventListener("keydown", hostKeyDown, true);
+    }
+  });
+
+  test("leaves popup Escape to an active IME composition", () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment"><div class="editor">
+        <div id="ABC12345" class="content" contenteditable="true">old</div>
+        <div class="renderer"></div>
+      </div></div></div></div>
+    `;
+    let selectionTriggeredFromView = true;
+    const closePopup = vi.fn(() => document.querySelector(".annotation-popup")?.remove());
+    const hostKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      if (document.activeElement?.closest(".annotation .content") && !selectionTriggeredFromView) return;
+      closePopup();
+    };
+    window.addEventListener("keydown", hostKeyDown, true);
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment,
+      beginFastEditorKeyboardGuard: () => {
+        const previous = selectionTriggeredFromView;
+        selectionTriggeredFromView = false;
+        return () => { selectionTriggeredFromView = previous; };
+      }
+    });
+
+    try {
+      const comment = document.querySelector(".comment");
+      adapter.applyRenderedHtml(comment, "<p>old</p>");
+      comment.querySelector("[data-annotation-markdown-preview='true']")
+        .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      const textarea = comment.querySelector("textarea");
+      textarea.focus();
+      const event = new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        isComposing: true,
+        key: "Escape"
+      });
+      textarea.dispatchEvent(event);
+
+      expect(event.isComposing).toBe(true);
+      expect(event.defaultPrevented).toBe(false);
+      expect(closePopup).not.toHaveBeenCalled();
+      expect(commitComment).not.toHaveBeenCalled();
+      expect(comment.querySelector("[data-annotation-markdown-fast-editor='true'] textarea")).toBe(textarea);
+
+      expect(adapter.closeActiveFastEditor()).toBe(true);
+    } finally {
+      window.removeEventListener("keydown", hostKeyDown, true);
+    }
+  });
+
   test.each(["Backspace", "Delete"])(
     "keeps %s inside the fast editor despite Zotero's window capture shortcut",
     (key) => {
