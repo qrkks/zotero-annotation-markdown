@@ -4,6 +4,12 @@
   <img src="addon/icons/annotation-markdown.svg" width="64" height="64" alt="Zotero Annotation Markdown 图标">
 </p>
 
+<p align="center">
+  <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="最新版本" src="https://img.shields.io/github/v/release/qrkks/zotero-annotation-markdown?display_name=tag&amp;sort=semver"></a>
+  <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="docs/zh-CN/user-guide.md#兼容性"><img alt="Zotero 9 和 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
+</p>
+
 [English](README.md) | 简体中文
 
 将 Zotero 阅读器侧栏里的标注评论渲染为 Markdown 和 LaTeX 数学公式，同时不改变 Zotero 实际保存的标注原文。
