@@ -53,6 +53,7 @@ describe("release workflow", () => {
     );
 
     expect(workflow).toContain("pnpm install --frozen-lockfile");
+    expect(workflow).toContain("fetch-depth: 0");
     expect(workflow).toContain("pnpm run verify");
     expect(workflow).toContain("pnpm audit --prod");
     expect(workflow).toContain('pnpm run release:verify "$RELEASE_TAG"');
