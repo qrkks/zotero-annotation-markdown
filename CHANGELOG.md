@@ -6,13 +6,11 @@
 
 - Open the fast editor automatically for newly focused empty page annotation popups after Zotero's layout settles, without requiring a second click.
 - Keep popup fast editing independent from experimental popup Markdown rendering, preserve the native fallback, and cancel automatic takeover when focus moves elsewhere.
-- Generate automated release notes from only the commits added since the previous tag.
 
 ### 修复
 
 - 新建空页内标注弹窗获得焦点后，等待 Zotero 布局稳定并自动打开快速编辑器，无需再次点击。
 - 将弹窗快速编辑与实验性弹窗 Markdown 渲染解耦，保留原生回退，并在焦点移到别处时取消自动接管。
-- 自动发布说明仅列出上一个标签之后新增的提交。
 
 ## 0.10.1 - 2026-09-27
 
