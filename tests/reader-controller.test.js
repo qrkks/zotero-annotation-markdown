@@ -81,7 +81,7 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("keeps popups fully native while experimental popup rendering is disabled", async () => {
+  test("keeps popup rendering native while experimental rendering is disabled but allows fast editing", async () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1" class="annotation">
         <div class="comment"><div class="content">**sidebar**</div></div>
@@ -125,7 +125,10 @@ describe("createReaderController", () => {
     nativeEditor.querySelector(".content").dispatchEvent(
       new MouseEvent("mousedown", { bubbles: true })
     );
-    expect(popupComment.querySelector("[data-annotation-markdown-fast-editor='true']")).toBeNull();
+    expect(popupComment.querySelector("[data-annotation-markdown-fast-editor='true']")).not.toBeNull();
+    expect(nativeEditor.hidden).toBe(true);
+    expect(adapter.closeActiveFastEditor()).toBe(true);
+    expect(nativeEditor.hidden).toBe(false);
 
     popupEnabled = true;
     controller.refresh();
@@ -139,6 +142,55 @@ describe("createReaderController", () => {
     expect(popupComment.querySelector("[data-annotation-markdown-preview='true']")).toBeNull();
     expect(nativeEditor.hidden).toBe(false);
     expect(popup.hasAttribute("data-annotation-markdown-popup-ready")).toBe(false);
+    controller.stop();
+  });
+
+  test("restores the native empty popup shell after fast editing with popup rendering disabled", async () => {
+    document.body.innerHTML = `
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="p1" class="content" contenteditable="true" placeholder="Add comment"></div>
+          <div class="renderer">Add comment</div>
+        </div>
+      </div></div></div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({
+        document,
+        isFastEditorEnabled: () => true,
+        commitComment
+      }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: {
+        isEnabled: () => true,
+        isPopupEnabled: () => false
+      },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    await controller.start();
+    const nativeEditor = document.querySelector(".annotation-popup .editor");
+    nativeEditor.querySelector(".content").dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true })
+    );
+    const textarea = document.querySelector(
+      ".annotation-popup [data-annotation-markdown-fast-editor='true'] textarea"
+    );
+    textarea.value = "first comment";
+    textarea.dispatchEvent(new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "Escape"
+    }));
+
+    expect(commitComment).toHaveBeenCalledOnce();
+    expect(commitComment).toHaveBeenCalledWith("p1", "first comment");
+    expect(nativeEditor.hidden).toBe(false);
+    expect(document.querySelector(".annotation-popup [data-annotation-markdown-preview='true']"))
+      .toBeNull();
     controller.stop();
   });
 
@@ -225,7 +277,7 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
-  test("does not turn a newly focused empty popup into a fast editor before it is clicked", async () => {
+  test("turns a newly focused empty popup into a fast editor after the host layout settles", async () => {
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const callbacks = [];
     window.requestAnimationFrame = (callback) => {
@@ -262,27 +314,82 @@ describe("createReaderController", () => {
       const popupContent = document.querySelector(".annotation-popup .content");
       popupContent.focus();
 
-      expect(callbacks).toHaveLength(0);
+      expect(callbacks).toHaveLength(1);
       expect(document.querySelector("[data-annotation-markdown-fast-editor='true']"))
         .toBeNull();
       expect(document.querySelector(".annotation-popup .renderer").textContent)
         .toBe("Add comment");
 
-      const pointer = new PointerEvent("pointerdown", {
-        bubbles: true,
-        cancelable: true,
-        button: 0
-      });
-      popupContent.dispatchEvent(pointer);
+      callbacks.shift()(0);
+      expect(callbacks).toHaveLength(1);
+      expect(document.querySelector("[data-annotation-markdown-fast-editor='true']"))
+        .toBeNull();
 
-      expect(pointer.defaultPrevented).toBe(true);
+      callbacks.shift()(16);
+
       expect(document.querySelector(".annotation-popup [data-annotation-markdown-fast-editor='true']"))
         .not.toBeNull();
       expect(document.querySelector("[data-sidebar-annotation-id] [data-annotation-markdown-fast-editor='true']"))
         .toBeNull();
+
+      expect(callbacks).toHaveLength(1);
+      callbacks.shift()(32);
+      expect(document.activeElement).toBe(
+        document.querySelector(".annotation-popup [data-annotation-markdown-fast-editor='true'] textarea")
+      );
     } finally {
       controller.stop();
       window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
+
+  test("cancels empty popup takeover when focus moves elsewhere while the host settles", async () => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const originalCancelAnimationFrame = window.cancelAnimationFrame;
+    const callbacks = new Map();
+    let nextFrame = 0;
+    window.requestAnimationFrame = (callback) => {
+      nextFrame += 1;
+      callbacks.set(nextFrame, callback);
+      return nextFrame;
+    };
+    window.cancelAnimationFrame = (frame) => callbacks.delete(frame);
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div class="annotation-popup"><div class="preview"><div class="comment">
+        <div class="editor">
+          <div id="ABC12345" class="content" contenteditable="true" placeholder="Add comment"></div>
+          <div class="renderer">Add comment</div>
+        </div>
+      </div></div></div>
+    `;
+    const controller = createReaderController({
+      reader: { document },
+      adapter: createAnnotationSidebarAdapter({
+        document,
+        isFastEditorEnabled: () => true,
+        commitComment: vi.fn(() => true)
+      }),
+      renderer: { render: (source) => `<p>${source}</p>` },
+      settings: { isEnabled: () => true },
+      MutationObserver: null,
+      IntersectionObserver: null
+    });
+
+    try {
+      await controller.start();
+      document.querySelector(".annotation-popup .content").focus();
+      expect(callbacks).toHaveLength(1);
+
+      document.querySelector("#outside").focus();
+
+      expect(callbacks).toHaveLength(0);
+      expect(document.querySelector("[data-annotation-markdown-fast-editor='true']"))
+        .toBeNull();
+    } finally {
+      controller.stop();
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+      window.cancelAnimationFrame = originalCancelAnimationFrame;
     }
   });
 

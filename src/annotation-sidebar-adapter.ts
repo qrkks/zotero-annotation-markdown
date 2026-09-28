@@ -56,7 +56,6 @@ interface CreateAnnotationSidebarAdapterOptions {
   document?: Document | null;
   openLink?(url: string): void;
   isFastEditorEnabled?(): boolean;
-  isPopupEnabled?(): boolean;
   commitComment?(annotationID: string, comment: string): boolean;
   beginFastEditorKeyboardGuard?(): (() => void) | void;
   useWeaveroLinkColors?(): boolean;
@@ -83,6 +82,7 @@ export interface AnnotationSidebarAdapter {
   showSourceForEditing(node: HTMLElement): boolean;
   tryShowFastEditorForTarget(target: EventTarget | null | undefined): boolean;
   tryShowFastEditorForAnnotationID(annotationID: string): boolean;
+  tryShowFastEditorForEmptyPopupAnnotationID(annotationID: string): boolean;
   getAnnotationIDForTarget(target: EventTarget | null | undefined): string | null;
   getCommentNodeForAnnotationID(annotationID: string): HTMLElement | null;
   setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
@@ -115,7 +115,6 @@ export function createAnnotationSidebarAdapter({
   document: documentRef = globalThis.document,
   openLink,
   isFastEditorEnabled = () => false,
-  isPopupEnabled = () => true,
   commitComment,
   beginFastEditorKeyboardGuard,
   useWeaveroLinkColors = () => false
@@ -386,7 +385,7 @@ export function createAnnotationSidebarAdapter({
 
       if (
         isFastEditorEnabled() &&
-        canUseFastEditor(node, commitComment, isPopupEnabled)
+        canUseFastEditor(node, commitComment)
       ) {
         showFastEditor(node, this, beginFastEditorKeyboardGuard);
         return true;
@@ -434,7 +433,7 @@ export function createAnnotationSidebarAdapter({
         !nativeEntry ||
         !comment ||
         !canEnterEditing(comment) ||
-        !canUseFastEditor(comment, commitComment, isPopupEnabled)
+        !canUseFastEditor(comment, commitComment)
       ) {
         return false;
       }
@@ -452,7 +451,33 @@ export function createAnnotationSidebarAdapter({
       if (
         !comment ||
         !canEnterEditing(comment) ||
-        !canUseFastEditor(comment, commitComment, isPopupEnabled)
+        !canUseFastEditor(comment, commitComment)
+      ) {
+        return false;
+      }
+
+      showFastEditor(comment, this, beginFastEditorKeyboardGuard);
+      return true;
+    },
+
+    tryShowFastEditorForEmptyPopupAnnotationID(annotationID: string) {
+      if (!isFastEditorEnabled() || !annotationID) {
+        return false;
+      }
+
+      const queryRoot = getQueryRoot(documentRef);
+      const comment = queryRoot
+        ? queryHtmlElements(queryRoot, COMMENT_SELECTORS.join(",")).find((candidate) => (
+          Boolean(candidate.closest(ANNOTATION_POPUP_SELECTOR)) &&
+          getAnnotationID(candidate) === annotationID &&
+          !isInsideNativeNoteEditor(candidate)
+        )) ?? null
+        : null;
+      if (
+        !comment ||
+        this.getSourceText(comment).trim() ||
+        !canEnterEditing(comment) ||
+        !canUseFastEditor(comment, commitComment)
       ) {
         return false;
       }
@@ -925,11 +950,9 @@ function focusFastEditor(editor: HTMLElement): void {
 
 function canUseFastEditor(
   node: HTMLElement,
-  commitComment: ((annotationID: string, comment: string) => boolean) | undefined,
-  isPopupEnabled: () => boolean
+  commitComment: ((annotationID: string, comment: string) => boolean) | undefined
 ): boolean {
-  return (!node.closest(ANNOTATION_POPUP_SELECTOR) || isPopupEnabled()) &&
-    typeof commitComment === "function" &&
+  return typeof commitComment === "function" &&
     Boolean(getAnnotationID(node));
 }
 

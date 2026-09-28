@@ -166,9 +166,6 @@ export function createPlugin({
             isFastEditorEnabled: () => (
               settings.isFastEditorEnabled() && canUseReaderFastEditor(reader)
             ),
-            isPopupEnabled: () => (
-              settings.isEnabled() && settings.isPopupEnabled()
-            ),
             commitComment: (annotationID, comment) =>
               commitReaderAnnotationComment(reader, annotationID, comment),
             beginFastEditorKeyboardGuard: () =>

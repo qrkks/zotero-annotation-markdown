@@ -114,6 +114,7 @@ const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
 const POPUP_STABLE_LAYOUT_FRAMES = 2;
+const EMPTY_POPUP_EDITOR_SETTLE_FRAMES = 2;
 const POPUP_VIEWPORT_PADDING_PX = 20;
 // Keep the normal quiet-frame path for a clean first paint, but never leave a
 // popup invisible when Zotero delays its final position commit. Real Reader
@@ -950,13 +951,12 @@ export function createReaderController({
       return;
     }
     const popups = findAnnotationPopups(root);
-    if (
-      popups.some((popup) => popup.querySelector("[data-annotation-markdown-fast-editor='true']")) &&
-      adapter.closeActiveFastEditor?.() === false
-    ) {
-      return;
-    }
     for (const popup of popups) {
+      // Popup rendering and fast editing are separate preferences. Do not tear
+      // down an active textarea merely because Markdown popup rendering is off.
+      if (popup.querySelector("[data-annotation-markdown-fast-editor='true']")) {
+        continue;
+      }
       adapter.clearRenderedState?.(popup);
     }
   }
@@ -1394,11 +1394,15 @@ export function createReaderController({
       if (event.type === "focusin") {
         const comment = adapter.getCommentNodeForTarget?.(event.target);
         if (comment && adapter.isPopupComment?.(comment)) {
-          // Zotero may focus a newly mounted empty popup while its React tree
-          // is still settling. Keep the native Add Comment entry until an
-          // actual pointer gesture chooses the fast editor; auto-converting
-          // this focus creates timing-dependent first-open states.
+          const annotationID = adapter.getAnnotationIDForTarget?.(event.target);
+          if (annotationID && !adapter.getSourceText(comment).trim()) {
+            scheduleFastEditorAfterEmptyPopupFocus(annotationID);
+          }
           return;
+        }
+        if (fastEditorFocusFrame !== undefined) {
+          windowRef?.cancelAnimationFrame?.(fastEditorFocusFrame);
+          fastEditorFocusFrame = undefined;
         }
         const annotationID = adapter.getAnnotationIDForTarget?.(event.target);
         if (annotationID) {
@@ -1444,6 +1448,11 @@ export function createReaderController({
           // close event bubbles. Resume against the live node, not the detached
           // editor node captured when rendering was paused.
           pausedComment = comment;
+        }
+        if (adapter.isPopupComment?.(comment) && !isPopupRenderingEnabled()) {
+          // The popup renderer may be disabled while fast editing remains
+          // enabled. Reveal Zotero's source shell after the textarea closes.
+          adapter.restoreSourceDomForEditing?.(comment);
         }
         if (detail?.reason === "escape") {
           escapeScrollRecovery = {
@@ -1496,6 +1505,35 @@ export function createReaderController({
     }
 
     Promise.resolve().then(openCurrentEditor);
+  }
+
+  function scheduleFastEditorAfterEmptyPopupFocus(annotationID: string): void {
+    if (!adapter.tryShowFastEditorForEmptyPopupAnnotationID) {
+      return;
+    }
+
+    if (fastEditorFocusFrame !== undefined) {
+      windowRef?.cancelAnimationFrame?.(fastEditorFocusFrame);
+    }
+
+    let framesRemaining = EMPTY_POPUP_EDITOR_SETTLE_FRAMES;
+    const openStablePopupEditor = () => {
+      fastEditorFocusFrame = undefined;
+      framesRemaining -= 1;
+      if (framesRemaining > 0 && typeof windowRef?.requestAnimationFrame === "function") {
+        fastEditorFocusFrame = windowRef.requestAnimationFrame(openStablePopupEditor);
+        return;
+      }
+
+      adapter.tryShowFastEditorForEmptyPopupAnnotationID?.(annotationID);
+    };
+
+    if (typeof windowRef?.requestAnimationFrame === "function") {
+      fastEditorFocusFrame = windowRef.requestAnimationFrame(openStablePopupEditor);
+      return;
+    }
+
+    Promise.resolve().then(() => Promise.resolve().then(openStablePopupEditor));
   }
 
   function registerEditingPauseHandlers(): void {
