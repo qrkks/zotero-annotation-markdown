@@ -9,6 +9,7 @@
   <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="最新版下载量" src="https://img.shields.io/github/downloads/qrkks/zotero-annotation-markdown/latest/total?label=latest%20downloads"></a>
   <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="docs/zh-CN/user-guide.md#兼容性"><img alt="Zotero 9 和 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
+  <a href="LICENSE"><img alt="MIT 协议" src="https://img.shields.io/github/license/qrkks/zotero-annotation-markdown?label=license"></a>
 </p>
 
 [English](README.md) | 简体中文
