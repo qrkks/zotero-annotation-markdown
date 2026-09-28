@@ -18,11 +18,12 @@
     "dompurify": "^3.4.13",
     "katex": "^0.17.0",
     "markdown-it": "^14.3.0",
+    "markdown-it-cjk-friendly": "3.0.0",
     "markdown-it-mark": "4.0.0",
     "markdown-it-texmath": "^1.0.0"
   },
   "devDependencies": {
-    "@types/markdown-it": "14.1.2",
+    "@types/markdown-it": "14.2.0",
     "@zip.js/zip.js": "^2.8.34",
     "esbuild": "^0.28.1",
     "jsdom": "^27.4.0",

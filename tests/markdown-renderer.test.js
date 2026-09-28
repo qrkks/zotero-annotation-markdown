@@ -23,6 +23,14 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain("<a href=\"https://example.com\">https://example.com</a>");
   });
 
+  test("renders strong emphasis next to CJK text when it ends in punctuation", () => {
+    const renderer = createMarkdownRenderer();
+
+    const html = renderer.render("一般就进入**非线性（nonlinear）**了。");
+
+    expect(html).toContain("一般就进入<strong>非线性（nonlinear）</strong>了。");
+  });
+
   test("renders double-equals text as a sanitized highlight", () => {
     const renderer = createMarkdownRenderer();
 

@@ -6,6 +6,7 @@
  */
 import createDOMPurify, { type WindowLike } from "dompurify";
 import MarkdownIt from "markdown-it";
+import markdownItCjkFriendly from "markdown-it-cjk-friendly";
 import markdownItMark from "markdown-it-mark";
 import markdownItTexmath from "markdown-it-texmath";
 
@@ -104,6 +105,7 @@ export function createMarkdownRenderer({
 
 function createDefaultMarkdownEngine(): MarkdownIt {
   const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
+  markdown.use(markdownItCjkFriendly);
   markdown.use(markdownItMark);
   markdown.use(markdownItMarkColors);
   markdown.linkify.add("zotero:", "http:");
