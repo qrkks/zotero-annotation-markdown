@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/qrkks/zotero-annotation-markdown?display_name=tag&amp;sort=semver"></a>
+  <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="Latest release downloads" src="https://img.shields.io/github/downloads/qrkks/zotero-annotation-markdown/latest/total?label=latest%20downloads"></a>
   <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="docs/en/user-guide.md#compatibility"><img alt="Zotero 9 and 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
 </p>
@@ -17,7 +18,7 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 ## Highlights
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
-- Experimental, off-by-default Markdown previews and fast editing for page annotation popups, with a fully native fallback.
+- Experimental, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
 - `==Highlighted text==` syntax with optional safe color suffixes such as `{.red}`.
 - Automatic links for bare URLs in rendered previews.
 - A persistent floating outline with adjustable text size for navigating long annotations with multiple headings.

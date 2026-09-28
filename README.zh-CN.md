@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="最新版本" src="https://img.shields.io/github/v/release/qrkks/zotero-annotation-markdown?display_name=tag&amp;sort=semver"></a>
+  <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="最新版下载量" src="https://img.shields.io/github/downloads/qrkks/zotero-annotation-markdown/latest/total?label=latest%20downloads"></a>
   <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="docs/zh-CN/user-guide.md#兼容性"><img alt="Zotero 9 和 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
 </p>
@@ -17,7 +18,7 @@
 ## 主要功能
 
 - 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
-- 可选择在页内标注弹窗中实验性启用 Markdown 预览和快速编辑；默认关闭，并可完整回退 Zotero 原生行为。
+- 可选择在页内标注弹窗中实验性启用 Markdown 预览；快速编辑由独立偏好控制，并可回退 Zotero 原生行为。
 - 使用 `==高亮文字==` 语法突出显示行内内容，并支持 `{.red}` 等安全颜色后缀。
 - 在渲染预览中自动把裸 URL 转为可点击链接。
 - 为包含多个标题的长标注提供可调文字大小的浮动大纲，方便持续导航。
