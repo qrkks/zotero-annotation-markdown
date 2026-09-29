@@ -194,7 +194,7 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("edits a page annotation popup locally and saves once through the fast editor", async () => {
+  test("saves a popup edit once and refreshes every representation of the annotation", async () => {
     vi.useFakeTimers();
     document.body.innerHTML = `
       <button id="outside">outside</button>
@@ -270,7 +270,7 @@ describe("createReaderController", () => {
     expect(comment.querySelector("[data-annotation-markdown-preview='true']")?.innerHTML)
       .toBe("<p>**new**</p>");
     expect(document.querySelector("[data-annotation-id='ABC12345'] [data-annotation-markdown-preview='true']")?.innerHTML)
-      .toBe("<p>**old**</p>");
+      .toBe("<p>**new**</p>");
     expect(repositionPopups).not.toHaveBeenCalled();
 
     controller.stop();

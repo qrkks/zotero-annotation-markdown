@@ -84,6 +84,7 @@ export interface AnnotationSidebarAdapter {
   tryShowFastEditorForAnnotationID(annotationID: string): boolean;
   tryShowFastEditorForEmptyPopupAnnotationID(annotationID: string): boolean;
   getAnnotationIDForTarget(target: EventTarget | null | undefined): string | null;
+  getCommentNodesForAnnotationID(annotationID: string): HTMLElement[];
   getCommentNodeForAnnotationID(annotationID: string): HTMLElement | null;
   setCommittedSource(node: HTMLElement | null | undefined, source: string): void;
   closeActiveFastEditor(): boolean;
@@ -212,7 +213,11 @@ export function createAnnotationSidebarAdapter({
       const annotationID = node ? getAnnotationID(node) : null;
       if (annotationID && pendingCommittedSourceByAnnotationID.has(annotationID)) {
         const committedSource = pendingCommittedSourceByAnnotationID.get(annotationID) ?? "";
-        if (source === committedSource) {
+        const everyRepresentationCaughtUp = source === committedSource &&
+          this.getCommentNodesForAnnotationID(annotationID).every((candidate) => (
+            readSourceText(getSourceNode(candidate)) === committedSource
+          ));
+        if (everyRepresentationCaughtUp) {
           pendingCommittedSourceByAnnotationID.delete(annotationID);
         }
         return committedSource;
@@ -491,15 +496,19 @@ export function createAnnotationSidebarAdapter({
       return comment ? getAnnotationID(comment) : null;
     },
 
-    getCommentNodeForAnnotationID(annotationID: string) {
+    getCommentNodesForAnnotationID(annotationID: string) {
       const queryRoot = getQueryRoot(documentRef);
-      const candidates = queryRoot
+      return queryRoot
         ? queryHtmlElements(queryRoot, COMMENT_SELECTORS.join(","))
           .filter((candidate) => (
             getAnnotationID(candidate) === annotationID &&
             !isInsideNativeNoteEditor(candidate)
           ))
         : [];
+    },
+
+    getCommentNodeForAnnotationID(annotationID: string) {
+      const candidates = this.getCommentNodesForAnnotationID(annotationID);
       return candidates.find((candidate) => (
         candidate.closest("[data-sidebar-annotation-id]")
       )) ?? candidates[0] ?? null;

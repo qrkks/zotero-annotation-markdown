@@ -91,6 +91,11 @@ interface PopupRevealTask {
   renderComplete?: boolean;
 }
 
+interface CommittedAnnotationEdit {
+  annotationID: string;
+  source: string;
+}
+
 interface CreateReaderControllerOptions {
   reader: ReaderLike;
   adapter: AnnotationSidebarAdapter;
@@ -1442,8 +1447,15 @@ export function createReaderController({
         currentComment ??
         pausedComment;
       if (comment) {
+        const committedEdit = detail?.committed
+          ? { annotationID: detail.annotationID, source: detail.source }
+          : undefined;
         if (detail?.committed) {
-          adapter.setCommittedSource?.(comment, detail.source);
+          for (const representation of adapter.getCommentNodesForAnnotationID?.(
+            detail.annotationID
+          ) ?? [comment]) {
+            adapter.setCommittedSource?.(representation, detail.source);
+          }
           // A newly saved empty comment can be replaced by Zotero before this
           // close event bubbles. Resume against the live node, not the detached
           // editor node captured when rendering was paused.
@@ -1469,7 +1481,7 @@ export function createReaderController({
           detail.startedEmpty &&
           detail.source.trim() &&
           adapter.isPopupComment?.(comment)
-        ));
+        ), committedEdit);
       }
     };
 
@@ -1611,10 +1623,11 @@ export function createReaderController({
 
   function scheduleEditingResume(
     comment: HTMLElement,
-    repositionPopupAfterRender = false
+    repositionPopupAfterRender = false,
+    committedEdit?: CommittedAnnotationEdit
   ): void {
     if (!windowRef?.setTimeout) {
-      resumeRenderingAfterEditing(comment, repositionPopupAfterRender);
+      resumeRenderingAfterEditing(comment, repositionPopupAfterRender, committedEdit);
       return;
     }
 
@@ -1624,13 +1637,14 @@ export function createReaderController({
 
     editingResumeTimer = windowRef.setTimeout(() => {
       editingResumeTimer = undefined;
-      resumeRenderingAfterEditing(comment, repositionPopupAfterRender);
+      resumeRenderingAfterEditing(comment, repositionPopupAfterRender, committedEdit);
     }, 0);
   }
 
   function resumeRenderingAfterEditing(
     comment: HTMLElement,
-    repositionPopupAfterRender = false
+    repositionPopupAfterRender = false,
+    committedEdit?: CommittedAnnotationEdit
   ): void {
     if (adapter.hasActiveFastEditor?.()) {
       clearEscapeScrollRecovery();
@@ -1652,8 +1666,19 @@ export function createReaderController({
     pausedComment = undefined;
     renderingPausedGlobally = false;
     adapter.finishEditing?.(comment);
+    const renderTargets = committedEdit
+      ? adapter.getCommentNodesForAnnotationID?.(committedEdit.annotationID) ?? [comment]
+      : [comment];
+    if (committedEdit) {
+      for (const representation of renderTargets) {
+        adapter.setCommittedSource?.(representation, committedEdit.source);
+      }
+      // Sidebar and popup representations intentionally share this cache key.
+      // Drop the previous source before rendering every connected copy.
+      deleteCachedRender(comment);
+    }
     const startedAt = isPerformanceDiagnosticsEnabled() ? nowRef() : 0;
-    const result = handleCommentNodes([comment], { force: true });
+    const result = handleCommentNodes(renderTargets, { force: true });
     if (repositionPopupAfterRender) schedulePopupRepositionAfterRender(comment);
     if (escapeScrollRecovery?.comment === comment) escapeScrollRecovery.recovery.afterRender();
     if (isPerformanceDiagnosticsEnabled()) {
