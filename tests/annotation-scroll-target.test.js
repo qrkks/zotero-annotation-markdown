@@ -115,6 +115,21 @@ test("ignores unrelated document mutations", async () => {
   expect(prepareRow).toHaveBeenCalledTimes(1);
 });
 
+test("does not remeasure selection for newly inserted unselected annotation rows", async () => {
+  const { rows, scroller } = setup();
+  const measure = vi.fn(() => ({ height: 900 }));
+  rows[0].getBoundingClientRect = measure;
+  measure.mockClear();
+  const row = document.createElement("div");
+  row.dataset.sidebarAnnotationId = "bulk";
+  row.className = "annotation";
+  row.innerHTML = `<div class="comment">bulk</div>`;
+  scroller.append(row);
+  await Promise.resolve();
+
+  expect(measure).not.toHaveBeenCalled();
+});
+
 test("finishes selected lazy rendering before measuring, without rendering its neighbors", async () => {
   const { rows } = setup();
   stop();

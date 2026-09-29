@@ -85,6 +85,7 @@ export function trackAnnotationOutline({
   const observer = MutationObserverRef && doc.body
     ? new MutationObserverRef(mutations => {
       if (mutations.length > 0 && mutations.every(isOutlineOwnedMutation)) return;
+      if (!mutations.some(mutationMayAffectOutline)) return;
       sync();
     })
     : undefined;
@@ -471,6 +472,26 @@ function isOutlineOwnedNode(node: Node | null): boolean {
   return Boolean(
     element?.getAttribute(OUTLINE) === "true" ||
     element?.closest(`[${OUTLINE}='true']`)
+  );
+}
+
+function mutationMayAffectOutline(mutation: MutationRecord): boolean {
+  if (nodeMayAffectOutline(mutation.target)) return true;
+  return [
+    ...Array.from(mutation.addedNodes ?? []),
+    ...Array.from(mutation.removedNodes ?? [])
+  ].some(nodeMayAffectOutline);
+}
+
+function nodeMayAffectOutline(node: Node | null): boolean {
+  if (!node) return false;
+  const element = node.nodeType === 1 ? node as Element : node.parentElement;
+  if (!element) return false;
+  const relevant = `${PREVIEW},${SELECTED},.annotation-popup,${EDITING}`;
+  return Boolean(
+    element.matches(relevant) ||
+    element.closest(relevant) ||
+    element.querySelector(relevant)
   );
 }
 

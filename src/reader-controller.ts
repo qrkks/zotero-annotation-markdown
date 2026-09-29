@@ -118,6 +118,7 @@ const AUTO_EAGER_MAX_ANNOTATIONS = 30;
 const AUTO_EAGER_MAX_SOURCE_CHARS = 50_000;
 const MAX_IDLE_RENDER_BATCH = 4;
 const MIN_IDLE_TIME_REMAINING_MS = 8;
+const ADDED_COMMENT_SCAN_DELAY_MS = 80;
 const POPUP_STABLE_LAYOUT_FRAMES = 2;
 const EMPTY_POPUP_EDITOR_SETTLE_FRAMES = 2;
 const POPUP_VIEWPORT_PADDING_PX = 20;
@@ -195,6 +196,8 @@ export function createReaderController({
   let eagerComments = new WeakSet<HTMLElement>();
   let pendingRenderNodes = new Set<HTMLElement>();
   let idleRenderHandle: number | undefined;
+  let pendingAddedCommentRoots = new Set<HTMLElement>();
+  let addedCommentScanTimer: number | undefined;
   let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
   const renderCache = new Map<RenderCacheKey, CachedRender>();
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
@@ -361,15 +364,30 @@ export function createReaderController({
       activeRenderStrategy = undefined;
       lazyRenderDiagnosticSamples = [];
       resetOffscreenRenderedNodes();
+      cancelAddedCommentScan();
       if (observer) {
         observer.disconnect();
         observer = undefined;
       }
       restoreNativePopupStateWhenDisabled();
       preparePopupPositioning(root, { force: true });
+      if (!settings.isEnabled()) {
+        outlineController?.stop();
+        outlineController = undefined;
+        adapter.clearRenderedState?.(root);
+        styleElement?.remove();
+        styleElement = undefined;
+        syncPopupFeatureState();
+        return;
+      }
+      registerPasteHandler();
+      registerAnnotationScrollbarHandlers();
+      registerFastEditorHandlers();
+      registerEditingPauseHandlers();
       this.renderNow();
       registerMutationObserver();
       registerScrollTargetTracking();
+      registerOutlineTracking();
       outlineController?.sync();
     },
 
@@ -479,6 +497,7 @@ export function createReaderController({
       runShutdownStep(clearPopupPositioning);
       runShutdownStep(() => documentRef?.documentElement?.removeAttribute(POPUP_ENABLED_ATTRIBUTE));
       runShutdownStep(cancelQueuedRendering);
+      runShutdownStep(cancelAddedCommentScan);
       lazyRenderDiagnosticSamples = [];
       renderCache.clear();
       renderCacheBytes = 0;
@@ -563,17 +582,28 @@ export function createReaderController({
   }
 
   function startNow(renderNow: () => void): void {
+    adapter.clearRenderedState?.(root);
+    if (!settings.isEnabled()) {
+      syncPopupFeatureState();
+      styleElement?.remove();
+      styleElement = undefined;
+      return;
+    }
     injectStyles();
     syncPopupFeatureState();
     registerPasteHandler();
     registerAnnotationScrollbarHandlers();
     registerFastEditorHandlers();
     registerEditingPauseHandlers();
-    adapter.clearRenderedState?.(root);
     preparePopupPositioning(root);
     renderNow();
     registerMutationObserver();
     registerScrollTargetTracking();
+    registerOutlineTracking();
+  }
+
+  function registerOutlineTracking(): void {
+    if (outlineController) return;
     outlineController = trackAnnotationOutline({
       document: documentRef,
       MutationObserver: MutationObserverRef,
@@ -624,10 +654,7 @@ export function createReaderController({
           return;
         }
 
-        const syncNodes = findSyncMutationCommentNodes(mutations, adapter);
-        if (syncNodes.length > 0) {
-          // Added annotation subtrees are handled directly to avoid a full sidebar scan.
-          handleCommentNodes(syncNodes);
+        if (queueAddedCommentScans(mutations)) {
           return;
         }
 
@@ -641,7 +668,117 @@ export function createReaderController({
         characterData: false,
         ...getLightweightMutationObserverOptions()
       });
+      if (pendingAddedCommentRoots.size > 0) {
+        scheduleAddedCommentScan();
+      }
     }
+  }
+
+  function queueAddedCommentScans(mutations: MutationRecord[]): boolean {
+    const immediateNodes: HTMLElement[] = [];
+    const immediateSeen = new Set<HTMLElement>();
+    let found = false;
+
+    for (const mutation of mutations) {
+      for (const addedNode of Array.from(mutation.addedNodes ?? [])) {
+        if (!addedNode || !isPotentialAddedCommentRoot(addedNode)) {
+          continue;
+        }
+        found = true;
+        const element = getElementTarget(addedNode);
+        const containsPopup = Boolean(
+          element?.closest(".annotation-popup") ||
+          element?.matches(".annotation-popup") ||
+          element?.querySelector(".annotation-popup")
+        );
+        if (containsPopup) {
+          for (const node of adapter.findCommentNodes(addedNode)) {
+            if (adapter.isPopupComment?.(node) && !immediateSeen.has(node)) {
+              immediateSeen.add(node);
+              immediateNodes.push(node);
+            }
+          }
+        }
+
+        const scanRoot = getAddedCommentScanRoot(addedNode, mutation.target ?? addedNode);
+        if (scanRoot && !containsPopup) {
+          pendingAddedCommentRoots.add(scanRoot);
+        }
+      }
+    }
+
+    if (immediateNodes.length > 0) {
+      handleCommentNodes(immediateNodes);
+    }
+    if (pendingAddedCommentRoots.size > 0) {
+      scheduleAddedCommentScan();
+    }
+    return found;
+  }
+
+  function getAddedCommentScanRoot(
+    addedNode: Node,
+    mutationTarget: Node
+  ): HTMLElement | null {
+    const addedElement = getElementTarget(addedNode);
+    const targetElement = getElementTarget(mutationTarget);
+    return (
+      addedElement?.closest<HTMLElement>(".annotations") ??
+      (addedElement?.matches(".annotations") ? addedElement as HTMLElement : null) ??
+      addedElement?.querySelector<HTMLElement>(".annotations") ??
+      targetElement?.closest<HTMLElement>(".annotations") ??
+      addedElement as HTMLElement | null
+    );
+  }
+
+  function scheduleAddedCommentScan(): void {
+    if (addedCommentScanTimer !== undefined) {
+      windowRef?.clearTimeout?.(addedCommentScanTimer);
+    }
+    if (typeof windowRef?.setTimeout !== "function") {
+      flushAddedCommentScan();
+      return;
+    }
+    addedCommentScanTimer = windowRef.setTimeout(() => {
+      addedCommentScanTimer = undefined;
+      flushAddedCommentScan();
+    }, ADDED_COMMENT_SCAN_DELAY_MS);
+  }
+
+  function flushAddedCommentScan(): void {
+    if (!settings.isEnabled()) {
+      pendingAddedCommentRoots.clear();
+      return;
+    }
+    if (isRenderingPaused()) {
+      return;
+    }
+    const roots = Array.from(pendingAddedCommentRoots).filter(candidate => candidate.isConnected);
+    pendingAddedCommentRoots.clear();
+    const minimalRoots = roots.filter(candidate => (
+      !roots.some(other => other !== candidate && other.contains(candidate))
+    ));
+    const nodes: HTMLElement[] = [];
+    const seen = new Set<HTMLElement>();
+    for (const scanRoot of minimalRoots) {
+      for (const node of adapter.findCommentNodes(scanRoot)) {
+        if (!seen.has(node)) {
+          seen.add(node);
+          nodes.push(node);
+        }
+      }
+    }
+    if (nodes.length > 0) {
+      handleCommentNodes(nodes);
+    }
+  }
+
+  function cancelAddedCommentScan(): void {
+    if (addedCommentScanTimer !== undefined) {
+      windowRef?.clearTimeout?.(addedCommentScanTimer);
+    }
+    addedCommentScanTimer = undefined;
+    pendingAddedCommentRoots.clear();
   }
 
   function preparePopupPositioning(
@@ -2432,31 +2569,6 @@ function percentile(values: number[], ratio: number): number {
   const sorted = [...values].sort((left, right) => left - right);
   const index = Math.max(0, Math.ceil(sorted.length * ratio) - 1);
   return sorted[index];
-}
-
-function findSyncMutationCommentNodes(
-  mutations: MutationRecord[] = [],
-  adapter: AnnotationSidebarAdapter
-): HTMLElement[] {
-  const found: HTMLElement[] = [];
-  const seen = new Set<HTMLElement>();
-
-  for (const mutation of mutations) {
-    for (const root of Array.from(mutation.addedNodes ?? [])) {
-      if (!isPotentialAddedCommentRoot(root)) {
-        continue;
-      }
-
-      for (const node of adapter.findCommentNodes(root)) {
-        if (!seen.has(node)) {
-          seen.add(node);
-          found.push(node);
-        }
-      }
-    }
-  }
-
-  return found;
 }
 
 function isPotentialAddedCommentRoot(node: Node | null): boolean {

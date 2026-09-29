@@ -97,6 +97,31 @@ test("ignores outline-owned style mutations instead of scheduling a render loop"
   }
 });
 
+test("ignores bulk insertion of unselected annotation rows without rescanning the outline", () => {
+  let mutationCallback;
+  const FakeMutationObserver = vi.fn(function FakeMutationObserver(callback) {
+    mutationCallback = callback;
+    return { observe: vi.fn(), disconnect: vi.fn() };
+  });
+  const enabled = vi.fn(() => true);
+  setup({ MutationObserverRef: FakeMutationObserver, enabled });
+  enabled.mockClear();
+  const row = document.createElement("div");
+  row.className = "annotation";
+  row.dataset.sidebarAnnotationId = "bulk";
+  row.innerHTML = `<div class="comment"><div class="content">bulk</div></div>`;
+  document.querySelector("#annotations").append(row);
+
+  mutationCallback([{
+    type: "childList",
+    target: document.querySelector("#annotations"),
+    addedNodes: [row],
+    removedNodes: []
+  }]);
+
+  expect(enabled).not.toHaveBeenCalled();
+});
+
 async function flushMutations() {
   await Promise.resolve();
   await Promise.resolve();

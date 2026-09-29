@@ -95,7 +95,11 @@ export function trackAnnotationScrollTarget({
       if (record.type === "attributes") return (record.target as Element).matches(ROW) ||
         (row !== null && (record.target as Element).contains(row));
       return [...record.addedNodes, ...record.removedNodes].some(node =>
-        node.nodeType === 1 && ((node as Element).matches(ROW) || (node as Element).querySelector(ROW)));
+        node.nodeType === 1 && (
+          (node as Element).matches(SELECTED) ||
+          (node as Element).querySelector(SELECTED) ||
+          (row !== null && ((node as Element) === row || (node as Element).contains(row)))
+        ));
     });
     if (selectionChanged) updateSelection();
     else if (row && records.some(record => row!.contains(record.target))) updateGeometry();
