@@ -88,3 +88,7 @@ Use this ebook as a repeatable stress sample for future Reader lifecycle changes
 ## Privacy
 
 The ebook title, creator, library keys, annotation identifiers, annotation text, profile path, screenshots, and raw diagnostic output are intentionally excluded. Only the annotation count and aggregate timing observations are retained.
+
+## Related follow-up
+
+The same stress sample was used to isolate the cost of clearing a tag filter in [Large annotation-sidebar filter-clear investigation](2026-09-29-large-sidebar-filter-clear.md).
