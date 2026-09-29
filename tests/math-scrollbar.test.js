@@ -137,6 +137,22 @@ describe("display math scrolling", () => {
     expect(document.querySelector("textarea")).not.toBeNull();
   });
 
+  test("keeps a popup formula scroller mounted when Gecko retargets its scrollbar outside the measured gutter", async () => {
+    const { controller, math, comment, preview } = await setup({ popup: true });
+
+    // Gecko exposes the anonymous native scrollbar as the overflow element.
+    // Its reported pointer coordinate is not consistently inside the CSS
+    // gutter, especially in a transformed page popup.
+    expect(mouse(math, "pointerdown", { clientY: 115 }).defaultPrevented).toBe(false);
+    expect(mouse(math, "mousedown", { clientY: 115 }).defaultPrevented).toBe(false);
+    math.scrollLeft = 500;
+    controller.renderNow();
+
+    expect(comment.querySelector(".annotation-markdown-rendered")).toBe(preview);
+    expect(document.querySelector("textarea")).toBeNull();
+    expect(math.scrollLeft).toBe(500);
+  });
+
   test("clears the old drag when focus moves to a different math scroller", async () => {
     const { math, sidebar, deselect } = await setup();
     const next = math.cloneNode(true);
@@ -163,7 +179,7 @@ describe("display math scrolling", () => {
     expect(deselect).toHaveBeenCalledOnce();
   });
 
-  test.each(["short", "body", "right-edge", "low-content", "right-button", "touch", "native-note", "foreign-preview", "link"])("does not classify %s as our math scrollbar", async reason => {
+  test.each(["short", "right-edge", "low-content", "right-button", "touch", "native-note", "foreign-preview", "link"])("does not classify %s as our math scrollbar", async reason => {
     const { math, preview, adapter } = await setup();
     if (reason === "short") Object.defineProperty(math, "scrollWidth", { value: 300 });
     if (reason === "right-edge") Object.defineProperty(math, "scrollHeight", { value: 80 });
@@ -173,7 +189,7 @@ describe("display math scrolling", () => {
       : reason === "low-content" ? math.querySelector(".vlist") : math;
     if (reason === "link") target.href = "https://example.com";
     const event = new PointerEvent("pointerdown", {
-      clientX: reason === "right-edge" ? 319 : 80, clientY: ["body", "right-edge"].includes(reason) ? 115 : 160,
+      clientX: reason === "right-edge" ? 319 : 80, clientY: reason === "right-edge" ? 115 : 160,
       button: reason === "right-button" ? 2 : 0, pointerType: reason === "touch" ? "touch" : "mouse"
     });
     Object.defineProperty(event, "target", { value: target });

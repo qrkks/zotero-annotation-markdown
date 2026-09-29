@@ -1204,7 +1204,21 @@ function getPreviewMathScrollbar(event: Event): HTMLElement | null {
       continue;
     }
     const pointer = event as PointerEvent;
-    if (pointer.button === 0 && pointer.pointerType !== "touch" && isPointerInNativeScrollbar(pointer, scroller, "horizontal")) {
+    const popupScrollerTarget = Boolean(
+      preview.closest(ANNOTATION_POPUP_SELECTOR) && target === scroller
+    );
+    if (
+      pointer.button === 0 &&
+      pointer.pointerType !== "touch" &&
+      (
+        popupScrollerTarget ||
+        isPointerInNativeScrollbar(pointer, scroller, "horizontal")
+      )
+    ) {
+      // In Gecko, a popup's anonymous scrollbar can retarget the event to the
+      // overflow element while reporting coordinates outside its CSS gutter.
+      // Treat that direct target as native scrolling. Formula glyphs still
+      // target .katex-html descendants and keep the normal edit gesture.
       return scroller;
     }
   }
