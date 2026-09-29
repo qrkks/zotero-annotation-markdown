@@ -88,23 +88,78 @@ The experiment removed roughly 0.7–0.9 seconds from the measured event-loop bl
 
 These checks reduce, but do not eliminate, the risk of scroll-height drift, delayed materialization, selection jumps, editor focus bugs, or theme- and font-dependent fallback errors.
 
+## Native row-mount substitution experiment (2026-09-30)
+
+A second diagnostic experiment replaced the inner React component used for newly mounted native annotation rows while leaving Zotero's real filter state, selector, parent `AnnotationsView`, row keys, outer `.annotation` elements, and an approximately equivalent 111 px row height in place. The add-on's Markdown feature was disabled for the comparison.
+
+The probe was installed through the live React fiber only after the list had been filtered to three rows. Clearing the filter therefore mounted 420 new rows through the selected probe component. Every condition used the real selector button and the same post-click microtask boundary as the earlier experiment.
+
+The stress item contained 395 image annotations and 28 note annotations. The selected filter retained three image annotations, so clearing it added 392 image rows and 28 note rows.
+
+| Newly mounted row component | Five runs | Mean | Median | Range | Full rows / shells after clear |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Original native `Annotation` | 2.783, 2.831, 2.800, 2.625, 2.751 s | 2.758 s | 2.783 s | 2.625–2.831 s | 423 / 0 |
+| Equal-height outer-row shell | 0.040, 0.053, 0.041, 0.034, 0.029 s | 0.039 s | 0.040 s | 0.029–0.053 s | 3 / 420 |
+| Full image rows, note shells | 2.663, 3.165, 3.265, 3.342, 3.085 s | 3.104 s | 3.165 s | 2.663–3.342 s | 395 / 28 |
+| Full note rows, image shells | 0.251, 0.292, 0.208, 0.203, 0.196 s | 0.230 s | 0.208 s | 0.196–0.292 s | 31 / 392 |
+
+Replacing all 420 newly mounted native row bodies with shells reduced the measured blockage by 98.6%. The parent filter calculation, selector-state work, React reconciliation of the outer rows, insertion of 420 simple DOM nodes, and creation of the calibrated list height together took about 39 ms in this probe. The multi-second baseline therefore comes overwhelmingly from constructing and mounting each complete native `Annotation` subtree, not from the tag button or the parent array filtering alone.
+
+Image rows dominate the aggregate cost in this sample because they are 93.4% of all annotations. The type split does not prove that image decoding is uniquely pathological: subtracting the all-shell mean gives a rough incremental cost of 7.8 ms per added full image row and 6.8 ms per added full note row. Those coarse per-row figures are similar and were collected sequentially, so the robust conclusion is full-row mount cost multiplied by row count, not an image-only defect.
+
+The first substitution attempt created the shell function in Zotero's privileged chrome compartment. React rejected that cross-compartment function, the Reader error boundary cleared its UI, and the 189 ms observation from that failed run was discarded. The original component reference was restored before the Reader was reopened. The valid probe was recreated entirely inside the Reader page's own JavaScript compartment; it produced all results above without a React error.
+
+## Lazy native-row materialization prototype (2026-09-30)
+
+A third live probe kept the real parent list and row keys but mounted a lightweight outer row for offscreen annotations. `IntersectionObserver` used the native `#annotations` scroller with a 600 px vertical root margin. Rows materialized their complete original `Annotation` subtree when they approached the viewport or became selected. Materialization was one-way for the lifetime of that row; already visited rows were not dematerialized.
+
+### Filter-clear performance
+
+| Placeholder strategy | Runs | Mean | Median | Range | Change from 2.758 s native baseline |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Fixed 111 px height, add-on feature disabled | 0.088, 0.132, 0.069, 0.097, 0.097 s | 0.097 s | 0.097 s | 0.069–0.132 s | 96.5% lower mean |
+| Exact cached row height, add-on feature disabled | 0.053, 0.103, 0.077, 0.116, 0.082 s | 0.086 s | 0.082 s | 0.053–0.116 s | 96.9% lower mean |
+| Exact cached height plus minimum-height reservation, add-on enabled | 0.146, 0.092, 0.109 s | 0.116 s | 0.109 s | 0.092–0.146 s | 95.8% lower mean |
+
+Immediately after each clear, only the three rows retained by the previous filter were complete and the other 420 were placeholders. With the exact-height probe, 11–13 complete rows were mounted near the top after the observer settled; the remainder stayed lightweight. With Annotation Markdown enabled after a clean plugin reload, the sidebar settled at 11 complete rows, 412 placeholders, six plugin preview nodes, and the expected add-on style without a new React error.
+
+### Height and navigation findings
+
+The 423 measured native row heights ranged from 40.15 to 346.82 px, with a 108.90 px median and 110.67 px mean. That variation explains why one global 111 px estimate cannot preserve arbitrary navigation positions even though it preserves total height approximately.
+
+- Fixed-height placeholders made a direct jump to an unmaterialized region visibly unstable. Nearby rows materialized in about 202 ms, but the tracked screen anchor moved approximately 762 px.
+- Exact cached heights preserved the final native list height of 49,778 px, but image rows briefly collapsed while their image nodes loaded. The tracked anchor still moved 224 px even though the final total height recovered exactly.
+- Applying the cached height as `min-height` to the newly materialized complete row prevented that transient collapse in the tested jump. The list height, `scrollTop`, and tracked screen anchor all finished with 0 px change; nearby placeholders became complete within 139 ms.
+- Focusing a distant placeholder invoked Zotero's real selection callback. It became a selected complete row within the first 52 ms observation and remained at a stable screen position. The list grew 27 px because Zotero expanded the selected row, which is expected native behavior rather than placeholder drift.
+
+### Scope of the result
+
+The prototype demonstrates a viable mitigation for clearing a filter after the sidebar has already displayed the full list: capture each collapsed row's measured height, retain those heights while rows are filtered out, and lazily restore complete rows when they approach the viewport or become selected.
+
+It does not yet solve first-open startup. A newly opened Reader has no same-lifecycle height cache before Zotero mounts all rows. Startup support would require a validated persistent height cache keyed by annotation and layout inputs, a reliable height model, or a deeper native patch that avoids constructing `SidebarPreview` while still reserving its correct geometry. A fixed global estimate is not acceptable for scrollbar jumps, annotation navigation, or programmatic selection.
+
+The one-way strategy also amortizes rather than permanently removes row cost: scrolling through the entire sidebar eventually mounts every visited row. Dematerializing distant rows could bound DOM size, but should not be attempted until focus, editing, selection, drag-and-drop, height updates, and scroll anchoring have dedicated lifecycle tests.
+
 ## Interpretation
 
 The baseline A/B comparison is the main result: clearing the tag filter remains slow when the add-on and all of its Reader DOM work are absent. The optimized add-on contributes little relative to the host-owned multi-second update.
 
-The CSS experiment shows that layout and painting-related containment can mitigate part of the cost. The improvement is too small to justify taking ownership of Zotero's native rows without stronger compatibility evidence, especially because the fallback size is workload-dependent and the remaining delay is still substantial.
+The CSS experiment shows that layout-related containment can mitigate part of the cost. The component substitution explains why it could not remove the stall: `content-visibility` retains the complete React component and DOM subtree, while the equal-height shell avoids constructing that subtree. The improvement is too small to justify shipping the CSS workaround by itself, especially because the fallback size is workload-dependent and the remaining delay is still substantial.
+
+The native `Annotation`/`SidebarPreview` mount boundary is therefore the correct intervention point. For filter clearing, exact cached heights plus minimum-height reservation made lazy one-way materialization both fast and stable in this sample. Further tuning of the tag-filter handler or parent array traversal is unlikely to address the dominant cost shown here.
 
 ## Decision
 
 - Preserve commit `9623bbc`; it prevents the add-on from amplifying bulk sidebar work and makes the disabled-feature path close to native.
 - Do not productize the temporary row-containment CSS from this experiment.
 - Do not spend more time tuning Markdown rendering or MutationObserver batching for this specific stall without new evidence.
-- Treat a host patch, carefully scoped monkey patch, or partial replacement of the native annotation list as a separate engineering spike. The fast-editor precedent shows that replacing one narrow native interaction path can be viable when ownership, fallback, persistence, and cleanup boundaries are explicit.
+- Treat one-way lazy native-row materialization at the `Annotation`/`SidebarPreview` boundary as the leading direction for a version-gated, opt-in filter-clear spike. Require an exact same-lifecycle height cache and minimum-height reservation; do not apply the fixed-height variant to arbitrary scroll or selection paths. The fast-editor precedent shows that replacing one narrow native interaction path can be viable when ownership, fallback, persistence, and cleanup boundaries are explicit.
+- Keep first-open startup out of the initial implementation claim. It needs a separate height-source design and clean-start measurements.
 - Any replacement-list experiment must preserve dynamic row heights, tag filtering, selection, smooth scrolling, keyboard focus, editing, drag-and-drop, multi-selection, and Reader disable/re-enable behavior.
 
 ## Cleanup and final state
 
-The temporary style and all benchmark globals were removed. The add-on and its Markdown feature were re-enabled, the tag filter and annotation selection were cleared, the sidebar returned to the top, performance diagnostics remained disabled, and no repository source was changed by the runtime experiment.
+The temporary style, substituted React components, height cache, and all benchmark globals were removed. The add-on and its Markdown feature were re-enabled, the tag filter and annotation selection were cleared, the sidebar returned to the top, performance diagnostics remained disabled, and no repository source was changed by the runtime experiment. The final live check found 423 original annotation rows, zero probe shells, plugin previews active, and the expected add-on style.
 
 ## Privacy
 
