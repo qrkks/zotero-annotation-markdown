@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.11.0 - 2026-09-30
+
+### Added
+
+- Add optional acceleration when clearing tag filters restores many annotations. The experimental option is off by default and currently supports Zotero 10.0.3. It uses cached row heights and restores distant native rows in small batches; it does not accelerate the first opening.
+
+### Changed
+
+- Remove the experimental label from page annotation popup Markdown rendering. Keep its independent switch and off-by-default behavior.
+- Clarify when experimental tag-filter restoration acceleration applies, including when to enable it, its supported Zotero version, and the first-opening limitation.
+
+### Fixed
+
+- Keep popup and sidebar Markdown previews synchronized after editing the same annotation, and stabilize formula scrolling in popups.
+- Reduce add-on overhead when opening large annotation lists, including when Markdown rendering is disabled.
+- Support Markdown emphasis boundaries next to CJK text.
+- Update markdown-it to 14.3.1 to fix excessive processing time for certain automatically linked text.
+
+### 新增
+
+- 新增可选的标签筛选恢复加速功能，减少取消筛选时大量标注恢复造成的卡顿。该实验性选项默认关闭，目前支持 Zotero 10.0.3，使用缓存行高并分批恢复远处原生标注行，不加速首次打开。
+
+### 变更
+
+- 移除页内标注弹窗 Markdown 渲染的实验性标签，保留独立开关和默认关闭行为。
+- 补充实验性标签筛选恢复加速的使用条件，说明开启时机、支持的 Zotero 版本和首次打开限制。
+
+### 修复
+
+- 编辑同一条标注后，同步弹窗与侧栏的 Markdown 预览，并稳定弹窗中的公式滚动。
+- 减少大型标注列表打开时的插件开销，包括 Markdown 渲染关闭时的额外开销。
+- 支持紧邻中日韩文字的 Markdown 强调语法边界。
+- 更新 markdown-it 至 14.3.1，修复部分自动链接文本处理耗时过长的问题。
+
 ## 0.10.2 - 2026-09-28
 
 ### Fixed

@@ -21,10 +21,10 @@ describe("preferences pane", () => {
     expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.popupEnabled\"");
     expect(source).toContain(
-      "label=\"Render page annotation popups as Markdown (Experimental)\""
+      "label=\"Render page annotation popups as Markdown\""
     );
     expect(source).toContain(
-      "Uses Zotero's internal popup structure. Disable this if popup positioning or editing is unstable."
+      "Show formatted Markdown previews in page annotation popups. Off by default."
     );
     expect(source).toContain(
       "id=\"annotation-markdown-popup-option\" class=\"annotation-markdown-preference-suboption\""
@@ -72,7 +72,9 @@ describe("preferences pane", () => {
     expect(source).toContain(
       "Accelerate clearing tag filters in very large annotation lists (Experimental)"
     );
-    expect(source).toContain("Currently limited to verified Zotero 10.0.3 Reader internals.");
+    expect(source).toContain(
+      "Reduces pauses when deselecting tags restores many annotations. Enable before applying tag filters to a fully loaded list. Off by default; currently supports Zotero 10.0.3. Does not speed up first opening; falls back to Zotero's native list when unavailable."
+    );
     expect(source.indexOf("id=\"annotation-markdown-enabled\"")).toBeLessThan(
       source.indexOf("id=\"annotation-markdown-popup-enabled\"")
     );

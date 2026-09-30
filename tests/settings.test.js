@@ -92,7 +92,7 @@ describe("createSettings", () => {
     expect(settings.isFastEditorEnabled()).toBe(true);
   });
 
-  test("defaults experimental popup rendering off and persists its choice", () => {
+  test("defaults popup rendering off and persists its choice", () => {
     const settings = createSettings();
     expect(settings.isPopupEnabled()).toBe(false);
     settings.setPopupEnabled(true);

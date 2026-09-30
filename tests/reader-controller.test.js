@@ -81,7 +81,7 @@ describe("createReaderController", () => {
     controller.stop();
   });
 
-  test("keeps popup rendering native while experimental rendering is disabled but allows fast editing", async () => {
+  test("keeps popup rendering native while Markdown rendering is disabled but allows fast editing", async () => {
     document.body.innerHTML = `
       <div data-annotation-id="a1" class="annotation">
         <div class="comment"><div class="content">**sidebar**</div></div>
