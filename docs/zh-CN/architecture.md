@@ -59,6 +59,8 @@ sequenceDiagram
 
 这项优化不会替换 Zotero 的标注存储，不会普遍加速标签管理，也不会改变 PDF 页面渲染器。它依赖半内部 Reader 集成，因此必须同时保留能力检测和由用户控制的原生编辑器回退。
 
+独立的 `nativeRowLazy` 实验针对实测的取消筛选行挂载边界，而不是 Markdown 渲染。在已验证的 Zotero 10.0.3 中，`src/native-annotation-row-lazy.ts` 会在 Reader 页面自身的 JavaScript 域创建替代组件，并只修改探测到的 `React.memo` 标注组件中可写的内部函数。捕获阶段的标签点击会在列表收窄前记录每个原生行的精确高度；取消已选标签时，远处标注可以先保留为等高空壳，视窗附近或被选中的标注则渲染原始原生组件。该挂钩要求至少缓存 100 行、React 18.3.1、匹配的 fiber 与 `SidebarPreview` 特征，以及同一布局下的高度缓存；任一门禁失败都会保持原生列表不变。它明确不承诺首次打开加速。关闭或卸载时会立即还原原始 memo 函数，并由页面自身分成小批次恢复剩余空壳。
+
 ## 快速编辑器实现索引
 
 | 关注点 | 主要符号 | 契约 |
@@ -143,6 +145,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 - 每个打开的 Reader 最多只有一个控制器；即使启动是异步的，注册和关闭顺序也必须安全。
 - 禁用 Markdown 原始 HTML；高亮颜色后缀只能映射为固定色板中的插件命名空间类，并由 DOMPurify 对最终生成的 HTML 做最后清理。
 - 懒渲染限制视口附近和空闲时段内的工作量；性能诊断默认关闭。
+- 原生行懒恢复默认关闭，严格限制到已验证版本和已有高度缓存后的标签筛选放宽；任何私有 React 特征不匹配时都必须在不改变宿主 DOM 的情况下回退。
 - Zotero 窗口关闭后可能留下失效的宿主对象，因此关闭流程按操作和 Reader 根节点分别做尽力清理。
 
 ## 源码文件
@@ -156,6 +159,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 | `src/annotation-scroll-target.ts` | 跟踪选中的超长标注行，通过可清理的 CSS 边距配合 Zotero 原生选择滚动。 |
 | `src/annotation-escape-scroll.ts` | 在 Esc 退出并恢复预览期间暂停滚动锚定，对完全不可见的标注行补救一次，并负责取消与清理。 |
 | `src/annotation-outline.ts` | 构建并清理选中预览的标题导航，持久化用户主动选择的展开状态，并只滚动标注侧栏。 |
+| `src/native-annotation-row-lazy.ts` | 管理实验性标签筛选加速所需的版本门禁、Reader 页面 React 挂钩、精确行高缓存、视窗空壳、原生回退和分批清理。 |
 | `src/markdown-it-mark-colors.ts` | 把固定的 `==文字=={.color}` 后缀白名单映射为插件自有高亮类，不开放任意 Markdown 属性。 |
 | `src/markdown-renderer.ts` | 规范化标注文本，渲染带高亮扩展和可选数学公式的 Markdown，清理输出，并提供纯文本回退。 |
 | `src/settings.ts` | 定义偏好键、默认值、规范化规则，以及运行模块使用的设置 API。 |
@@ -213,6 +217,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/bootstrap.test.js` | Zotero 启动集成和诊断。 |
 | `tests/preferences-pane.test.js` | 偏好设置面板绑定。 |
 | `tests/rendered-content-style.test.js` | 预览折叠、编辑状态和性能相关 CSS。 |
+| `tests/native-annotation-row-lazy.test.js` | 版本与宿主结构门禁、精确高度空壳、选中行回退、重试行为和热重载清理兼容性。 |
 | `tests/katex-assets.test.js` | KaTeX 字体内联。 |
 | `tests/release-config.test.js` | 更新清单和可复现打包配置。 |
 | `tests/manifest.test.js` | 清单标识与兼容范围。 |

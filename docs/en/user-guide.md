@@ -49,13 +49,16 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - adding a `todo` annotation tag when a saved comment contains a `todo:`, `todo：`, `t:`, or `t：` directive, disabled by default;
 - optionally removing the lowercase `todo` annotation tag after the directive is removed and the comment is saved, disabled by default and requiring automatic tagging;
 - preview font size from 80% to 200%;
-- annotation rendering strategy.
+- annotation rendering strategy;
+- experimental acceleration when clearing tag filters in very large annotation lists, disabled by default.
 
 The rendering strategies are:
 
 - **Automatic (recommended):** pre-renders smaller annotation sets and uses viewport-lazy rendering for larger sets.
 - **Render all annotations:** schedules all annotation previews for rendering.
 - **Render near the viewport:** renders annotations as they approach the visible sidebar region.
+
+**Accelerate clearing tag filters in very large annotation lists (Experimental)** is currently enabled only for the verified Zotero 10.0.3 Reader structure. After at least 100 native rows have been displayed, the add-on records their exact collapsed heights. Relaxing an active tag filter can then restore distant rows as equal-height placeholders and materialize the complete native rows near the viewport or when selected. It does not accelerate the first opening of a Reader. Missing height data, an unsupported Zotero version, or an incompatible Reader structure automatically uses Zotero's native list. Turning the option off restores placeholder rows to native rows in small asynchronous batches.
 
 Settings are saved automatically. Markdown preview font size is in **Reader Annotations**, beside the rendering options. If the reader does not reflect a changed setting, close and reopen that reader or restart Zotero.
 

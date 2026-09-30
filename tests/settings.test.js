@@ -219,6 +219,26 @@ describe("createSettings", () => {
     expect(createSettings({ prefs: { get: () => "unsupported" } }).getRenderStrategy()).toBe("auto");
   });
 
+  test("defaults native row lazy rendering off and persists its choice", () => {
+    const settings = createSettings();
+    expect(settings.isNativeRowLazyEnabled()).toBe(false);
+    settings.setNativeRowLazyEnabled(true);
+    expect(settings.isNativeRowLazyEnabled()).toBe(true);
+
+    const prefs = { get: vi.fn(() => true), set: vi.fn() };
+    const stored = createSettings({ prefs });
+    expect(stored.isNativeRowLazyEnabled()).toBe(true);
+    stored.setNativeRowLazyEnabled(false);
+    expect(prefs.get).toHaveBeenCalledWith(
+      "extensions.annotationMarkdown.nativeRowLazy",
+      false
+    );
+    expect(prefs.set).toHaveBeenCalledWith(
+      "extensions.annotationMarkdown.nativeRowLazy",
+      false
+    );
+  });
+
   test("persists the floating outline expansion preference and defaults it closed", () => {
     const settings = createSettings();
     expect(settings.isOutlineExpanded()).toBe(false);

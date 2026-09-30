@@ -2,7 +2,7 @@
 
 ## Status
 
-Preserved diagnostic evidence. The comparison strongly attributes the dominant filter-clear stall to Zotero's native annotation-list update. A temporary row-containment experiment reduced the measured delay, but the remaining cost and compatibility risk do not justify shipping that CSS workaround from this investigation alone.
+Preserved diagnostic evidence plus an opt-in implementation spike. The comparison strongly attributes the dominant filter-clear stall to Zotero's native annotation-list update. A temporary row-containment experiment reduced the measured delay, but the remaining cost and compatibility risk do not justify shipping that CSS workaround. A later version-gated lazy-row implementation substantially reduced the tested filter-clear delay while preserving native fallback outside its narrow verified boundary.
 
 This is a follow-up to [Large ebook annotation-sidebar startup investigation](2026-09-29-large-ebook-sidebar-startup.md).
 
@@ -140,6 +140,34 @@ It does not yet solve first-open startup. A newly opened Reader has no same-life
 
 The one-way strategy also amortizes rather than permanently removes row cost: scrolling through the entire sidebar eventually mounts every visited row. Dematerializing distant rows could bound DOM size, but should not be attempted until focus, editing, selection, drag-and-drop, height updates, and scroll anchoring have dedicated lifecycle tests.
 
+## Opt-in implementation spike validation (2026-09-30)
+
+The prototype was converted into a disabled-by-default preference guarded by an exact Zotero 10.0.3 version check and strict React/fiber shape validation. It only activates when a full same-lifecycle height cache already exists and a checked tag filter is being relaxed. Unsupported versions, missing APIs, unknown component shapes, insufficient caches, and layout-signature changes retain Zotero's native path.
+
+The product path also differs from the earlier probe in several lifecycle details:
+
+- Reader startup waits for the restored Reader document before creating DOM integrations.
+- A transient `annotation-row` result during cold startup is retried for up to five seconds; structural incompatibility is not retried.
+- The selected row is never replaced by a placeholder.
+- Viewport-near rows are complete synchronously, while distant rows use exact cached heights and materialize through `IntersectionObserver`.
+- Direct native focus on a placeholder materializes it and invokes Zotero's real selection callback.
+- Disabling the preference restores the original memo component immediately and materializes remaining placeholders in small batches, avoiding a long synchronous shutdown stall.
+
+### Final development-build checks
+
+These timings are live acceptance checks rather than a new five-run benchmark. They used the same 423-annotation item and real tag-selector button.
+
+| Check | Result |
+| --- | --- |
+| Cold start | Plugin style active; 423 original rows; zero placeholders; exact cache armed for all 423 rows |
+| First measured filter clear | 280 ms; 423 rows restored; 11 complete rows and 412 placeholders |
+| Settled repeat | 267 ms; 423 rows restored; 11 complete rows and 412 placeholders |
+| Distant placeholder focus | Complete selected native row restored in 187 ms; native sidebar scrolled to the target |
+| Disable preference | Preference setter returned in 122 ms; all 423 native rows were restored without a synchronous multi-second stall |
+| Final cold restart | 423 original rows, zero placeholders, zero selected rows, `scrollTop` 0, exact cache armed for 423 rows |
+
+The two final clear-filter observations are about 90% lower than the 2.758 s native substitution baseline, while still doing more work than the minimal diagnostic shell probe because viewport-near rows are mounted synchronously and the implementation carries focus, cleanup, and fallback behavior. The result does not change the first-open scope: Zotero still performs its native initial row construction before an exact height cache exists.
+
 ## Interpretation
 
 The baseline A/B comparison is the main result: clearing the tag filter remains slow when the add-on and all of its Reader DOM work are absent. The optimized add-on contributes little relative to the host-owned multi-second update.
@@ -153,13 +181,13 @@ The native `Annotation`/`SidebarPreview` mount boundary is therefore the correct
 - Preserve commit `9623bbc`; it prevents the add-on from amplifying bulk sidebar work and makes the disabled-feature path close to native.
 - Do not productize the temporary row-containment CSS from this experiment.
 - Do not spend more time tuning Markdown rendering or MutationObserver batching for this specific stall without new evidence.
-- Treat one-way lazy native-row materialization at the `Annotation`/`SidebarPreview` boundary as the leading direction for a version-gated, opt-in filter-clear spike. Require an exact same-lifecycle height cache and minimum-height reservation; do not apply the fixed-height variant to arbitrary scroll or selection paths. The fast-editor precedent shows that replacing one narrow native interaction path can be viable when ownership, fallback, persistence, and cleanup boundaries are explicit.
+- Keep the implemented one-way lazy native-row path version-gated and opt-in while it receives manual use. Retain the exact same-lifecycle height-cache requirement, minimum-height reservation, strict host-shape checks, and immediate native fallback; do not broaden it to arbitrary startup, scroll, or selection paths from these results alone.
 - Keep first-open startup out of the initial implementation claim. It needs a separate height-source design and clean-start measurements.
 - Any replacement-list experiment must preserve dynamic row heights, tag filtering, selection, smooth scrolling, keyboard focus, editing, drag-and-drop, multi-selection, and Reader disable/re-enable behavior.
 
 ## Cleanup and final state
 
-The temporary style, substituted React components, height cache, and all benchmark globals were removed. The add-on and its Markdown feature were re-enabled, the tag filter and annotation selection were cleared, the sidebar returned to the top, performance diagnostics remained disabled, and no repository source was changed by the runtime experiment. The final live check found 423 original annotation rows, zero probe shells, plugin previews active, and the expected add-on style.
+The temporary style, ad-hoc substituted React components, and benchmark globals were removed. The packaged development build now contains the opt-in implementation, enabled only in the dedicated development profile for continued testing. The tag filter and annotation selection were cleared, the sidebar returned to the top, and performance diagnostics remained disabled. The final cold-start check found 423 original annotation rows, zero placeholders, the exact 423-row cache armed, plugin previews active, and the expected add-on style. The default Zotero profile was not changed.
 
 ## Privacy
 

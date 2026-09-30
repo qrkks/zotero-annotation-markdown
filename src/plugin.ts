@@ -11,7 +11,8 @@ import { createReaderRegistry } from "./reader-registry.js";
 import { registerAutoTodoTagger, type ZoteroTagApi } from "./auto-todo-tag.js";
 import type {
   PreferenceStore,
-  PreferenceValue
+  PreferenceValue,
+  ReaderController
 } from "./types.js";
 import {
   createSettings,
@@ -22,6 +23,7 @@ import {
   OUTLINE_FONT_SCALE_PERCENT_PREF_KEY,
   LIGHTWEIGHT_MODE_PREF_KEY,
   MATH_ENABLED_PREF_KEY,
+  NATIVE_ROW_LAZY_PREF_KEY,
   OUTLINE_ENABLED_PREF_KEY,
   PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   RENDER_STRATEGY_PREF_KEY
@@ -38,6 +40,8 @@ interface ReaderLike {
   _annotationManager?: AnnotationManagerLike | null;
   _annotationSelectionTriggeredFromView?: boolean;
   _enableAnnotationDeletionFromComment?: boolean;
+  _waitForReader?(): PromiseLike<void> | null;
+  _initPromise?: PromiseLike<void> | null;
   _internalReader?: {
     _annotationManager?: AnnotationManagerLike | null;
     _annotationSelectionTriggeredFromView?: boolean;
@@ -83,6 +87,7 @@ interface ZoteroPrefsApi {
 }
 
 interface ZoteroApi extends ZoteroTagApi {
+  version?: string;
   Reader?: ZoteroReaderApi;
   Prefs?: ZoteroPrefsApi;
   Weavero?: {
@@ -157,33 +162,46 @@ export function createPlugin({
 
     return createReaderRegistry({
       controllerFactory(reader) {
-        const readerWindow = getReaderWindow(reader) ?? windowRef;
-        const readerDocument = getReaderDocument(reader) ?? readerWindow?.document;
-        return createReaderController({
-          reader,
-          adapter: createAnnotationSidebarAdapter({
-            document: readerDocument,
-            isFastEditorEnabled: () => (
-              settings.isFastEditorEnabled() && canUseReaderFastEditor(reader)
-            ),
-            commitComment: (annotationID, comment) =>
-              commitReaderAnnotationComment(reader, annotationID, comment),
-            beginFastEditorKeyboardGuard: () =>
-              beginReaderFastEditorKeyboardGuard(reader),
-            useWeaveroLinkColors: () => useWeaveroLinkColors(Zotero),
-            openLink: Zotero
-              ? (url) => openReaderLink(Zotero, url)
-              : undefined
-          }),
-          renderer: createMarkdownRenderer({
-            isMathEnabled: () => settings.isMathEnabled(),
-            windowRef: readerWindow
-          }),
-          settings,
-          MutationObserver: readerWindow?.MutationObserver,
-          styleText,
-          logger: diagnosticsLogger
-        });
+        return createDeferredReaderController(reader, () => {
+          const readerDocument = getReaderDocument(reader);
+          if (!readerDocument) {
+            diagnosticsLogger.warn(
+              "[annotation-markdown] Reader became ready without a document"
+            );
+            return createNoopReaderController();
+          }
+          const readerWindow = getReaderWindow(reader) ?? readerDocument.defaultView ?? windowRef;
+          return createReaderController({
+            reader,
+            adapter: createAnnotationSidebarAdapter({
+              document: readerDocument,
+              isFastEditorEnabled: () => (
+                settings.isFastEditorEnabled() && canUseReaderFastEditor(reader)
+              ),
+              commitComment: (annotationID, comment) =>
+                commitReaderAnnotationComment(reader, annotationID, comment),
+              beginFastEditorKeyboardGuard: () =>
+                beginReaderFastEditorKeyboardGuard(reader),
+              useWeaveroLinkColors: () => useWeaveroLinkColors(Zotero),
+              openLink: Zotero
+                ? (url) => openReaderLink(Zotero, url)
+                : undefined
+            }),
+            renderer: createMarkdownRenderer({
+              isMathEnabled: () => settings.isMathEnabled(),
+              windowRef: readerWindow
+            }),
+            settings,
+            MutationObserver: readerWindow?.MutationObserver,
+            hostVersion: Zotero?.version,
+            readerReady: true,
+            styleText,
+            logger: diagnosticsLogger
+          });
+        }, (error) => diagnosticsLogger.warn(
+          "[annotation-markdown] Reader initialization failed",
+          error
+        ));
       }
     });
   }
@@ -245,6 +263,55 @@ export function createPlugin({
   };
 }
 
+function createDeferredReaderController(
+  reader: ReaderLike,
+  controllerFactory: () => ReaderController,
+  onError: (error: unknown) => void
+): ReaderController {
+  let controller: ReaderController | undefined;
+
+  return {
+    start() {
+      return Promise.resolve(getReaderReadyPromise(reader))
+        .then(() => {
+          controller = controllerFactory();
+          return controller.start();
+        })
+        .then(() => undefined)
+        .catch((error) => {
+          onError(error);
+          throw error;
+        });
+    },
+    renderNow() {
+      controller?.renderNow();
+    },
+    refresh() {
+      controller?.refresh?.();
+    },
+    stop() {
+      controller?.stop();
+      controller = undefined;
+    }
+  };
+}
+
+function createNoopReaderController(): ReaderController {
+  return {
+    start() {},
+    renderNow() {},
+    refresh() {},
+    stop() {}
+  };
+}
+
+function getReaderReadyPromise(reader: ReaderLike): PromiseLike<void> | null {
+  if (typeof reader._waitForReader === "function") {
+    return reader._waitForReader();
+  }
+  return reader._initPromise ?? null;
+}
+
 function openReaderLink(Zotero: ZoteroApi, url: string): void {
   const weaveroPlugin = Zotero.Weavero?.plugin;
   const handleZoteroURI = weaveroPlugin?.handleZoteroURI;
@@ -300,6 +367,7 @@ function registerPreferenceObservers(
     [LIGHTWEIGHT_MODE_PREF_KEY, true],
     [PERFORMANCE_DIAGNOSTICS_PREF_KEY, true],
     [RENDER_STRATEGY_PREF_KEY, true],
+    [NATIVE_ROW_LAZY_PREF_KEY, true],
     [WEAVERO_RECOLOR_AM_LINKS_PREF_KEY]
   ];
   for (const [key, global] of preferenceKeys) {

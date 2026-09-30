@@ -59,6 +59,8 @@ The replacement reduces work on the typing path by keeping one plain textarea se
 
 This optimization does not replace Zotero's annotation storage, speed up tag management generally, or change the PDF page renderer. It depends on semi-internal Reader integration and therefore retains both capability detection and a user-controlled native-editor fallback.
 
+The separate `nativeRowLazy` experiment targets the measured filter-clear mount boundary rather than Markdown rendering. On verified Zotero 10.0.3 builds, `src/native-annotation-row-lazy.ts` creates a replacement component inside the Reader page realm and patches only the writable inner function of the discovered `React.memo` annotation component. A capture-phase tag click records exact native row heights before narrowing the list. Relaxing a checked tag can then keep distant rows as exact-height shells while viewport-near or selected rows render the original native component. The hook requires at least 100 cached rows, React 18.3.1, matching fiber and `SidebarPreview` signatures, and a same-layout cache; every failed gate leaves the native list untouched. It intentionally does not claim first-open acceleration. Disabling or unloading restores the original memo function immediately and materializes remaining shells in small page-owned batches.
+
 ## Fast editor implementation map
 
 | Concern | Primary symbols | Contract |
@@ -143,6 +145,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 - Each open Reader has at most one controller. Registration and shutdown remain safe when startup is asynchronous.
 - Raw Markdown HTML is disabled, highlight color suffixes map only to namespaced classes from a fixed palette, and DOMPurify is the final boundary for generated HTML.
 - Lazy rendering limits viewport and idle-time work. Performance diagnostics remain opt-in.
+- Native-row lazy restoration is off by default, exact-version gated, limited to relaxing tag filters after a height cache exists, and must fall back without changing host DOM when any private React signature differs.
 - Shutdown is best-effort per operation and per Reader root because closed Zotero windows can expose dead host objects.
 
 ## Source files
@@ -156,6 +159,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 | `src/annotation-scroll-target.ts` | Tracks the selected oversized row and applies reversible CSS margins for Zotero's native selection scroll. |
 | `src/annotation-escape-scroll.ts` | Suspends anchoring during Escape preview restoration, recovers a completely offscreen row once, and cancels/cleans pending recovery. |
 | `src/annotation-outline.ts` | Builds and cleans the selected preview's heading navigation, persists explicit expansion choices, and scrolls within the annotation sidebar. |
+| `src/native-annotation-row-lazy.ts` | Owns the version-gated Reader-page React hook, exact row-height cache, viewport shells, native fallback, and batched cleanup for the experimental tag-filter acceleration. |
 | `src/markdown-it-mark-colors.ts` | Maps the fixed `==text=={.color}` suffix whitelist to plugin-owned mark classes without enabling arbitrary Markdown attributes. |
 | `src/markdown-renderer.ts` | Normalizes annotation text, renders Markdown with highlighting and optional math, sanitizes output, and provides a plain-text fallback. |
 | `src/settings.ts` | Defines preference keys, defaults, normalization, and the settings API consumed by runtime modules. |
@@ -213,6 +217,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/bootstrap.test.js` | Zotero bootstrap integration and diagnostics. |
 | `tests/preferences-pane.test.js` | Preference-pane bindings. |
 | `tests/rendered-content-style.test.js` | Preview folding, editing, and performance-related CSS. |
+| `tests/native-annotation-row-lazy.test.js` | Version and host-shape gates, exact-height shells, selected-row fallback, retry behavior, and hot-reload cleanup compatibility. |
 | `tests/katex-assets.test.js` | KaTeX font inlining. |
 | `tests/release-config.test.js` | Update-manifest and deterministic-package configuration. |
 | `tests/manifest.test.js` | Manifest identity and compatibility. |

@@ -68,6 +68,11 @@ describe("preferences pane", () => {
       "label=\"Show a floating outline for annotations with multiple headings\""
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.renderStrategy\"");
+    expect(source).toContain("preference=\"extensions.annotationMarkdown.nativeRowLazy\"");
+    expect(source).toContain(
+      "Accelerate clearing tag filters in very large annotation lists (Experimental)"
+    );
+    expect(source).toContain("Currently limited to verified Zotero 10.0.3 Reader internals.");
     expect(source.indexOf("id=\"annotation-markdown-enabled\"")).toBeLessThan(
       source.indexOf("id=\"annotation-markdown-popup-enabled\"")
     );
@@ -115,6 +120,7 @@ describe("preferences pane", () => {
     const autoTodoTagInput = createInput();
     const autoTodoCleanupInput = createInput();
     const renderStrategySelect = createInput();
+    const nativeRowLazyInput = createInput();
     const documentRef = {
       getElementById(id) {
         return {
@@ -129,7 +135,8 @@ describe("preferences pane", () => {
           "annotation-markdown-outline-font-scale": outlineFontScaleSelect,
           "annotation-markdown-auto-todo-tag": autoTodoTagInput,
           "annotation-markdown-auto-todo-cleanup": autoTodoCleanupInput,
-          "annotation-markdown-render-strategy": renderStrategySelect
+          "annotation-markdown-render-strategy": renderStrategySelect,
+          "annotation-markdown-native-row-lazy": nativeRowLazyInput
         }[id] ?? null;
       }
     };
@@ -151,6 +158,7 @@ describe("preferences pane", () => {
     expect(autoTodoCleanupInput.checked).toBe(false);
     expect(autoTodoCleanupInput.disabled).toBe(true);
     expect(renderStrategySelect.value).toBe("auto");
+    expect(nativeRowLazyInput.checked).toBe(false);
   });
 
   test("writes preference changes from controls", async () => {
@@ -173,7 +181,8 @@ describe("preferences pane", () => {
             "extensions.annotationMarkdown.outlineFontScalePercent": 100,
             "extensions.annotationMarkdown.autoTodoTag": false,
             "extensions.annotationMarkdown.autoTodoCleanup": false,
-            "extensions.annotationMarkdown.renderStrategy": "auto"
+            "extensions.annotationMarkdown.renderStrategy": "auto",
+            "extensions.annotationMarkdown.nativeRowLazy": false
           }[key];
         }),
         set
@@ -191,6 +200,7 @@ describe("preferences pane", () => {
     const autoTodoTagInput = createInput();
     const autoTodoCleanupInput = createInput();
     const renderStrategySelect = createInput();
+    const nativeRowLazyInput = createInput();
     const documentRef = {
       getElementById(id) {
         return {
@@ -205,7 +215,8 @@ describe("preferences pane", () => {
           "annotation-markdown-outline-font-scale": outlineFontScaleSelect,
           "annotation-markdown-auto-todo-tag": autoTodoTagInput,
           "annotation-markdown-auto-todo-cleanup": autoTodoCleanupInput,
-          "annotation-markdown-render-strategy": renderStrategySelect
+          "annotation-markdown-render-strategy": renderStrategySelect,
+          "annotation-markdown-native-row-lazy": nativeRowLazyInput
         }[id] ?? null;
       }
     };
@@ -242,6 +253,8 @@ describe("preferences pane", () => {
     autoTodoCleanupInput.dispatch("command");
     renderStrategySelect.value = "lazy";
     renderStrategySelect.dispatch("command");
+    nativeRowLazyInput.checked = true;
+    nativeRowLazyInput.dispatch("command");
 
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.popupEnabled", true, true);
@@ -254,6 +267,7 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoTag", true, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoCleanup", true, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.renderStrategy", "lazy", true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.nativeRowLazy", true, true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", expect.anything(), true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", expect.anything(), true);
   });

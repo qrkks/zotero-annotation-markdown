@@ -14,6 +14,7 @@ import type { MarkdownRenderer, ReaderController } from "./types.js";
 import { trackAnnotationScrollTarget } from "./annotation-scroll-target.js";
 import { createAnnotationEscapeRecovery, type EscapeScrollRecovery } from "./annotation-escape-scroll.js";
 import { trackAnnotationOutline, type AnnotationOutlineController } from "./annotation-outline.js";
+import { createNativeAnnotationRowLazyController } from "./native-annotation-row-lazy.js";
 
 interface ReaderViewLike {
   _repositionPopups?(): void;
@@ -110,6 +111,8 @@ interface CreateReaderControllerOptions {
   cancelIdleCallback?: CancelIdleCallbackLike;
   renderCacheMaxBytes?: number;
   offscreenRenderMaxBytes?: number;
+  hostVersion?: string;
+  readerReady?: boolean;
 }
 
 const MAX_RENDER_CACHE_BYTES: number = 32 * 1024 * 1024;
@@ -156,7 +159,9 @@ export function createReaderController({
   requestIdleCallback: requestIdleCallbackOverride,
   cancelIdleCallback: cancelIdleCallbackOverride,
   renderCacheMaxBytes: renderCacheMaxBytesOverride = MAX_RENDER_CACHE_BYTES,
-  offscreenRenderMaxBytes: offscreenRenderMaxBytesOverride = MAX_RENDER_CACHE_BYTES
+  offscreenRenderMaxBytes: offscreenRenderMaxBytesOverride = MAX_RENDER_CACHE_BYTES,
+  hostVersion,
+  readerReady = false
 }: CreateReaderControllerOptions): ReaderController {
   let observer: MutationObserver | undefined;
   let stopScrollTargetTracking: (() => void) | undefined;
@@ -218,6 +223,14 @@ export function createReaderController({
     windowRef.requestIdleCallback?.bind(windowRef) as RequestIdleCallbackLike | undefined;
   const cancelIdleCallbackRef = cancelIdleCallbackOverride ??
     windowRef.cancelIdleCallback?.bind(windowRef) as CancelIdleCallbackLike | undefined;
+  const nativeRowLazyController = createNativeAnnotationRowLazyController({
+    getPageWindow: () => reader._iframeWindow ?? windowRef,
+    hostVersion,
+    isEnabled: () => (
+      settings.isEnabled() && Boolean(settings.isNativeRowLazyEnabled?.())
+    ),
+    logger
+  });
 
   function renderNode(node: HTMLElement): RenderDiagnosticSample | undefined {
     const diagnosticsEnabled = isPerformanceDiagnosticsEnabled();
@@ -372,6 +385,7 @@ export function createReaderController({
       restoreNativePopupStateWhenDisabled();
       preparePopupPositioning(root, { force: true });
       if (!settings.isEnabled()) {
+        nativeRowLazyController.refresh();
         outlineController?.stop();
         outlineController = undefined;
         adapter.clearRenderedState?.(root);
@@ -385,6 +399,7 @@ export function createReaderController({
       registerFastEditorHandlers();
       registerEditingPauseHandlers();
       this.renderNow();
+      nativeRowLazyController.refresh();
       registerMutationObserver();
       registerScrollTargetTracking();
       registerOutlineTracking();
@@ -393,6 +408,7 @@ export function createReaderController({
 
     stop() {
       shutdownCleanupFailures = [];
+      runShutdownStep(() => nativeRowLazyController.stop());
       runShutdownStep(clearEscapeScrollRecovery);
       runShutdownStep(() => outlineController?.stop());
       outlineController = undefined;
@@ -597,6 +613,7 @@ export function createReaderController({
     registerEditingPauseHandlers();
     preparePopupPositioning(root);
     renderNow();
+    nativeRowLazyController.refresh();
     registerMutationObserver();
     registerScrollTargetTracking();
     registerOutlineTracking();
@@ -1104,6 +1121,9 @@ export function createReaderController({
   }
 
   function getReaderReadyPromise(): PromiseLike<void> | null {
+    if (readerReady) {
+      return null;
+    }
     if (typeof reader?._waitForReader === "function") {
       return reader._waitForReader();
     }

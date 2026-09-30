@@ -14,6 +14,7 @@ export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled"
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
+export const NATIVE_ROW_LAZY_PREF_KEY = "extensions.annotationMarkdown.nativeRowLazy";
 export const OUTLINE_ENABLED_PREF_KEY = "extensions.annotationMarkdown.outlineEnabled";
 export const OUTLINE_EXPANDED_PREF_KEY = "extensions.annotationMarkdown.outlineExpanded";
 export const OUTLINE_FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.outlineFontScalePercent";
@@ -42,6 +43,8 @@ export interface Settings {
   setLightweightModeEnabled(enabled: boolean): void;
   getRenderStrategy(): RenderStrategy;
   setRenderStrategy(strategy: RenderStrategy): void;
+  isNativeRowLazyEnabled(): boolean;
+  setNativeRowLazyEnabled(enabled: boolean): void;
   isOutlineEnabled(): boolean;
   setOutlineEnabled(enabled: boolean): void;
   isOutlineExpanded(): boolean;
@@ -65,6 +68,7 @@ interface CreateSettingsOptions {
   performanceDiagnosticsKey?: string;
   lightweightModeKey?: string;
   renderStrategyKey?: string;
+  nativeRowLazyKey?: string;
   outlineEnabledKey?: string;
   outlineExpandedKey?: string;
   outlineFontScalePercentKey?: string;
@@ -92,6 +96,7 @@ export function createSettings({
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
+  nativeRowLazyKey = NATIVE_ROW_LAZY_PREF_KEY,
   outlineEnabledKey = OUTLINE_ENABLED_PREF_KEY,
   outlineExpandedKey = OUTLINE_EXPANDED_PREF_KEY,
   outlineFontScalePercentKey = OUTLINE_FONT_SCALE_PERCENT_PREF_KEY,
@@ -107,6 +112,7 @@ export function createSettings({
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
   let memoryRenderStrategy: RenderStrategy = "auto";
+  let memoryNativeRowLazy = false;
   let memoryOutlineEnabled = true;
   let memoryOutlineExpanded = false;
   let memoryOutlineFontScale = DEFAULT_FONT_SCALE;
@@ -274,6 +280,20 @@ export function createSettings({
       }
 
       memoryRenderStrategy = value;
+    },
+
+    isNativeRowLazyEnabled() {
+      if (prefs?.get) {
+        return prefs.get(nativeRowLazyKey, false) === true;
+      }
+
+      return memoryNativeRowLazy;
+    },
+
+    setNativeRowLazyEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(nativeRowLazyKey, value);
+      memoryNativeRowLazy = value;
     },
 
     isOutlineEnabled() {

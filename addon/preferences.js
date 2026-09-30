@@ -10,6 +10,7 @@ Zotero.AnnotationMarkdownPreferences = {
   autoTodoTagKey: "extensions.annotationMarkdown.autoTodoTag",
   autoTodoCleanupKey: "extensions.annotationMarkdown.autoTodoCleanup",
   renderStrategyKey: "extensions.annotationMarkdown.renderStrategy",
+  nativeRowLazyKey: "extensions.annotationMarkdown.nativeRowLazy",
 
   init(documentRef = document) {
     const enabledInput = documentRef.getElementById("annotation-markdown-enabled");
@@ -24,6 +25,7 @@ Zotero.AnnotationMarkdownPreferences = {
     const autoTodoTagInput = documentRef.getElementById("annotation-markdown-auto-todo-tag");
     const autoTodoCleanupInput = documentRef.getElementById("annotation-markdown-auto-todo-cleanup");
     const renderStrategySelect = documentRef.getElementById("annotation-markdown-render-strategy");
+    const nativeRowLazyInput = documentRef.getElementById("annotation-markdown-native-row-lazy");
 
     if (
       !enabledInput ||
@@ -37,7 +39,8 @@ Zotero.AnnotationMarkdownPreferences = {
       !outlineFontScaleSelect ||
       !autoTodoTagInput ||
       !autoTodoCleanupInput ||
-      !renderStrategySelect
+      !renderStrategySelect ||
+      !nativeRowLazyInput
     ) {
       return;
     }
@@ -55,6 +58,7 @@ Zotero.AnnotationMarkdownPreferences = {
     autoTodoCleanupInput.checked = this.getPref(this.autoTodoCleanupKey, false);
     autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
     renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
+    nativeRowLazyInput.checked = this.getPref(this.nativeRowLazyKey, false);
 
     enabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.enabledKey, Boolean(enabledInput.checked), true);
@@ -106,6 +110,10 @@ Zotero.AnnotationMarkdownPreferences = {
         ? renderStrategySelect.value
         : "auto";
       Zotero.Prefs.set(this.renderStrategyKey, strategy, true);
+    });
+
+    nativeRowLazyInput.addEventListener("command", () => {
+      Zotero.Prefs.set(this.nativeRowLazyKey, Boolean(nativeRowLazyInput.checked), true);
     });
   },
 

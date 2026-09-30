@@ -124,6 +124,67 @@ describe("createPlugin", () => {
     expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
   });
 
+  test("waits for a restored reader document before creating DOM integrations", async () => {
+    const readyDocument = document;
+    let resolveReader;
+    const reader = {
+      _waitForReader: vi.fn(() => new Promise(resolve => { resolveReader = resolve; }))
+    };
+    const Zotero = {
+      version: "10.0.3",
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    vi.stubGlobal("window", undefined);
+    vi.stubGlobal("document", undefined);
+    try {
+      const plugin = createPlugin({
+        Zotero,
+        styleText: ".annotation-markdown-rendered { line-height: inherit; }"
+      });
+
+      const startup = plugin.startup();
+      expect(reader._waitForReader).toHaveBeenCalledOnce();
+      expect(readyDocument.querySelector("style[data-annotation-markdown-style='true']"))
+        .toBeNull();
+
+      reader.document = readyDocument;
+      resolveReader();
+      await startup;
+
+      expect(readyDocument.querySelector("style[data-annotation-markdown-style='true']"))
+        .not.toBeNull();
+      plugin.shutdown();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("reports restored reader initialization failures", async () => {
+    const append = vi.fn();
+    const failure = new Error("reader readiness failed");
+    const reader = {
+      _waitForReader: vi.fn(() => Promise.reject(failure))
+    };
+    const Zotero = {
+      Reader: {
+        _readers: [reader],
+        registerEventListener: vi.fn()
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({ Zotero, diagnostics: { append } });
+
+    await expect(plugin.startup()).rejects.toBe(failure);
+
+    expect(append).toHaveBeenCalledWith(expect.stringContaining(
+      "Reader initialization failed: reader readiness failed"
+    ));
+  });
+
   test("shutdown removes rendered previews and restores native reader comments", async () => {
     document.body.innerHTML = '<div data-annotation-id="a1" class="annotation"><div class="comment"><div class="content">**bold**</div></div></div>';
     const reader = { document };
@@ -574,6 +635,9 @@ describe("createPlugin", () => {
     observers.get("extensions.annotationMarkdown.renderStrategy")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
+    observers.get("extensions.annotationMarkdown.nativeRowLazy")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
     observers.get("extensions.annotationMarkdown.outlineEnabled")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
@@ -586,6 +650,9 @@ describe("createPlugin", () => {
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.renderStrategy"
+    );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.nativeRowLazy"
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.outlineEnabled"
