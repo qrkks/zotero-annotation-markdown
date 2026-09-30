@@ -55,6 +55,10 @@ jobs:
       - name: Verify release metadata and artifact
         run: pnpm run release:verify "$RELEASE_TAG"
 
+      - name: Report package inputs for manual validation
+        if: github.event_name == 'workflow_dispatch'
+        run: find dist/addon -type f -print0 | sort -z | xargs -0 sha256sum
+
       - name: Ensure generated update manifest is committed
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: git diff --exit-code -- updates.json
