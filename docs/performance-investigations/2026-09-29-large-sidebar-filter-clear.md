@@ -6,6 +6,10 @@ Preserved diagnostic evidence plus an opt-in implementation spike. The compariso
 
 This is a follow-up to [Large ebook annotation-sidebar startup investigation](2026-09-29-large-ebook-sidebar-startup.md).
 
+For a consolidated implementation map, reproduction procedure, measurement
+boundaries, regression gaps, and upstream discussion draft, see the
+[upstream handoff](2026-09-30-native-row-lazy-upstream-handoff.md).
+
 ## Question
 
 When a tag filter is cleared and hundreds of annotations return to the Reader sidebar, is the long stall caused mainly by Annotation Markdown or by Zotero's native annotation list? Can CSS containment safely mitigate the host cost?
@@ -17,7 +21,7 @@ When a tag filter is cleared and hundreds of annotations return to the Reader si
 - The same copied stress-test item with 423 annotations was used throughout.
 - One existing tag reduced the visible annotation list from 423 rows to 3. The tag name is intentionally excluded.
 - Clearing the filter restored approximately 420 native annotation rows.
-- Every condition was repeated five times in the same Reader lifecycle.
+- The initial baseline and containment conditions were repeated five times in the same Reader lifecycle. Later prototype and foreground sections state their own sample counts.
 - Tests invoked the actual tag-selector button's click handler. Direct calls to the internal filter manager were rejected as a benchmark path because they did not preserve the React-owned selector state.
 - The button handler returned before the expensive React commit. A microtask queued immediately after the click measured how long the Reader event loop remained unavailable; the row count was 423 when that microtask ran.
 
@@ -144,7 +148,7 @@ The one-way strategy also amortizes rather than permanently removes row cost: sc
 
 The prototype was converted into a disabled-by-default preference guarded by an exact Zotero 10.0.3 version check and strict React/fiber shape validation. It only activates when a full same-lifecycle height cache already exists and a checked tag filter is being relaxed. Unsupported versions, missing APIs, unknown component shapes, insufficient caches, and layout-signature changes retain Zotero's native path.
 
-The product path also differs from the earlier probe in several lifecycle details:
+The initial implementation at `2c08a57` differed from the earlier probe in several lifecycle details. The foreground follow-up at `1841820` below supersedes its synchronous viewport restoration and recovery batching:
 
 - Reader startup waits for the restored Reader document before creating DOM integrations.
 - A transient `annotation-row` result during cold startup is retried for up to five seconds; structural incompatibility is not retried.
@@ -182,6 +186,15 @@ measured the first animation-frame callback after the real tag-selector click:
 | Existing lazy rows with synchronous viewport rows | 1,018, 1,223, 923 ms |
 | Shared observer and cooperatively restored viewport rows | 218, 246, 221 ms |
 | Installed follow-up build | 320, 245, 309 ms |
+
+This foreground follow-up used a different existing tag that narrowed the same
+423-row sample to one row, restoring 422 rows on clear. It settled at nine
+complete rows and 414 shells. Do not treat it as the earlier 423-to-three
+comparison. The runs were sequential, not randomized, and the historical frame
+values used the animation callback's supplied timestamp; that timestamp can
+precede callback execution. The handoff includes a new reproduction snippet
+using `performance.now()` inside the callback instead. That snippet has not
+been used to replace the historical measurements.
 
 These callbacks are rendering opportunities, not proof that every image and
 preview has finished painting. In the same foreground session a clear with no
