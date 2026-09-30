@@ -122,6 +122,7 @@ describe("createNativeAnnotationRowLazyController", () => {
 
 describe("native annotation row lazy page runtime", () => {
   test("uses exact cached heights only while a checked tag filter is relaxed", () => {
+    vi.useFakeTimers();
     document.body.innerHTML = `
       <div id="annotations" class="annotations"></div>
       <div id="selector"><div class="tags">
@@ -157,6 +158,8 @@ describe("native annotation row lazy page runtime", () => {
     }
 
     const effects = [];
+    const observers = [];
+    const materializers = [];
     const pageWindow = {
       document,
       devicePixelRatio: 1,
@@ -176,15 +179,23 @@ describe("native annotation row lazy page runtime", () => {
         },
         useState(initial) {
           const value = typeof initial === "function" ? initial() : initial;
-          return [value, vi.fn()];
+          const setter = vi.fn();
+          materializers.push(setter);
+          return [value, setter];
         }
       },
       ReactDOM: { flushSync(callback) { callback(); } },
       IntersectionObserver: class {
+        constructor(callback) {
+          this.callback = callback;
+          observers.push(this);
+        }
         observe() {}
+        unobserve() {}
         disconnect() {}
       },
-      CSS,
+      performance: { now: () => 0 },
+      CSS: { escape: value => value },
       getComputedStyle: window.getComputedStyle.bind(window),
       setTimeout,
       clearTimeout,
@@ -221,6 +232,26 @@ describe("native annotation row lazy page runtime", () => {
     shellNode.dispatchEvent(new FocusEvent("focus"));
     expect(onFocus).toHaveBeenCalledWith("a50");
 
+    // The initial viewport also starts with an exact-height shell. Several
+    // visible rows share one observer and are committed in separate tasks.
+    const visibleNodes = [];
+    for (const id of ["a3", "a4", "a5"]) {
+      const visible = memo.type({ annotation: { id }, isSelected: false });
+      expect(visible.type).toBe("div");
+      const node = document.createElement("div");
+      visible.props.ref.current = node;
+      visibleNodes.push(node);
+      for (const effect of effects.splice(0)) effect();
+    }
+    expect(observers).toHaveLength(1);
+    expect(runtime.status().pendingRows).toBe(3);
+    expect(materializers.slice(1).every(setter => setter.mock.calls.length === 0)).toBe(true);
+    vi.advanceTimersToNextTimer();
+    expect(materializers.slice(1).filter(setter => setter.mock.calls.length)).toHaveLength(2);
+    expect(runtime.status().pendingRows).toBe(1);
+    observers[0].callback([{ target: visibleNodes[2], isIntersecting: true }]);
+    expect(runtime.status().pendingRows).toBe(1);
+
     const selected = memo.type({
       annotation: { id: "a51" },
       isSelected: true,
@@ -229,7 +260,18 @@ describe("native annotation row lazy page runtime", () => {
     expect(selected.type).toBe(originalAnnotation);
 
     const installedWrapper = memo.type;
+    const callsBeforeStop = materializers.reduce((sum, setter) => sum + setter.mock.calls.length, 0);
     runtime.stop();
+    expect(runtime.status().pendingRows).toBe(0);
+    expect(materializers.reduce((sum, setter) => sum + setter.mock.calls.length, 0))
+      .toBe(callsBeforeStop);
+    const originalUseState = pageWindow.React.useState;
+    pageWindow.React.useState = () => [false, vi.fn()];
+    // A parent update during recovery must not bypass its materialization queue.
+    expect(installedWrapper({ annotation: { id: "a50" }, isSelected: false }).type)
+      .toBe("div");
+    pageWindow.React.useState = originalUseState;
+    vi.runAllTimers();
     expect(memo.type).toBe(originalAnnotation);
     expect(document.querySelector("[data-annotation-markdown-native-row-reserved='true']"))
       .toBeNull();
@@ -253,5 +295,6 @@ describe("native annotation row lazy page runtime", () => {
     );
     expect(restarted.start()).toEqual({ active: true, cachedRows: 0 });
     restarted.stop();
+    vi.useRealTimers();
   });
 });

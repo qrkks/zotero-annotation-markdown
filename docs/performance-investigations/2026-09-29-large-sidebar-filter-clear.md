@@ -170,6 +170,50 @@ The two final clear-filter observations are about 90% lower than the 2.758 s nat
 
 ## Interpretation
 
+### Foreground follow-up and cooperative materialization (2026-09-30)
+
+The user reported approximately ten seconds of visible freezing, including in
+the development window. The earlier hidden-document microtask measurements did
+not measure this experience. A new foreground run with `visibilityState: visible`
+measured the first animation-frame callback after the real tag-selector click:
+
+| Path | Three first-frame observations |
+| --- | --- |
+| Existing lazy rows with synchronous viewport rows | 1,018, 1,223, 923 ms |
+| Shared observer and cooperatively restored viewport rows | 218, 246, 221 ms |
+| Installed follow-up build | 320, 245, 309 ms |
+
+These callbacks are rendering opportunities, not proof that every image and
+preview has finished painting. In the same foreground session a clear with no
+height cache followed the full native-row path: its commit took 30,111 ms and
+its first frame arrived at 30,597 ms. This single observation is not a repeated
+native baseline, but confirms that the earlier sub-second numbers cannot be
+generalized to cache-miss fallback or to all foreground work.
+
+The follow-up implementation starts cached unselected viewport rows as exact
+height shells too, shares one IntersectionObserver, deduplicates materialization,
+and yields after at most two rows or eight milliseconds of work. A single native
+row may exceed that budget because its synchronous React commit is not
+preemptible. Selection still restores its native row immediately. The viewport
+range is read once before React mutates the list, and reservation lookup no
+longer scans all rows for every restored row.
+
+An old-runtime cleanup also caused prolonged unresponsiveness while restoring
+hundreds of rows and required restarting the development profile. Recovery now
+starts asynchronously and uses the same small time-bounded commits; disabled
+shells stay shells until explicitly restored by recovery or selection, so parent
+updates cannot bypass the recovery queue. Height-cache requirements and version
+gates remain in effect. This improves successful lazy activation and does not
+claim to remove cache-miss native stalls.
+
+The installed build also restored a distant shell as a selected complete native
+row (639 ms at the delayed observation). Disabling through the real preference
+returned in 91 ms; recovery progressed while the development API stayed
+responsive and finished at 423 native rows, zero shells, and no remaining page
+runtime. Total recovery still takes time because every native row must be
+constructed. No new React error was observed. Automated verification passed
+24 files / 375 tests, type checking, documentation checks, build, and packaging.
+
 The baseline A/B comparison is the main result: clearing the tag filter remains slow when the add-on and all of its Reader DOM work are absent. The optimized add-on contributes little relative to the host-owned multi-second update.
 
 The CSS experiment shows that layout-related containment can mitigate part of the cost. The component substitution explains why it could not remove the stall: `content-visibility` retains the complete React component and DOM subtree, while the equal-height shell avoids constructing that subtree. The improvement is too small to justify shipping the CSS workaround by itself, especially because the fallback size is workload-dependent and the remaining delay is still substantial.

@@ -169,7 +169,8 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
   const MIN_RESTORED_ROWS = 10;
   const ROOT_MARGIN = "600px 0px";
   const ACTIVATION_RESET_MS = 1000;
-  const RESTORE_BATCH_SIZE = 8;
+  const MATERIALIZE_BATCH_SIZE = 2;
+  const MATERIALIZE_BUDGET_MS = 8;
 
   const previous = window[GLOBAL_KEY];
   if (previous && typeof previous.stop === "function") {
@@ -188,6 +189,11 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
     wrapper: null,
     resetTimer: 0,
     recoveryTimer: 0,
+    materializeTimer: 0,
+    materializeQueue: new Set(),
+    observedShells: new Map(),
+    observer: null,
+    viewport: null,
     stopping: false,
     listeners: new Set(),
     failureReason: "",
@@ -223,6 +229,7 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
 
   function clearActivation() {
     state.active = false;
+    state.viewport = null;
     if (state.resetTimer) {
       window.clearTimeout(state.resetTimer);
       state.resetTimer = 0;
@@ -261,13 +268,56 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
   }
 
   function isNearViewport(id) {
-    const scroller = getScroller();
     const position = state.positions.get(id);
-    if (!scroller || !position) return false;
-    const margin = 600;
-    const viewportTop = scroller.scrollTop - margin;
-    const viewportBottom = scroller.scrollTop + scroller.clientHeight + margin;
-    return position.bottom >= viewportTop && position.top <= viewportBottom;
+    const viewport = state.viewport;
+    return Boolean(position && viewport &&
+      position.bottom >= viewport.top && position.top <= viewport.bottom);
+  }
+
+  function queueMaterialization(materialize) {
+    if (!state.enabled) return;
+    state.materializeQueue.add(materialize);
+    if (!state.materializeTimer) {
+      state.materializeTimer = window.setTimeout(drainMaterializations, 0);
+    }
+  }
+
+  function drainMaterializations() {
+    state.materializeTimer = 0;
+    if (!state.enabled) return;
+    const started = window.performance.now();
+    let count = 0;
+    // Yield between small commits, including the initial viewport. Creating all
+    // nearby native rows in the filter-clear commit still blocks input/painting.
+    for (const materialize of state.materializeQueue) {
+      state.materializeQueue.delete(materialize);
+      window.ReactDOM.flushSync(() => materialize(true));
+      count += 1;
+      if (count >= MATERIALIZE_BATCH_SIZE ||
+          window.performance.now() - started >= MATERIALIZE_BUDGET_MS) break;
+    }
+    if (state.materializeQueue.size) {
+      state.materializeTimer = window.setTimeout(drainMaterializations, 0);
+    }
+  }
+
+  function observeShell(shell, materialize, nearViewport) {
+    if (!state.observer) {
+      state.observer = new window.IntersectionObserver(entries => {
+        for (const entry of entries) {
+          const callback = state.observedShells.get(entry.target);
+          if (entry.isIntersecting && callback) queueMaterialization(callback);
+        }
+      }, { root: getScroller(), rootMargin: ROOT_MARGIN });
+    }
+    state.observedShells.set(shell, materialize);
+    state.observer.observe(shell);
+    if (nearViewport) queueMaterialization(materialize);
+    return () => {
+      state.observer?.unobserve(shell);
+      state.observedShells.delete(shell);
+      state.materializeQueue.delete(materialize);
+    };
   }
 
   function findHook() {
@@ -278,8 +328,11 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
       typeof window.React.useState !== "function" ||
       typeof window.React.useEffect !== "function" ||
       typeof window.React.useLayoutEffect !== "function" ||
+      typeof window.React.useRef !== "function" ||
       typeof window.ReactDOM?.flushSync !== "function" ||
-      typeof window.IntersectionObserver !== "function"
+      typeof window.IntersectionObserver !== "function" ||
+      typeof window.CSS?.escape !== "function" ||
+      typeof window.performance?.now !== "function"
     ) {
       state.failureReason = "react-api";
       return null;
@@ -350,7 +403,9 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
   }
 
   function findRow(id) {
-    return getRows().find(row => row.getAttribute("data-sidebar-annotation-id") === id) || null;
+    return getScroller()?.querySelector(
+      '[data-sidebar-annotation-id="' + window.CSS.escape(id) + '"]'
+    ) || null;
   }
 
   function clearReservation(row) {
@@ -378,11 +433,14 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
   }
 
   function restoreNativeRowsInBatches(api, pending) {
-    const batch = pending.splice(0, RESTORE_BATCH_SIZE);
-    if (batch.length) {
-      window.ReactDOM.flushSync(() => {
-        for (const materialize of batch) materialize(true);
-      });
+    const started = window.performance.now();
+    let count = 0;
+    while (pending.length) {
+      const materialize = pending.shift();
+      window.ReactDOM.flushSync(() => materialize(true));
+      count += 1;
+      if (count >= MATERIALIZE_BATCH_SIZE ||
+          window.performance.now() - started >= MATERIALIZE_BUDGET_MS) break;
     }
     if (pending.length) {
       state.recoveryTimer = window.setTimeout(
@@ -404,12 +462,12 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
         state.enabled &&
         state.active &&
         !props.isSelected &&
-        !isNearViewport(id) &&
         id &&
         Number.isFinite(cachedHeight) &&
         cachedHeight > 0
       );
       const shellOrigin = React.useRef(shouldStartAsShell);
+      const nearViewport = React.useRef(isNearViewport(id));
       const shellRef = React.useRef(null);
       const [materialized, setMaterialized] = React.useState(() => !shouldStartAsShell);
 
@@ -426,13 +484,7 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
           setMaterialized(true);
           return undefined;
         }
-        const observer = new window.IntersectionObserver(entries => {
-          if (entries.some(entry => entry.isIntersecting)) {
-            setMaterialized(true);
-          }
-        }, { root, rootMargin: ROOT_MARGIN });
-        observer.observe(shell);
-        return () => observer.disconnect();
+        return observeShell(shell, setMaterialized, nearViewport.current);
       }, [materialized, props.isSelected]);
 
       React.useLayoutEffect(() => {
@@ -462,7 +514,9 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
         }
       }, [id, materialized, props.isSelected]);
 
-      if (materialized || props.isSelected || !state.enabled) {
+      // Disabling must not materialize every surviving shell when the parent
+      // updates. Only the recovery queue (or native selection) restores it.
+      if (materialized || props.isSelected) {
         return React.createElement(state.original, props);
       }
 
@@ -506,6 +560,11 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
     }
 
     state.active = true;
+    const scroller = getScroller();
+    state.viewport = scroller ? {
+      top: scroller.scrollTop - 600,
+      bottom: scroller.scrollTop + scroller.clientHeight + 600
+    } : null;
     state.activations += 1;
     state.lastDecision = "activated";
     if (state.resetTimer) window.clearTimeout(state.resetTimer);
@@ -549,6 +608,7 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
         activations: state.activations,
         wrapperCalls: state.wrapperCalls,
         shellCalls: state.shellCalls,
+        pendingRows: state.materializeQueue.size,
         lastDecision: state.lastDecision
       };
     },
@@ -561,11 +621,21 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
       }
       state.stopping = true;
       state.enabled = false;
+      if (state.materializeTimer) window.clearTimeout(state.materializeTimer);
+      state.materializeTimer = 0;
+      state.materializeQueue.clear();
+      state.observer?.disconnect();
+      state.observer = null;
+      state.observedShells.clear();
       clearActivation();
       document.removeEventListener("click", onClickCapture, true);
       window.removeEventListener("resize", onResize);
       if (state.memo?.type === state.wrapper) state.memo.type = state.original;
-      restoreNativeRowsInBatches(api, Array.from(state.listeners));
+      const pending = Array.from(state.listeners);
+      state.recoveryTimer = window.setTimeout(
+        () => restoreNativeRowsInBatches(api, pending),
+        0
+      );
     }
   };
 
