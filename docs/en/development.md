@@ -20,6 +20,8 @@ dist/zotero-annotation-markdown.xpi
 
 Install it through Zotero's plugin manager for real-reader validation.
 
+`pnpm-workspace.yaml` fixes `virtualStoreDirMaxLength` at 60 on every platform. pnpm's Windows and Linux defaults otherwise produce different dependency directory names, which esbuild embeds in the bundle and can change the XPI hash. Keep this setting when comparing local and CI release artifacts. Manual runs of the Release workflow report packaged-file digests to help locate differences.
+
 ## Verification
 
 Run the complete local verification pipeline before a release:

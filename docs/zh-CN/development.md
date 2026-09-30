@@ -20,6 +20,8 @@ dist/zotero-annotation-markdown.xpi
 
 通过 Zotero 插件管理器安装该文件，在真实阅读器中进行验证。
 
+`pnpm-workspace.yaml` 在所有平台上将 `virtualStoreDirMaxLength` 固定为 60。否则，pnpm 的 Windows 与 Linux 默认值会生成不同的依赖目录名，esbuild 将这些路径写入构建文件后会改变 XPI 哈希。比较本地与 CI 发布产物时应保留此设置。手动运行 Release 工作流会输出各打包文件的哈希，便于定位差异。
+
 ## 验证
 
 发布前运行完整的本地验证流程：

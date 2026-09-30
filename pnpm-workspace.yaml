@@ -1,6 +1,9 @@
 packages:
   - "."
 
+# Keep esbuild's bundled module paths identical on Windows and Linux.
+virtualStoreDirMaxLength: 60
+
 allowBuilds:
   esbuild: true
   es5-ext: false
