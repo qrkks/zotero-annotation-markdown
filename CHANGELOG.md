@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.1 - 2026-10-07
+
+### Fixed
+
+- Update DOMPurify to 3.4.16 and KaTeX to 0.18.2 to address upstream security advisories.
+
+### Changed
+
+- Add real-Zotero screenshots to both READMEs and clarify the markdown-it origins of highlight syntax.
+
+### 修复
+
+- 更新 DOMPurify 至 3.4.16、KaTeX 至 0.18.2，修复上游安全公告涉及的问题。
+
+### 变更
+
+- 为中英文 README 添加真实 Zotero 截图，并说明高亮语法在 markdown-it 生态中的来源。
+
 ## 0.11.0 - 2026-09-30
 
 ### Added
