@@ -16,9 +16,18 @@ English | [简体中文](README.zh-CN.md)
 
 Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, and LaTeX math. Rendering preserves the original source stored by Zotero, so it stays editable.
 
+## Preview
+
 ![The same Zotero annotation as editable Markdown source and a rendered preview with headings, color highlights, and LaTeX math](docs/images/source-and-preview.webp)
 
 **Left:** edit the Markdown source. **Right:** read the formatted preview. Leave the editor or press **Escape** to save and return to the preview.
+
+| Floating outline | Page annotation popup |
+| --- | --- |
+| <img src="docs/images/floating-outline.webp" width="420" alt="A long annotation with nested headings, colored highlights, and its floating outline"> | <img src="docs/images/popup-preview.webp" width="420" alt="An optional page annotation popup displaying formatted Markdown, color highlights, and LaTeX math"> |
+| Choose a heading to jump to its section within the annotation sidebar. | Enable **Render page annotation popups as Markdown** in Settings; this option is off by default. |
+
+Screenshots use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
 
 ## Highlights
 
@@ -33,25 +42,6 @@ Make Zotero annotation comments easier to read with Markdown headings, lists, co
 - An off-by-default Zotero 10.0.3 experiment that lazily restores native rows when a tag filter is cleared in very large annotation lists.
 - Sanitized output with a plain-text fallback on rendering failure.
 - Supports Zotero Desktop 9.0 and 10.0.x. Current release validation prioritizes Zotero 10; Zotero 9 retains an automatic native-editor fallback.
-
-<details>
-<summary>More screenshots: floating outline and page annotation popups</summary>
-
-### Navigate long annotations
-
-The floating outline follows the selected annotation's headings. Choose a section to scroll directly to it within the annotation sidebar.
-
-![A long annotation with nested headings, colored highlights, and its floating outline](docs/images/floating-outline.webp)
-
-### Preview comments on the page
-
-Page annotation popups can show the same Markdown and math preview. Enable **Render page annotation popups as Markdown** in Settings; this option is off by default.
-
-![An optional page annotation popup displaying formatted Markdown, color highlights, and LaTeX math](docs/images/popup-preview.webp)
-
-Screenshots use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
-
-</details>
 
 ## Installation
 
