@@ -14,13 +14,17 @@
 
 [English](README.md) | 简体中文
 
-将 Zotero 阅读器侧栏里的标注评论渲染为 Markdown 和 LaTeX 数学公式，同时不改变 Zotero 实际保存的标注原文。
+用 Markdown 标题、列表、彩色高亮和 LaTeX 公式，让 Zotero 标注评论更清晰易读。渲染时保留 Zotero 保存的标注原文，源码仍可继续编辑。
+
+![同一条 Zotero 标注的 Markdown 源码与渲染预览，展示标题、彩色高亮和 LaTeX 公式](docs/images/source-and-preview.webp)
+
+**左侧**：编辑 Markdown 源码。**右侧**：阅读排版后的预览。离开编辑器或按 **Esc** 即可保存并返回预览。
 
 ## 主要功能
 
 - 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
 - 可选择在页内标注弹窗中启用 Markdown 预览（默认关闭）；快速编辑由独立偏好控制，并可回退 Zotero 原生行为。
-- 使用 `==高亮文字==` 语法突出显示行内内容，并支持 `{.red}` 等安全颜色后缀。
+- 沿用 markdown-it 生态的高亮语法：通过 [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark) 支持 `==高亮文字==`；`==高亮文字=={.red}` 等颜色后缀沿用 [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) 的属性写法，并限定为安全的预设颜色。
 - 在渲染预览中自动把裸 URL 转为可点击链接。
 - 为包含多个标题的长标注提供可调文字大小的浮动大纲，方便持续导航。
 - 可按标注评论中的 `todo:` 或 `t:` 行自动添加 `todo` 标签。
@@ -29,6 +33,25 @@
 - 可在 Zotero 10.0.3 中实验性加速超大标注列表取消标签筛选后的恢复；默认关闭。
 - 渲染内容经过清理，渲染失败时保留纯文本。
 - 支持 Zotero Desktop 9.0 和 10.0.x。本版优先在 Zotero 10 上验证；Zotero 9 无法使用快速编辑能力时会自动回退原生编辑器。
+
+<details>
+<summary>更多截图：长标注大纲与页内标注弹窗</summary>
+
+### 定位长标注中的章节
+
+浮动大纲收录当前选中标注的标题。点击条目，即可在标注侧栏内直接滚动到对应章节。
+
+![包含多级标题和彩色高亮的长标注，以及对应的浮动大纲](docs/images/floating-outline.webp)
+
+### 在页面上预览标注评论
+
+页内标注弹窗也可以显示同样的 Markdown 与公式预览。在设置中开启 **Render page annotation popups as Markdown** 即可使用；该选项默认关闭。
+
+![页内标注弹窗中的 Markdown 排版、彩色高亮和 LaTeX 公式预览](docs/images/popup-preview.webp)
+
+截图使用演示文本，取自 Zotero 10.0.5 与 Annotation Markdown v0.11.0，预览字号设为 125%。
+
+</details>
 
 ## 安装
 

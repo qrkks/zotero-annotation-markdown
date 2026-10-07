@@ -14,13 +14,17 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Render Zotero reader sidebar annotation comments as Markdown and LaTeX math while keeping Zotero's stored annotation text unchanged.
+Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, and LaTeX math. Rendering preserves the original source stored by Zotero, so it stays editable.
+
+![The same Zotero annotation as editable Markdown source and a rendered preview with headings, color highlights, and LaTeX math](docs/images/source-and-preview.webp)
+
+**Left:** edit the Markdown source. **Right:** read the formatted preview. Leave the editor or press **Escape** to save and return to the preview.
 
 ## Highlights
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
 - Optional, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
-- `==Highlighted text==` syntax with optional safe color suffixes such as `{.red}`.
+- Highlight syntax from the markdown-it ecosystem: `==Highlighted text==` via [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark), with optional color suffixes such as `==Highlighted text=={.red}` following the [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) convention and limited to safe preset colors.
 - Automatic links for bare URLs in rendered previews.
 - A persistent floating outline with adjustable text size for navigating long annotations with multiple headings.
 - Optional automatic `todo` tags from `todo:` or `t:` lines in saved annotation comments.
@@ -29,6 +33,25 @@ Render Zotero reader sidebar annotation comments as Markdown and LaTeX math whil
 - An off-by-default Zotero 10.0.3 experiment that lazily restores native rows when a tag filter is cleared in very large annotation lists.
 - Sanitized output with a plain-text fallback on rendering failure.
 - Supports Zotero Desktop 9.0 and 10.0.x. Current release validation prioritizes Zotero 10; Zotero 9 retains an automatic native-editor fallback.
+
+<details>
+<summary>More screenshots: floating outline and page annotation popups</summary>
+
+### Navigate long annotations
+
+The floating outline follows the selected annotation's headings. Choose a section to scroll directly to it within the annotation sidebar.
+
+![A long annotation with nested headings, colored highlights, and its floating outline](docs/images/floating-outline.webp)
+
+### Preview comments on the page
+
+Page annotation popups can show the same Markdown and math preview. Enable **Render page annotation popups as Markdown** in Settings; this option is off by default.
+
+![An optional page annotation popup displaying formatted Markdown, color highlights, and LaTeX math](docs/images/popup-preview.webp)
+
+Screenshots use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
+
+</details>
 
 ## Installation
 
