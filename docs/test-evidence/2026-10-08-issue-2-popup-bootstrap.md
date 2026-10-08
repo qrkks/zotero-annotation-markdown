@@ -32,3 +32,13 @@ heading, bold text, and emphasis with one preview and zero sidebar rows.
 After validation, the original 0.11.1 XPI was restored byte-for-byte. The original
 rendering preferences and open sidebar state were restored, the candidate's
 toolbar listener was gone, and the fixture still contained seven annotations.
+
+## Final 0.12.1 release artifact
+
+Before tagging, the exact 0.12.1 XPI (1,132,830 bytes) was installed and its
+on-disk hash matched the release artifact:
+`03277ed8da505d733eeb14d10e0aa0b77805da2ed83dcac38db9926f903c3b79`.
+Both a fresh Reader and another close/reopen retained zero sidebar rows, one
+plugin style, one popup preview, three formulas, and a visible ready popup.
+The final-artifact screenshot was also inspected. The original XPI, preferences,
+and sidebar state were restored again afterward.
