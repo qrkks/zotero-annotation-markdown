@@ -22,6 +22,8 @@ flowchart LR
 
 `addon/bootstrap.js` 由 Zotero 直接执行。它加载打包后的 `plugin.js`、注册偏好设置面板、读取样式，并负责诊断日志初始化。`src/plugin.ts` 是组合入口：把 Zotero API 与设置、渲染器、DOM 适配器、每个 Reader 的控制器和注册表连接起来。
 
+Reader 发现机制在收集已打开的 Reader 之前，同时监听 `renderToolbar` 与 `renderSidebarAnnotationHeader`。即使批注侧栏始终关闭，工具栏挂载也会初始化新 Reader，让页面批注弹窗从第一次打开起即可渲染。两个入口共用同一个注册表条目，等待 Reader 就绪后才创建 DOM 集成，并在插件关闭时移除各自的事件监听器。
+
 控制器负责发现标注评论并决定何时渲染。适配器负责源码、预览与编辑器 DOM 操作。作用范围受限的 Reader 辅助模块分别管理选中目标 CSS、Esc 退出后的可见性恢复，以及选中预览中可清理的浮动大纲，不替换宿主标注结构或原生 DOM 方法。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
 
 ## 快速编辑器流程

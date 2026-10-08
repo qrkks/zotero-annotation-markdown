@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Initialize page annotation popup rendering when a Reader opens with the annotation sidebar closed, without requiring the sidebar to be opened once first ([#2](https://github.com/qrkks/zotero-annotation-markdown/issues/2)).
+
+### 修复
+
+- 修复批注侧栏关闭时新打开的 Reader 未初始化页面批注弹窗渲染的问题，无需先打开一次侧栏即可渲染弹窗（[#2](https://github.com/qrkks/zotero-annotation-markdown/issues/2)）。
+
 ## 0.12.0 - 2026-10-08
 
 ### Added

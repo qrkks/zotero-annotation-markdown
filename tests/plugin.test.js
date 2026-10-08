@@ -80,6 +80,99 @@ describe("createPlugin", () => {
     expect(log).toHaveBeenCalledWith("[annotation-markdown] registered reader event: renderSidebarAnnotationHeader");
   });
 
+  test("renders new reader popups after toolbar mount without opening the annotation sidebar", async () => {
+    document.body.replaceChildren();
+    const listeners = {};
+    let resolveReader;
+    const reader = {
+      _waitForReader: vi.fn(() => new Promise(resolve => { resolveReader = resolve; }))
+    };
+    const Zotero = {
+      Reader: {
+        _readers: [],
+        registerEventListener: vi.fn((name, handler) => { listeners[name] = handler; }),
+        unregisterEventListener: vi.fn()
+      },
+      Prefs: {
+        get: vi.fn(key => key === "extensions.annotationMarkdown.popupEnabled" ? true : undefined)
+      }
+    };
+    const plugin = createPlugin({
+      Zotero,
+      styleText: ".annotation-markdown-rendered { line-height: inherit; }"
+    });
+
+    try {
+      await plugin.startup();
+      expect(listeners.renderToolbar).toEqual(expect.any(Function));
+      const registration = listeners.renderToolbar({ reader });
+      expect(reader._waitForReader).toHaveBeenCalledOnce();
+      expect(document.querySelector("style[data-annotation-markdown-style='true']")).toBeNull();
+
+      reader.document = document;
+      resolveReader();
+      await registration;
+
+      // The popup is mounted later; no sidebar event has been dispatched.
+      document.body.innerHTML = `
+        <div class="annotation-popup"><div class="preview" data-annotation-id="a1">
+          <div class="comment"><div class="editor">
+            <div class="content" contenteditable="true">**bold** and $x+1$</div>
+            <div class="renderer"></div>
+          </div></div>
+        </div></div>
+      `;
+      await vi.waitFor(() => {
+        const preview = document.querySelector("[data-annotation-markdown-preview='true']");
+        expect(preview?.querySelector("strong")?.textContent).toBe("bold");
+        expect(preview?.querySelector(".katex")).not.toBeNull();
+      });
+      expect(document.querySelector("[data-sidebar-annotation-id]")).toBeNull();
+      expect(document.querySelector(".annotation-popup .editor").hidden).toBe(true);
+    } finally {
+      plugin.shutdown();
+    }
+
+    expect(document.querySelector("[data-annotation-markdown-preview='true']")).toBeNull();
+    expect(document.querySelector(".annotation-popup .editor").hidden).toBe(false);
+  });
+
+  test("toolbar and sidebar events share one controller while reader initialization is pending", async () => {
+    document.body.replaceChildren();
+    const listeners = {};
+    let resolveReader;
+    const reader = {
+      document,
+      _waitForReader: vi.fn(() => new Promise(resolve => { resolveReader = resolve; }))
+    };
+    const Zotero = {
+      Reader: {
+        registerEventListener: vi.fn((name, handler) => { listeners[name] = handler; })
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      styleText: ".annotation-markdown-rendered { line-height: inherit; }"
+    });
+
+    try {
+      await plugin.startup();
+      expect(listeners.renderToolbar).toEqual(expect.any(Function));
+      const registration = listeners.renderToolbar({ reader });
+      expect(listeners.renderToolbar({ reader })).toBe(registration);
+      expect(listeners.renderSidebarAnnotationHeader({ reader })).toBe(registration);
+      expect(reader._waitForReader).toHaveBeenCalledOnce();
+      resolveReader();
+      await registration;
+      await listeners.renderToolbar({ reader });
+      expect(reader._waitForReader).toHaveBeenCalledOnce();
+      expect(document.querySelectorAll("style[data-annotation-markdown-style='true']")).toHaveLength(1);
+    } finally {
+      plugin.shutdown();
+    }
+  });
+
   test("startup mirrors diagnostics to a file logger when available", () => {
     const append = vi.fn();
     const Zotero = {
@@ -836,6 +929,33 @@ describe("createPlugin", () => {
       "renderSidebarAnnotationHeader",
       Zotero.Reader.registerEventListener.mock.calls[0][1]
     );
+    expect(Zotero.Reader.unregisterEventListener).toHaveBeenCalledWith(
+      "renderToolbar",
+      Zotero.Reader.registerEventListener.mock.calls[0][1]
+    );
     expect(shutdown).toHaveBeenCalledTimes(1);
+  });
+
+  test("shutdown removes the other reader listener and controllers if one listener cleanup fails", async () => {
+    const shutdown = vi.fn();
+    const Zotero = {
+      Reader: {
+        registerEventListener: vi.fn(),
+        unregisterEventListener: vi.fn(name => {
+          if (name === "renderSidebarAnnotationHeader") throw new Error("listener cleanup failed");
+        })
+      },
+      Prefs: {}
+    };
+    const plugin = createPlugin({
+      Zotero,
+      registryFactory: () => ({ register: vi.fn(), shutdown }),
+      logger: { log: vi.fn(), warn: vi.fn() }
+    });
+    await plugin.startup();
+
+    expect(() => plugin.shutdown()).not.toThrow();
+    expect(Zotero.Reader.unregisterEventListener).toHaveBeenCalledWith("renderToolbar", expect.any(Function));
+    expect(shutdown).toHaveBeenCalledOnce();
   });
 });

@@ -22,6 +22,8 @@ flowchart LR
 
 `addon/bootstrap.js` is executed directly by Zotero. It loads the bundled `plugin.js`, registers the preference pane, injects the stylesheet text, and owns diagnostic-log setup. `src/plugin.ts` is the composition root: it connects Zotero APIs to settings, rendering, DOM adaptation, the per-Reader controller, and the registry.
 
+Reader discovery listens to both `renderToolbar` and `renderSidebarAnnotationHeader` before collecting already-open Readers. Toolbar mounting initializes new Readers even when the annotation sidebar stays closed, so page annotation popups can render from their first opening. Both paths share one registry entry, wait for Reader readiness before creating DOM integrations, and remove their listeners during shutdown.
+
 The controller discovers annotation comments and decides when to render them. The adapter owns source, preview, and editor DOM operations. Scoped Reader helpers manage selection-target CSS, visibility recovery after Escape, and the selected preview's removable outline without replacing the host's annotation structure or native DOM methods. The renderer accepts text and returns sanitized HTML; it does not know about Reader nodes or preferences.
 
 ## Fast editor flow

@@ -31,7 +31,7 @@ import {
 } from "./settings.js";
 
 export const PLUGIN_ID = "annotation-markdown@local";
-const READER_EVENT = "renderSidebarAnnotationHeader";
+const READER_EVENTS = ["renderSidebarAnnotationHeader", "renderToolbar"] as const;
 const WEAVERO_RECOLOR_AM_LINKS_PREF_KEY = "weavero.recolorAmLinks";
 
 interface ReaderLike {
@@ -224,33 +224,43 @@ export function createPlugin({
         warn: (message, error) => diagnosticsLogger.warn(message, error)
       });
 
-      const openReaders = collectOpenReaders(Zotero);
-      diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
-
-      const registrations = openReaders.map((reader) => activeRegistry.register(reader));
-
       if (Zotero?.Reader?.registerEventListener) {
         readerEventHandler = (event) => {
           // Zotero versions have emitted both a bare Reader and an event wrapper.
           const reader = unwrapReaderEvent(event);
           return registry?.register(reader);
         };
-        Zotero.Reader.registerEventListener(READER_EVENT, readerEventHandler, PLUGIN_ID);
-        diagnosticsLogger.log(`[annotation-markdown] registered reader event: ${READER_EVENT}`);
+        // Toolbar mount also discovers new Readers whose annotation sidebar
+        // has never been opened. The registry deduplicates both event paths.
+        for (const eventName of READER_EVENTS) {
+          Zotero.Reader.registerEventListener(eventName, readerEventHandler, PLUGIN_ID);
+          diagnosticsLogger.log(`[annotation-markdown] registered reader event: ${eventName}`);
+        }
       } else {
         diagnosticsLogger.log("[annotation-markdown] Zotero.Reader.registerEventListener unavailable");
       }
+
+      const openReaders = collectOpenReaders(Zotero);
+      diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
+      const registrations = openReaders.map((reader) => activeRegistry.register(reader));
 
       return Promise.all(registrations);
     },
 
     shutdown() {
       try {
-        if (readerEventHandler && Zotero?.Reader?.unregisterEventListener) {
-          Zotero.Reader.unregisterEventListener(READER_EVENT, readerEventHandler);
+        for (const eventName of READER_EVENTS) {
+          try {
+            if (readerEventHandler && Zotero?.Reader?.unregisterEventListener) {
+              Zotero.Reader.unregisterEventListener(eventName, readerEventHandler);
+            }
+          } catch (error) {
+            diagnosticsLogger.warn(
+              `Could not unregister Zotero Annotation Markdown reader listener: ${eventName}`,
+              error
+            );
+          }
         }
-      } catch (error) {
-        diagnosticsLogger.warn("Could not unregister Zotero Annotation Markdown reader listener", error);
       } finally {
         // Reader teardown must still run when Zotero rejects listener cleanup during shutdown.
         unregisterPreferenceObservers(Zotero, preferenceObserverIds);
