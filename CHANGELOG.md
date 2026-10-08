@@ -1,10 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 - 2026-10-08
 
 ### Added
 
 - Add optional native MathML output under **Math rendering** in Settings, marked experimental and off by default. Switching output refreshes open Readers and preserves formula source; native formula spacing and typography may differ.
+
+### Why try native MathML?
+
+Formula-heavy annotations can render with less work and less generated markup when Zotero lays out MathML directly, without the companion KaTeX HTML formula tree. In a Windows / Zotero 10.0.5 test with 413 nonempty annotation comments, rendering and sanitization took 62.6% less time, DOM mounting and synchronous layout took 52.3% less time, and cumulative generated DOM elements fell by 63.1%. A separate retained-preview probe with the 12 longest comments reduced additional allocated memory from 106.9 MiB to 37.8 MiB. These are controlled preview measurements; they do not establish a reduction in total Zotero RAM or a meaningful improvement in Reader startup time.
+
+To try it, open **Settings → Annotation Markdown → Math rendering → Native MathML only (Experimental)**. Formula spacing, height, and typography can differ. **KaTeX HTML + MathML (default)** remains the default and is available to switch back at any time.
+
+See the [MathML-only benchmark, native interaction tests, and visual comparison](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.12.0/docs/performance-investigations/2026-10-08-mathml-only.md) for the sample, methodology, results, and limitations.
+
+### Changed
+
+- Clarify the math-output choices and use consistent **font size** labels for Markdown previews and the floating outline.
 
 ### Fixed
 
@@ -14,6 +26,18 @@
 ### 新增
 
 - 在设置的 **Math rendering** 中添加默认关闭的原生 MathML 实验选项。切换后即时刷新已打开的 Reader，并保留公式源码；原生公式间距和字体外观可能有所不同。
+
+### 为什么尝试原生 MathML 直出？
+
+公式多、标注长时，由 Zotero 直接排版 MathML，可以省去配套的 KaTeX HTML 公式节点，减少渲染工作和生成的内容。在 Windows / Zotero 10.0.5 上对 413 条非空标注评论的测试中，渲染与清理耗时减少 62.6%，DOM 挂载与同步布局耗时减少 52.3%，累计生成的 DOM 元素减少 63.1%。另一个保留最长 12 条标注预览的测试中，额外分配的内存从 106.9 MiB 降至 37.8 MiB。这些是受控的预览测试结果，不代表整个 Zotero 的内存会按相同比例下降，也尚未证明 Reader 打开速度有明显提升。
+
+在 **设置 → Annotation Markdown → Math rendering → Native MathML only (Experimental)** 中开启。公式间距、高度和字体外观可能有所不同，因此继续标为实验选项；默认仍是 **KaTeX HTML + MathML (default)**，可以随时切回。
+
+完整样本、方法、结果和适用范围见 [MathML 直出性能测试、原生交互验证与排版对照](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.12.0/docs/performance-investigations/2026-10-08-mathml-only.md)。
+
+### 变更
+
+- 明确公式渲染方式的名称，并统一 Markdown 预览与浮动大纲的 **font size** 文案。
 
 ### 修复
 

@@ -87,8 +87,6 @@ The outline is enabled by default and can be disabled with **Show a floating out
 
 ## Sidebar positioning
 
-The following refinements are in the current development build and are listed under [Unreleased](../../CHANGELOG.md#unreleased).
-
 Selecting an annotation from the sidebar or document page uses Zotero's native smooth scrolling. When a single selected annotation is taller than the sidebar viewport, its beginning aligns near the top with a 2px inset, whether you navigate forward or backward. Short annotations keep their native positioning. Manual scrolling does not automatically return to the selected annotation.
 
 Pressing **Escape** saves and exits the fast editor. If any part of the annotation remains visible after the preview returns, the add-on keeps the current position rather than returning to the beginning. If the whole annotation is outside the viewport, it makes one smooth scroll to the same 2px top inset, within the sidebar's scroll limits. New scrolling, clicks, typing, focus changes, or another selection cancel pending recovery.

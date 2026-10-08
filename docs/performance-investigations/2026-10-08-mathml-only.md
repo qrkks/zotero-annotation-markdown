@@ -68,6 +68,10 @@ Native Gecko checks passed for outline formulas and source tooltips, horizontal 
 
 A native screenshot compared powers, roots, fractions, integrals, matrices, cases, aligned equations, a long boxed formula, accents, underbraces, and mathematical alphabets. All displayed, and the long formula kept its own scrollbar. Typography differs: the tested integral display was approximately 62 px tall in MathML versus 38 px in HTML. Matrix and aligned-equation spacing also changed. Test further user formulas and supported operating systems before changing the default output.
 
+![Native Gecko comparison of KaTeX HTML plus MathML on the left and MathML-only on the right, including long-formula scrollbars](../images/mathml-output-comparison.png)
+
+The comparison uses synthetic formulas in the same native Gecko environment. Different row heights illustrate the layout tradeoff; it is not a pixel-equivalence test.
+
 ## Verification and cleanup
 
 The test suite passed 25 files / 385 tests, including new sanitizer, cache-switch, outline, glyph-click, scrollbar, preference-default, and observer-cleanup regressions. Type checking, bilingual documentation checks, build/package checks, and XPI inspection passed.
@@ -90,10 +94,12 @@ The user confirmed that the fixed trial stopped the delayed scroll reset in the 
 
 ## Preferences pane and main-branch integration
 
-The native XUL preferences pane now exposes the output choice below **Render LaTeX math formulas**. Standard rendering remains the default; the picker is disabled while Markdown or LaTeX rendering is off without losing the selected output. English and Chinese README highlights, user guides, and unreleased changelog entries describe the option and its layout differences.
+The native XUL preferences pane now exposes the output choice below **Render LaTeX math formulas**. Standard rendering remains the default; the picker is disabled while Markdown or LaTeX rendering is off without losing the selected output. English and Chinese README highlights, user guides, and release notes describe the option and its layout differences.
 
 Native pane testing found an additional live-switch issue: the viewport and idle scheduling paths skipped already mounted previews before checking their cached output mode. The controller now records the math settings of each mounted preview independently of the HTML cache. A change to math output or enabled state makes the preview eligible for rendering again; unchanged settings preserve the existing DOM. Six regression cases cover automatic, eager, and lazy strategies, with and without idle callbacks, including previews whose HTML exceeds the cache budget.
 
 On Zotero 10.0.6 / Gecko 140.17.0, actual XUL menu commands switched an already open fixture Reader between standard output (three `.katex-html` elements) and native MathML (zero `.katex-html`, three MathML semantics/TeX annotations). Disabling and reenabling math or Markdown updated the Reader and the picker's disabled state. Returning to standard restored all three HTML formulas, and the source comments remained identical. The native preferences layout was checked visually. Raw state counts are in `.tmp/mathml-experiment/preferences-pane-verification.json`.
 
-The final full verification passes 25 files / 396 tests, type checking, bilingual documentation checks, build/package checks, and whitespace checks. Version 0.11.1 and the published update manifest remain unchanged. The local preferences-pane trial is `output/zotero-annotation-markdown-0.11.1-mathml-option.xpi`; no remote push, tag, or release is part of this integration.
+The final integration verification passed 25 files / 396 tests, type checking, bilingual documentation checks, build/package checks, and whitespace checks. Those integration trials used version 0.11.1 while preserving its published update manifest. The local preferences-pane trial was `output/zotero-annotation-markdown-0.11.1-mathml-option.xpi`; no remote push, tag, or release was performed at that stage. Version 0.12.0 includes the output picker as an optional experimental setting, with standard output still the default.
+
+The exact 0.12.0 release-candidate XPI also passed a native Zotero 10.0.6 smoke test: actual preference-menu commands changed the open fixture Reader from three HTML formulas to three native MathML formulas and back, retaining both display wrappers and identical source comments. The development profile's original XPI and preferences were restored afterward.
