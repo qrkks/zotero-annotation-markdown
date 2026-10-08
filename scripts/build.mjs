@@ -40,5 +40,9 @@ async function appendKatexAssets() {
     path.join(addonStyles, "annotation-markdown.css"),
     `\n/* KaTeX math rendering */\n${katexCss}\n${texmathCss}`
   );
-  await cp(path.join(katexDist, "fonts"), path.join(addonStyles, "fonts"), { recursive: true });
+  // WOFF2 fonts are embedded above; retain the external fallback formats only.
+  await cp(path.join(katexDist, "fonts"), path.join(addonStyles, "fonts"), {
+    recursive: true,
+    filter: (source) => !source.endsWith(".woff2")
+  });
 }
