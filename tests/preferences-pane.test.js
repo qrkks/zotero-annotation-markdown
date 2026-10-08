@@ -43,6 +43,9 @@ describe("preferences pane", () => {
       "Recommended when pasting responses from AI tools. Keeps Markdown editable and avoids importing rich-text formatting or hidden HTML."
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
+    expect(source).toContain('preference="extensions.annotationMarkdown.mathOutput"');
+    expect(source).toContain('<menuitem label="Standard (default)" value="htmlAndMathml"/>');
+    expect(source).toContain('<menuitem label="Native MathML (Experimental)" value="mathml"/>');
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineEnabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineFontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoTag\"");
@@ -117,6 +120,8 @@ describe("preferences pane", () => {
     const pasteAsPlainTextInput = createInput();
     const fastEditorInput = createInput();
     const mathInput = createInput();
+    const mathOutputOption = createInput();
+    const mathOutputSelect = createInput();
     const outlineEnabledInput = createInput();
     const outlineFontScaleSelect = createInput();
     const autoTodoTagInput = createInput();
@@ -133,6 +138,8 @@ describe("preferences pane", () => {
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
+          "annotation-markdown-math-output-option": mathOutputOption,
+          "annotation-markdown-math-output": mathOutputSelect,
           "annotation-markdown-outline-enabled": outlineEnabledInput,
           "annotation-markdown-outline-font-scale": outlineFontScaleSelect,
           "annotation-markdown-auto-todo-tag": autoTodoTagInput,
@@ -154,6 +161,8 @@ describe("preferences pane", () => {
     expect(pasteAsPlainTextInput.checked).toBe(true);
     expect(fastEditorInput.checked).toBe(true);
     expect(mathInput.checked).toBe(true);
+    expect(mathOutputSelect.value).toBe("htmlAndMathml");
+    expect(mathOutputSelect.disabled).toBe(false);
     expect(outlineEnabledInput.checked).toBe(true);
     expect(outlineFontScaleSelect.value).toBe("100");
     expect(autoTodoTagInput.checked).toBe(false);
@@ -179,6 +188,7 @@ describe("preferences pane", () => {
             "extensions.annotationMarkdown.pasteAsPlainText": true,
             "extensions.annotationMarkdown.fastEditor": true,
             "extensions.annotationMarkdown.mathEnabled": true,
+            "extensions.annotationMarkdown.mathOutput": "mathml",
             "extensions.annotationMarkdown.outlineEnabled": true,
             "extensions.annotationMarkdown.outlineFontScalePercent": 100,
             "extensions.annotationMarkdown.autoTodoTag": false,
@@ -197,6 +207,8 @@ describe("preferences pane", () => {
     const pasteAsPlainTextInput = createInput();
     const fastEditorInput = createInput();
     const mathInput = createInput();
+    const mathOutputOption = createInput();
+    const mathOutputSelect = createInput();
     const outlineEnabledInput = createInput();
     const outlineFontScaleSelect = createInput();
     const autoTodoTagInput = createInput();
@@ -213,6 +225,8 @@ describe("preferences pane", () => {
           "annotation-markdown-paste-as-plain-text": pasteAsPlainTextInput,
           "annotation-markdown-fast-editor": fastEditorInput,
           "annotation-markdown-math-enabled": mathInput,
+          "annotation-markdown-math-output-option": mathOutputOption,
+          "annotation-markdown-math-output": mathOutputSelect,
           "annotation-markdown-outline-enabled": outlineEnabledInput,
           "annotation-markdown-outline-font-scale": outlineFontScaleSelect,
           "annotation-markdown-auto-todo-tag": autoTodoTagInput,
@@ -224,6 +238,9 @@ describe("preferences pane", () => {
     };
 
     preferences.init(documentRef);
+    expect(mathOutputSelect.value).toBe("mathml");
+    mathOutputSelect.value = "htmlAndMathml";
+    mathOutputSelect.dispatch("command");
     popupEnabledInput.checked = true;
     popupEnabledInput.dispatch("command");
     enabledInput.checked = false;
@@ -231,11 +248,13 @@ describe("preferences pane", () => {
     expect(popupEnabledInput.disabled).toBe(true);
     expect(popupEnabledInput.getAttribute("disabled")).toBe("true");
     expect(popupOption.getAttribute("data-disabled")).toBe("true");
+    expect(mathOutputSelect.disabled).toBe(true);
     enabledInput.checked = true;
     enabledInput.dispatch("command");
     expect(popupEnabledInput.disabled).toBe(false);
     expect(popupEnabledInput.getAttribute("disabled")).toBeNull();
     expect(popupOption.getAttribute("data-disabled")).toBeNull();
+    expect(mathOutputSelect.disabled).toBe(false);
     fontScaleSelect.value = "120";
     fontScaleSelect.dispatch("command");
     pasteAsPlainTextInput.checked = false;
@@ -244,6 +263,14 @@ describe("preferences pane", () => {
     fastEditorInput.dispatch("command");
     mathInput.checked = false;
     mathInput.dispatch("command");
+    expect(mathOutputSelect.disabled).toBe(true);
+    expect(mathOutputOption.getAttribute("data-disabled")).toBe("true");
+    mathInput.checked = true;
+    mathInput.dispatch("syncfrompreference");
+    expect(mathOutputSelect.disabled).toBe(false);
+    expect(mathOutputSelect.value).toBe("htmlAndMathml");
+    mathOutputSelect.value = "mathml";
+    mathOutputSelect.dispatch("command");
     outlineEnabledInput.checked = false;
     outlineEnabledInput.dispatch("command");
     outlineFontScaleSelect.value = "140";
@@ -264,6 +291,8 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.pasteAsPlainText", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.fastEditor", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathOutput", "htmlAndMathml", true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.mathOutput", "mathml", true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineEnabled", false, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineFontScalePercent", 140, true);
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoTag", true, true);
@@ -272,6 +301,26 @@ describe("preferences pane", () => {
     expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.nativeRowLazy", true, true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.lightweightMode", expect.anything(), true);
     expect(set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.performanceDiagnostics", expect.anything(), true);
+  });
+
+  test.each([undefined, "unknown", false])("uses standard output for invalid preference %s without writing it", async (storedOutput) => {
+    const set = vi.fn();
+    const preferences = await loadPreferencesScript({
+      Prefs: {
+        get: vi.fn((key, global) => global && key === "extensions.annotationMarkdown.mathOutput" ? storedOutput : undefined),
+        set
+      }
+    });
+    const controls = new Map();
+    const documentRef = {
+      getElementById(id) {
+        if (!controls.has(id)) controls.set(id, createInput());
+        return controls.get(id);
+      }
+    };
+    preferences.init(documentRef);
+    expect(controls.get("annotation-markdown-math-output").value).toBe("htmlAndMathml");
+    expect(set).not.toHaveBeenCalled();
   });
 });
 

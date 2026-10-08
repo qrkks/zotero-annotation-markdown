@@ -9,7 +9,7 @@ const SOURCE = String.raw`\[
 const cleanup = [];
 afterEach(() => { while (cleanup.length) cleanup.pop()(); });
 
-async function setup({ overlay = false, fastEditor = true, popup = false, controllerEnabled = true } = {}) {
+async function setup({ overlay = false, fastEditor = true, popup = false, controllerEnabled = true, mathOutput = "htmlAndMathml", sourceText = SOURCE } = {}) {
   // KaTeX warns about Chinese punctuation in math mode; preserve the user's
   // input while keeping that expected warning out of each fixture's output.
   const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -25,7 +25,7 @@ async function setup({ overlay = false, fastEditor = true, popup = false, contro
   const sidebar = document.querySelector("#annotations");
   const comment = document.querySelector(".comment");
   const source = document.querySelector(".content");
-  source.textContent = SOURCE;
+  source.textContent = sourceText;
   row.focus();
   const deselect = vi.fn(() => row.classList.remove("selected"));
   const hostFocus = event => {
@@ -35,13 +35,13 @@ async function setup({ overlay = false, fastEditor = true, popup = false, contro
   cleanup.push(() => window.removeEventListener("focusin", hostFocus));
   const commit = vi.fn(() => true);
   const adapter = createAnnotationSidebarAdapter({ document, isFastEditorEnabled: () => fastEditor, commitComment: commit });
-  const renderer = createMarkdownRenderer();
+  const renderer = createMarkdownRenderer({ getMathOutput: () => mathOutput });
   const controller = createReaderController({
     reader: { document }, adapter, renderer,
     settings: { isEnabled: () => true }, MutationObserver: null, IntersectionObserver: null
   });
   if (controllerEnabled) await controller.start();
-  else adapter.applyRenderedHtml(comment, renderer.render(SOURCE));
+  else adapter.applyRenderedHtml(comment, renderer.render(sourceText));
   cleanup.push(() => { controller.stop(); adapter.clearRenderedState(); });
   const preview = comment.querySelector(".annotation-markdown-rendered");
   const math = preview.querySelector(".katex-display");
@@ -151,6 +151,32 @@ describe("display math scrolling", () => {
     expect(comment.querySelector(".annotation-markdown-rendered")).toBe(preview);
     expect(document.querySelector("textarea")).toBeNull();
     expect(math.scrollLeft).toBe(500);
+  });
+
+  test("keeps native MathML at the right end through release and repeated popup rendering", async () => {
+    const sourceText = String.raw`\[
+\boxed{
+\text{z 标准化 = 先投影去掉均值方向，再把剩余向量重新缩放}
+}
+\]`;
+    const { controller, math, preview, comment, source, commit } = await setup({ popup: true, mathOutput: "mathml", sourceText });
+    mouse(math, "pointerdown", { clientY: 115 });
+    mouse(math, "mousedown", { clientY: 115 });
+    math.scrollLeft = math.scrollWidth - math.clientWidth;
+    mouse(math, "pointerup");
+    mouse(math, "mouseup");
+    mouse(math.querySelector("math mtext"), "click", { clientY: 115 });
+    controller.renderNow();
+    await new Promise(resolve => setTimeout(resolve, 25));
+    controller.renderNow();
+
+    expect(comment.querySelector(".annotation-markdown-rendered")).toBe(preview);
+    expect(comment.querySelector(".katex-display")).toBe(math);
+    expect(math.scrollLeft).toBe(600);
+    expect(comment.classList.contains("annotation-markdown-editing")).toBe(false);
+    expect(document.querySelector("textarea")).toBeNull();
+    expect(source.textContent).toBe(sourceText);
+    expect(commit).not.toHaveBeenCalled();
   });
 
   test("clears the old drag when focus moves to a different math scroller", async () => {

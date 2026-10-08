@@ -11,6 +11,8 @@ export const FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.fontSc
 export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.pasteAsPlainText";
 export const FAST_EDITOR_PREF_KEY = "extensions.annotationMarkdown.fastEditor";
 export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled";
+export const MATH_OUTPUT_PREF_KEY = "extensions.annotationMarkdown.mathOutput";
+export type MathOutput = "htmlAndMathml" | "mathml";
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
@@ -37,6 +39,8 @@ export interface Settings {
   setFastEditorEnabled(enabled: boolean): void;
   isMathEnabled(): boolean;
   setMathEnabled(enabled: boolean): void;
+  getMathOutput(): MathOutput;
+  setMathOutput(output: MathOutput): void;
   isPerformanceDiagnosticsEnabled(): boolean;
   setPerformanceDiagnosticsEnabled(enabled: boolean): void;
   isLightweightModeEnabled(): boolean;
@@ -65,6 +69,7 @@ interface CreateSettingsOptions {
   pasteAsPlainTextKey?: string;
   fastEditorKey?: string;
   mathEnabledKey?: string;
+  mathOutputKey?: string;
   performanceDiagnosticsKey?: string;
   lightweightModeKey?: string;
   renderStrategyKey?: string;
@@ -93,6 +98,7 @@ export function createSettings({
   pasteAsPlainTextKey = PASTE_AS_PLAIN_TEXT_PREF_KEY,
   fastEditorKey = FAST_EDITOR_PREF_KEY,
   mathEnabledKey = MATH_ENABLED_PREF_KEY,
+  mathOutputKey = MATH_OUTPUT_PREF_KEY,
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
@@ -109,6 +115,7 @@ export function createSettings({
   let memoryPlainTextPaste = true;
   let memoryFastEditor = true;
   let memoryMathEnabled = true;
+  let memoryMathOutput: MathOutput = "htmlAndMathml";
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
   let memoryRenderStrategy: RenderStrategy = "auto";
@@ -226,6 +233,18 @@ export function createSettings({
       }
 
       memoryMathEnabled = value;
+    },
+
+    getMathOutput() {
+      return prefs?.get
+        ? normalizeMathOutput(prefs.get(mathOutputKey, "htmlAndMathml"))
+        : memoryMathOutput;
+    },
+
+    setMathOutput(output) {
+      const value = normalizeMathOutput(output);
+      prefs?.set?.(mathOutputKey, value);
+      memoryMathOutput = value;
     },
 
     isPerformanceDiagnosticsEnabled() {
@@ -374,6 +393,10 @@ export function createSettings({
       memoryAutoTodoCleanup = value;
     }
   };
+}
+
+function normalizeMathOutput(value: unknown): MathOutput {
+  return value === "mathml" ? "mathml" : "htmlAndMathml";
 }
 
 function normalizeRenderStrategy(value: unknown): RenderStrategy {

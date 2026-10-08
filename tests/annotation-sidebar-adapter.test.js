@@ -3,6 +3,32 @@ import { describe, expect, test, vi } from "vitest";
 import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.ts";
 
 describe("createAnnotationSidebarAdapter", () => {
+  test("keeps decorated preview children for unchanged HTML and restores released previews", () => {
+    document.body.innerHTML = '<div class="annotation-popup"><div class="comment"><div class="content">source</div></div></div>';
+    const adapter = createAnnotationSidebarAdapter({ document });
+    const comment = document.querySelector(".comment");
+    const html = '<span class="katex-display"><span class="katex"><math><mi>x</mi></math></span></span>';
+    adapter.applyRenderedHtml(comment, html);
+    const preview = comment.querySelector(".annotation-markdown-rendered");
+    const math = preview.firstElementChild;
+    math.setAttribute("tabindex", "0");
+    math.scrollLeft = 600;
+
+    adapter.applyRenderedHtml(comment, html);
+    expect(preview.firstElementChild).toBe(math);
+    expect(math.scrollLeft).toBe(600);
+
+    expect(adapter.releaseRenderedHtml(comment)).toBe(true);
+    expect(preview.textContent).toBe("source");
+    adapter.applyRenderedHtml(comment, html);
+    expect(preview.querySelector("math mi").textContent).toBe("x");
+    expect(preview.hasAttribute("data-annotation-markdown-placeholder")).toBe(false);
+
+    adapter.applyRenderedHtml(comment, "<p>changed</p>");
+    expect(preview.innerHTML).toBe("<p>changed</p>");
+    adapter.clearRenderedState();
+  });
+
   test("commits a fast editor draft on blur through the annotation update callback", () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>

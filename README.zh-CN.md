@@ -32,6 +32,7 @@
 ## 主要功能
 
 - 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
+- 可选择原生 MathML 渲染，作为默认关闭的实验选项。在设置的 **Math rendering** 中选择 **Native MathML (Experimental)**，可降低公式渲染开销，但公式间距和外观可能有所不同。
 - 可选择在页内标注弹窗中启用 Markdown 预览（默认关闭）；快速编辑由独立偏好控制，并可回退 Zotero 原生行为。
 - 沿用 markdown-it 生态的高亮语法：通过 [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark) 支持 `==高亮文字==`；`==高亮文字=={.red}` 等颜色后缀沿用 [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) 的属性写法，并限定为安全的预设颜色。
 - 在渲染预览中自动把裸 URL 转为可点击链接。

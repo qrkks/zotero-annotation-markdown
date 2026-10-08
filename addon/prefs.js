@@ -4,6 +4,8 @@ pref("extensions.annotationMarkdown.fontScalePercent", 100);
 pref("extensions.annotationMarkdown.pasteAsPlainText", true);
 pref("extensions.annotationMarkdown.fastEditor", true);
 pref("extensions.annotationMarkdown.mathEnabled", true);
+// Native MathML is an optional experimental output in the preferences pane.
+pref("extensions.annotationMarkdown.mathOutput", "htmlAndMathml");
 pref("extensions.annotationMarkdown.performanceDiagnostics", false);
 pref("extensions.annotationMarkdown.lightweightMode", false);
 pref("extensions.annotationMarkdown.renderStrategy", "auto");

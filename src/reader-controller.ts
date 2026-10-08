@@ -62,6 +62,7 @@ interface RenderDiagnosticSample {
 interface CachedRender {
   source: string;
   mathEnabled: boolean;
+  mathOutput: string;
   html: string;
   sizeBytes?: number;
 }
@@ -205,6 +206,7 @@ export function createReaderController({
   let addedCommentScanTimer: number | undefined;
   let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
   const renderCache = new Map<RenderCacheKey, CachedRender>();
+  const renderedMathSettings = new WeakMap<HTMLElement, Pick<CachedRender, "mathEnabled" | "mathOutput">>();
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
   const renderedNodeWeights = new WeakMap<HTMLElement, number>();
@@ -274,12 +276,14 @@ export function createReaderController({
       }
 
       const mathEnabled = Boolean(settings.isMathEnabled?.() ?? true);
+      const mathOutput = settings.getMathOutput?.() ?? "htmlAndMathml";
       const cached = getCachedRender(node);
-      if (cached?.source === source && cached?.mathEnabled === mathEnabled) {
+      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput) {
         cachedRender = true;
         renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
         const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
+        renderedMathSettings.set(node, { mathEnabled, mathOutput });
         if (diagnosticsEnabled) {
           domDurationMs = Math.max(0, nowRef() - domStartedAt);
           return createRenderDiagnosticSample();
@@ -292,9 +296,10 @@ export function createReaderController({
       if (diagnosticsEnabled) {
         markdownDurationMs = Math.max(0, nowRef() - markdownStartedAt);
       }
-      setCachedRender(node, { source, mathEnabled, html });
+      setCachedRender(node, { source, mathEnabled, mathOutput, html });
       const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
+      renderedMathSettings.set(node, { mathEnabled, mathOutput });
       if (diagnosticsEnabled) {
         domDurationMs = Math.max(0, nowRef() - domStartedAt);
         return createRenderDiagnosticSample();
@@ -1242,12 +1247,12 @@ export function createReaderController({
   function observeAndQueueEagerNodes(nodes: HTMLElement[]): number {
     const handled = observeCommentNodes(nodes);
     if (!requestIdleCallbackRef) {
-      renderNodes(nodes.filter((node) => !adapter.isRendered(node)));
+      renderNodes(nodes.filter((node) => !hasCurrentRenderedOutput(node)));
       return handled;
     }
 
     for (const node of nodes) {
-      if (adapter.isRendered(node)) {
+      if (hasCurrentRenderedOutput(node)) {
         continue;
       }
       eagerComments.add(node);
@@ -1286,7 +1291,7 @@ export function createReaderController({
           continue;
         }
 
-        if (adapter.isRendered(node)) {
+        if (hasCurrentRenderedOutput(node)) {
           pendingRenderNodes.delete(node);
           eagerComments.delete(node);
           continue;
@@ -2021,6 +2026,15 @@ export function createReaderController({
       `cacheEntries=${renderCache.size} cacheBytes=${renderCacheBytes} ` +
       `offscreenEntries=${offscreenRenderedNodes.size} offscreenBytes=${offscreenRenderedBytes}`
     );
+  }
+
+  function hasCurrentRenderedOutput(node: HTMLElement): boolean {
+    if (!adapter.isRendered(node)) return false;
+    // Mounted previews can outlive the HTML cache. Their math settings must
+    // still invalidate the lazy/eager scheduling shortcut after a live switch.
+    const rendered = renderedMathSettings.get(node);
+    return rendered?.mathEnabled === Boolean(settings.isMathEnabled?.() ?? true) &&
+      rendered.mathOutput === (settings.getMathOutput?.() ?? "htmlAndMathml");
   }
 
   function getCachedRender(node: HTMLElement): CachedRender | undefined {

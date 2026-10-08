@@ -175,6 +175,25 @@ test("clones visible KaTeX DOM and preserves source TeX in tooltips", () => {
   expect(heading.querySelector(".katex-mathml")).not.toBeNull();
 });
 
+test("clones native MathML into the outline without duplicating its TeX annotation", () => {
+  setup();
+  const rendered = document.createElement("div");
+  rendered.innerHTML = createMarkdownRenderer({ windowRef: window, getMathOutput: () => "mathml" })
+    .render("## 矩阵 $A^{-1}XA=\\Lambda X$ 的性质");
+  const heading = rendered.querySelector("h2");
+  const sourceMath = heading.querySelector("math");
+  document.querySelector(".annotation.selected h2").replaceWith(heading);
+  controller.sync();
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.title).toBe("矩阵 $A^{-1}XA=\\Lambda X$ 的性质");
+  expect(item.textContent).toBe("矩阵 A−1XA=ΛX 的性质");
+  expect(item.getAttribute("aria-label")).toBe(item.textContent);
+  expect(item.querySelector("math")).not.toBeNull();
+  expect(item.querySelector("math")).not.toBe(sourceMath);
+  expect(item.querySelector("annotation")).toBeNull();
+  expect(sourceMath.querySelector("annotation")).not.toBeNull();
+});
+
 test("resizes the outline text and available panel width on a live preference change", async () => {
   const { setFontScale } = setup({ viewportWidth: 420, initialExpanded: true });
   const outline = document.querySelector("[data-annotation-markdown-outline='true']");

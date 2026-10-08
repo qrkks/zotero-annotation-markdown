@@ -12,9 +12,11 @@ import markdownItTexmath from "markdown-it-texmath";
 
 import markdownItMarkColors from "./markdown-it-mark-colors.js";
 import type { MarkdownRenderer } from "./types.js";
+import type { MathOutput } from "./settings.js";
 
 interface MathPluginOptions {
   delimiters?: string[];
+  katexOptions?: { output?: MathOutput };
 }
 
 type MathPlugin = (markdown: MarkdownEngine, options?: MathPluginOptions) => unknown;
@@ -30,6 +32,7 @@ interface CreateMarkdownRendererOptions {
   mathPlugin?: MathPlugin | null;
   mathPluginOptions?: MathPluginOptions;
   isMathEnabled?: () => boolean;
+  getMathOutput?: () => MathOutput;
   windowRef?: Window | null;
 }
 
@@ -55,6 +58,7 @@ export function createMarkdownRenderer({
   mathMarkdown,
   mathPlugin = markdownItTexmath,
   mathPluginOptions = { delimiters: ["dollars", "brackets"] },
+  getMathOutput = () => mathPluginOptions?.katexOptions?.output ?? "htmlAndMathml",
   isMathEnabled = () => true,
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
@@ -65,16 +69,26 @@ export function createMarkdownRenderer({
     markdown ? plainMarkdown : createDefaultMarkdownEngine()
   );
   const purifier = createPurifier(windowRef);
+  // texmath retains this options object, so live switches do not rebuild its rules.
+  const katexOptions = { ...mathPluginOptions?.katexOptions };
+  const configuredMathOptions = { ...mathPluginOptions, katexOptions };
   let mathPluginLoaded = false;
 
   return {
     render(source: unknown): string {
       const text = normalizeMathDelimiters(String(source ?? ""));
+      const mathmlOnly = getMathOutput() === "mathml";
+      katexOptions.output = mathmlOnly ? "mathml" : "htmlAndMathml";
 
       try {
-        const html = getMarkdownForSource(text).render(text);
+        const generated = getMarkdownForSource(text).render(text);
+        const html = mathmlOnly ? wrapMathmlDisplayMath(generated) : generated;
         return purifier
-          ? purifier.sanitize(html, { ALLOWED_URI_REGEXP: SAFE_URI_PATTERN })
+          ? purifier.sanitize(html, {
+            ALLOWED_URI_REGEXP: SAFE_URI_PATTERN,
+            // Native MathML needs semantics intact; unwrapping annotation exposes TeX.
+            ...(mathmlOnly ? { ADD_TAGS: ["semantics", "annotation"], ADD_ATTR: ["encoding"] } : {})
+          })
           : html;
       } catch {
         // A malformed plugin input must not break Zotero's reader lifecycle.
@@ -94,13 +108,21 @@ export function createMarkdownRenderer({
       if (mathPluginOptions === undefined) {
         mathCapableMarkdown.use(mathPlugin);
       } else {
-        mathCapableMarkdown.use(mathPlugin, mathPluginOptions);
+        mathCapableMarkdown.use(mathPlugin, configuredMathOptions);
       }
       mathPluginLoaded = true;
     }
 
     return mathCapableMarkdown;
   }
+}
+
+function wrapMathmlDisplayMath(html: string): string {
+  // KaTeX's MathML-only branch omits the display wrapper used by our scroller.
+  return html.replace(
+    /<span class="katex">(<math\b[^>]*\bdisplay="block"[^>]*>[\s\S]*?<\/math>)<\/span>/g,
+    '<span class="katex-display"><span class="katex">$1</span></span>'
+  );
 }
 
 function createDefaultMarkdownEngine(): MarkdownIt {

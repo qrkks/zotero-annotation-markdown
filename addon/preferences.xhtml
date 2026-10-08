@@ -15,6 +15,19 @@
     <checkbox id="annotation-markdown-math-enabled"
               preference="extensions.annotationMarkdown.mathEnabled"
               label="Render LaTeX math formulas"/>
+    <vbox id="annotation-markdown-math-output-option" class="annotation-markdown-preference-suboption">
+      <hbox class="annotation-markdown-preference-field" align="center">
+        <label value="Math rendering" control="annotation-markdown-math-output"/>
+        <menulist id="annotation-markdown-math-output"
+          preference="extensions.annotationMarkdown.mathOutput">
+          <menupopup>
+            <menuitem label="Standard (default)" value="htmlAndMathml"/>
+            <menuitem label="Native MathML (Experimental)" value="mathml"/>
+          </menupopup>
+        </menulist>
+      </hbox>
+      <description class="annotation-markdown-preference-description">Native MathML can reduce formula rendering cost. Formula spacing and appearance may differ. Standard rendering remains the default.</description>
+    </vbox>
     <hbox class="annotation-markdown-preference-field" align="center">
       <label value="Markdown preview font size"/>
       <menulist id="annotation-markdown-font-scale"

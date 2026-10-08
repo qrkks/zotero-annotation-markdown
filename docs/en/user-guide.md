@@ -44,6 +44,7 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - pasting clipboard content into comments as plain text, recommended for AI responses so Markdown remains editable without imported rich-text formatting or hidden HTML;
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
 - LaTeX math rendering;
+- math rendering output: standard rendering by default, or optional native MathML (experimental);
 - showing a floating outline for annotations with multiple headings, enabled by default;
 - adjusting floating outline text size independently from 80% to 200%, with 100% preserving the previous size;
 - adding a `todo` annotation tag when a saved comment contains a `todo:`, `todo：`, `t:`, or `t：` directive, disabled by default;
@@ -51,6 +52,8 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - preview font size from 80% to 200%;
 - annotation rendering strategy;
 - experimental acceleration when clearing tag filters in very large annotation lists, disabled by default.
+
+**Math rendering** in **Reader Annotations** offers **Standard (default)** and **Native MathML (Experimental)**. Native MathML can reduce formula rendering cost in annotations with many formulas; it uses Zotero's native math layout, so spacing, height, and typography may differ. The option was validated on Windows with Zotero 10.0.5 and 10.0.6. Changing it refreshes open Readers and preserves the saved LaTeX source. Select **Standard (default)** to switch back at any time. The output picker is disabled while Markdown or LaTeX rendering is off.
 
 The rendering strategies are:
 

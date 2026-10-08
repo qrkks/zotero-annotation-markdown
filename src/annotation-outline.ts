@@ -594,7 +594,7 @@ function getHeadingLabel(heading: HTMLElement): string {
   for (const math of copy.querySelectorAll<HTMLElement>(".katex")) {
     const visible = math.querySelector<HTMLElement>(".katex-html");
     if (visible) math.replaceWith(visible.textContent ?? "");
-    else math.querySelector(".katex-mathml annotation")?.remove();
+    else math.querySelector("math annotation[encoding='application/x-tex']")?.remove();
   }
   return normalizeHeadingText(copy.textContent);
 }
@@ -604,21 +604,21 @@ function getHeadingTooltip(heading: HTMLElement): string {
   const copy = heading.cloneNode(true) as HTMLElement;
   for (const math of copy.querySelectorAll<HTMLElement>(".katex")) {
     const source = getKatexSource(math);
-    const fallback = math.querySelector<HTMLElement>(".katex-html")?.textContent ?? "";
+    const fallback = math.querySelector(".katex-html, math")?.textContent ?? "";
     math.replaceWith(source ? `$${source}$` : fallback);
   }
   return normalizeHeadingText(copy.textContent);
 }
 
 function getKatexSource(math: HTMLElement): string {
-  const annotation = math.querySelector<HTMLElement>(".katex-mathml annotation")
+  const annotation = math.querySelector("math annotation[encoding='application/x-tex']")
     ?.textContent?.trim();
   if (annotation) return annotation;
 
   // DOMPurify can unwrap KaTeX's annotation element while retaining its TeX
   // as a direct text node under <math>. MathML presentation text remains in
   // descendant elements, so direct text nodes are the stable sanitized fallback.
-  const mathml = math.querySelector<HTMLElement>(".katex-mathml math");
+  const mathml = math.querySelector("math");
   return Array.from(mathml?.childNodes ?? [])
     .filter(node => node.nodeType === 3)
     .map(node => node.textContent?.trim() ?? "")

@@ -238,6 +238,11 @@
     overflow-y: hidden;
 }
 
+.annotation-markdown-rendered .katex > math,
+.annotation-markdown-outline .katex > math {
+    font-family: math;
+}
+
 .annotation-markdown-rendered a {
     color: LinkText;
     cursor: pointer;

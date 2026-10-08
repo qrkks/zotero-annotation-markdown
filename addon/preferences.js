@@ -5,6 +5,7 @@ Zotero.AnnotationMarkdownPreferences = {
   pasteAsPlainTextKey: "extensions.annotationMarkdown.pasteAsPlainText",
   fastEditorKey: "extensions.annotationMarkdown.fastEditor",
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
+  mathOutputKey: "extensions.annotationMarkdown.mathOutput",
   outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
   outlineFontScalePercentKey: "extensions.annotationMarkdown.outlineFontScalePercent",
   autoTodoTagKey: "extensions.annotationMarkdown.autoTodoTag",
@@ -20,6 +21,8 @@ Zotero.AnnotationMarkdownPreferences = {
     const pasteAsPlainTextInput = documentRef.getElementById("annotation-markdown-paste-as-plain-text");
     const fastEditorInput = documentRef.getElementById("annotation-markdown-fast-editor");
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
+    const mathOutputOption = documentRef.getElementById("annotation-markdown-math-output-option");
+    const mathOutputSelect = documentRef.getElementById("annotation-markdown-math-output");
     const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
     const outlineFontScaleSelect = documentRef.getElementById("annotation-markdown-outline-font-scale");
     const autoTodoTagInput = documentRef.getElementById("annotation-markdown-auto-todo-tag");
@@ -35,6 +38,8 @@ Zotero.AnnotationMarkdownPreferences = {
       !pasteAsPlainTextInput ||
       !fastEditorInput ||
       !mathEnabledInput ||
+      !mathOutputOption ||
+      !mathOutputSelect ||
       !outlineEnabledInput ||
       !outlineFontScaleSelect ||
       !autoTodoTagInput ||
@@ -47,11 +52,18 @@ Zotero.AnnotationMarkdownPreferences = {
 
     enabledInput.checked = this.getPref(this.enabledKey, true);
     popupEnabledInput.checked = this.getPref(this.popupEnabledKey, false);
-    this.setPopupOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+    this.setDependentOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
     fontScaleSelect.value = String(this.getPref(this.fontScalePercentKey, 100));
     pasteAsPlainTextInput.checked = this.getPref(this.pasteAsPlainTextKey, true);
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
+    mathOutputSelect.value = this.getPref(this.mathOutputKey, "htmlAndMathml") === "mathml"
+      ? "mathml"
+      : "htmlAndMathml";
+    const syncMathOutputEnabled = () => {
+      this.setDependentOptionEnabled(mathOutputOption, mathOutputSelect, enabledInput.checked && mathEnabledInput.checked);
+    };
+    syncMathOutputEnabled();
     outlineEnabledInput.checked = this.getPref(this.outlineEnabledKey, true);
     outlineFontScaleSelect.value = String(this.getPref(this.outlineFontScalePercentKey, 100));
     autoTodoTagInput.checked = this.getPref(this.autoTodoTagKey, false);
@@ -62,10 +74,12 @@ Zotero.AnnotationMarkdownPreferences = {
 
     enabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.enabledKey, Boolean(enabledInput.checked), true);
-      this.setPopupOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+      this.setDependentOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+      syncMathOutputEnabled();
     });
     enabledInput.addEventListener("syncfrompreference", () => {
-      this.setPopupOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+      this.setDependentOptionEnabled(popupOption, popupEnabledInput, enabledInput.checked);
+      syncMathOutputEnabled();
     });
 
     popupEnabledInput.addEventListener("command", () => {
@@ -86,6 +100,13 @@ Zotero.AnnotationMarkdownPreferences = {
 
     mathEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.mathEnabledKey, Boolean(mathEnabledInput.checked), true);
+      syncMathOutputEnabled();
+    });
+    mathEnabledInput.addEventListener("syncfrompreference", syncMathOutputEnabled);
+
+    mathOutputSelect.addEventListener("command", () => {
+      const output = mathOutputSelect.value === "mathml" ? "mathml" : "htmlAndMathml";
+      Zotero.Prefs.set(this.mathOutputKey, output, true);
     });
 
     outlineEnabledInput.addEventListener("command", () => {
@@ -122,7 +143,7 @@ Zotero.AnnotationMarkdownPreferences = {
     return typeof value === typeof defaultValue ? value : defaultValue;
   },
 
-  setPopupOptionEnabled(container, input, enabled) {
+  setDependentOptionEnabled(container, input, enabled) {
     const disabled = !Boolean(enabled);
     input.disabled = disabled;
     if (disabled) {

@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add optional native MathML output under **Math rendering** in Settings, marked experimental and off by default. Switching output refreshes open Readers and preserves formula source; native formula spacing and typography may differ.
+
+### Fixed
+
+- Preserve formula scroll positions when identical preview output is refreshed after focus or DOM attribute changes, including wide formulas in page annotation popups.
+- Avoid packaging standalone KaTeX WOFF2 fonts that are already embedded in the stylesheet; retain WOFF and TTF fallbacks.
+
+### 新增
+
+- 在设置的 **Math rendering** 中添加默认关闭的原生 MathML 实验选项。切换后即时刷新已打开的 Reader，并保留公式源码；原生公式间距和字体外观可能有所不同。
+
+### 修复
+
+- 在焦点或 DOM 属性变化后刷新相同预览内容时保留公式滚动位置，包括页内标注弹窗中的宽公式。
+- 避免重复打包已嵌入样式表的 KaTeX WOFF2 字体，同时保留 WOFF 和 TTF 回退字体。
+
 ## 0.11.1 - 2026-10-07
 
 ### Fixed

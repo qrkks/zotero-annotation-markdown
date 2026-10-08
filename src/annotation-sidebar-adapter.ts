@@ -121,6 +121,7 @@ export function createAnnotationSidebarAdapter({
   useWeaveroLinkColors = () => false
 }: CreateAnnotationSidebarAdapterOptions = {}): AnnotationSidebarAdapter {
   const pendingCommittedSourceByAnnotationID = new Map<string, string>();
+  const appliedHtmlByPreview = new WeakMap<HTMLElement, string>();
 
   return {
     findCommentNodes(root: Node | null = documentRef) {
@@ -245,8 +246,15 @@ export function createAnnotationSidebarAdapter({
 
       preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
 
-      if (preview.innerHTML !== html) {
-        preview.innerHTML = html;
+      // Browser serialization and focus/decorating attributes can change the
+      // live DOM without changing the rendered content. Replacing it on a
+      // later scan destroys native math scrollers and resets their position.
+      if (
+        appliedHtmlByPreview.get(preview) !== html ||
+        (html.length > 0 && !preview.hasChildNodes())
+      ) {
+        if (preview.innerHTML !== html) preview.innerHTML = html;
+        appliedHtmlByPreview.set(preview, html);
       }
 
       preview.classList.toggle(
@@ -270,6 +278,7 @@ export function createAnnotationSidebarAdapter({
       }
 
       preview.textContent = this.getSourceText(node);
+      appliedHtmlByPreview.delete(preview);
       preview.setAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE, "true");
       showPreviewNode(preview);
       node.removeAttribute(RENDERED_ATTRIBUTE);
@@ -358,6 +367,7 @@ export function createAnnotationSidebarAdapter({
         queryRoot,
         `[${PREVIEW_ATTRIBUTE}='true'], .annotation-markdown-rendered, [${OUTLINE_ATTRIBUTE}='true']`
       )) {
+        appliedHtmlByPreview.delete(preview);
         preview.remove();
       }
 
