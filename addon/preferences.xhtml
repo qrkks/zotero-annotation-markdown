@@ -21,12 +21,12 @@
         <menulist id="annotation-markdown-math-output"
           preference="extensions.annotationMarkdown.mathOutput">
           <menupopup>
-            <menuitem label="Standard (default)" value="htmlAndMathml"/>
-            <menuitem label="Native MathML (Experimental)" value="mathml"/>
+            <menuitem label="KaTeX HTML + MathML (default)" value="htmlAndMathml"/>
+            <menuitem label="Native MathML only (Experimental)" value="mathml"/>
           </menupopup>
         </menulist>
       </hbox>
-      <description class="annotation-markdown-preference-description">Native MathML can reduce formula rendering cost. Formula spacing and appearance may differ. Standard rendering remains the default.</description>
+      <description class="annotation-markdown-preference-description">KaTeX HTML controls formula appearance and includes MathML for accessibility. Native MathML uses Zotero's built-in math layout and can reduce rendering cost; spacing and appearance may differ.</description>
     </vbox>
     <hbox class="annotation-markdown-preference-field" align="center">
       <label value="Markdown preview font size"/>

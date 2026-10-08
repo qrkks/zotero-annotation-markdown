@@ -44,8 +44,8 @@ describe("preferences pane", () => {
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
     expect(source).toContain('preference="extensions.annotationMarkdown.mathOutput"');
-    expect(source).toContain('<menuitem label="Standard (default)" value="htmlAndMathml"/>');
-    expect(source).toContain('<menuitem label="Native MathML (Experimental)" value="mathml"/>');
+    expect(source).toContain('<menuitem label="KaTeX HTML + MathML (default)" value="htmlAndMathml"/>');
+    expect(source).toContain('<menuitem label="Native MathML only (Experimental)" value="mathml"/>');
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineEnabled\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineFontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoTag\"");

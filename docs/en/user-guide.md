@@ -53,7 +53,7 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - annotation rendering strategy;
 - experimental acceleration when clearing tag filters in very large annotation lists, disabled by default.
 
-**Math rendering** in **Reader Annotations** offers **Standard (default)** and **Native MathML (Experimental)**. Native MathML can reduce formula rendering cost in annotations with many formulas; it uses Zotero's native math layout, so spacing, height, and typography may differ. The option was validated on Windows with Zotero 10.0.5 and 10.0.6. Changing it refreshes open Readers and preserves the saved LaTeX source. Select **Standard (default)** to switch back at any time. The output picker is disabled while Markdown or LaTeX rendering is off.
+**Math rendering** in **Reader Annotations** offers **KaTeX HTML + MathML (default)** and **Native MathML only (Experimental)**. The default uses KaTeX HTML for formula appearance and includes MathML for accessibility. Native MathML can reduce formula rendering cost in annotations with many formulas; it uses Zotero's native math layout, so spacing, height, and typography may differ. The option was validated on Windows with Zotero 10.0.5 and 10.0.6. Changing it refreshes open Readers and preserves the saved LaTeX source. Select **KaTeX HTML + MathML (default)** to switch back at any time. The output picker is disabled while Markdown or LaTeX rendering is off.
 
 The rendering strategies are:
 

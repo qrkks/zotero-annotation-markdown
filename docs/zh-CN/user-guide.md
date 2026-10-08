@@ -53,7 +53,7 @@
 - 选择标注渲染策略；
 - 是否实验性加速超大标注列表取消标签筛选后的恢复；默认关闭。
 
-**Reader Annotations** 分组中的 **Math rendering** 提供 **Standard (default)** 和 **Native MathML (Experimental)** 两种模式。原生 MathML 可以降低公式较多的标注的渲染开销，使用 Zotero 原生数学排版，因此公式间距、高度和字体外观可能有所不同。该选项已在 Windows 上的 Zotero 10.0.5 和 10.0.6 中验证。切换后会立即刷新已打开的 Reader，并保留保存的 LaTeX 源码；随时选择 **Standard (default)** 即可切回。关闭 Markdown 或 LaTeX 渲染时，渲染方式选择框会禁用。
+**Reader Annotations** 分组中的 **Math rendering** 提供 **KaTeX HTML + MathML (default)** 和 **Native MathML only (Experimental)** 两种模式。默认模式由 KaTeX HTML 负责公式的可视排版，并附带供辅助阅读使用的 MathML。原生 MathML 可以降低公式较多的标注的渲染开销，使用 Zotero 原生数学排版，因此公式间距、高度和字体外观可能有所不同。该选项已在 Windows 上的 Zotero 10.0.5 和 10.0.6 中验证。切换后会立即刷新已打开的 Reader，并保留保存的 LaTeX 源码；随时选择 **KaTeX HTML + MathML (default)** 即可切回。关闭 Markdown 或 LaTeX 渲染时，渲染方式选择框会禁用。
 
 渲染策略包括：
 

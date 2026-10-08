@@ -6,7 +6,7 @@ MathML-only is feasible on the tested Windows / Zotero 10.0.5 / Gecko 140.15.0 e
 
 ## Experimental implementation
 
-The experiment was developed on `qrkks/mathml-only-experiment`, based on `63cd4c9`, and integrated into `main` as an optional experimental setting. **Math rendering** in the preferences pane offers **Standard (default)** and **Native MathML (Experimental)**, backed by `extensions.annotationMarkdown.mathOutput`:
+The experiment was developed on `qrkks/mathml-only-experiment`, based on `63cd4c9`, and integrated into `main` as an optional experimental setting. **Math rendering** in the preferences pane offers **KaTeX HTML + MathML (default)** and **Native MathML only (Experimental)**, backed by `extensions.annotationMarkdown.mathOutput`:
 
 - `htmlAndMathml`: the existing output and the default.
 - `mathml`: native MathML output; changes refresh open Readers.
