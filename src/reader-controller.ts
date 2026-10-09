@@ -18,10 +18,15 @@ import { createNativeAnnotationRowLazyController } from "./native-annotation-row
 
 interface ReaderViewLike {
   _repositionPopups?(): void;
+  _openAnnotationPopup?(): void;
+  _annotationPopup?: unknown;
+  _container?: HTMLElement;
 }
 
 interface InternalReaderLike extends ReaderViewLike {
   _views?: ReaderViewLike[];
+  _annotationSelectionTriggeredFromView?: boolean;
+  _enableAnnotationDeletionFromComment?: boolean;
 }
 
 interface ReaderLike extends ReaderViewLike {
@@ -91,6 +96,10 @@ interface PopupRevealTask {
   layoutSignature?: string;
   stableFrames: number;
   renderComplete?: boolean;
+  renderSettlingDeadline?: boolean;
+  awaitingEmptyEditor?: boolean;
+  repositionAfterRender?: boolean;
+  clampBeforeReveal?: boolean;
 }
 
 interface CommittedAnnotationEdit {
@@ -676,6 +685,7 @@ export function createReaderController({
           return;
         }
 
+        renderPopupCommentsFromMutations(mutations);
         if (queueAddedCommentScans(mutations)) {
           return;
         }
@@ -694,6 +704,27 @@ export function createReaderController({
         scheduleAddedCommentScan();
       }
     }
+  }
+
+  function renderPopupCommentsFromMutations(mutations: MutationRecord[]): void {
+    if (!isPopupRenderingEnabled()) return;
+    const comments = new Set<HTMLElement>();
+    for (const mutation of mutations) {
+      // Zotero updates a reused Content editor in a passive React effect.
+      // Text-only child-list changes are deliberately ignored by the generic
+      // plugin-mutation filter, but this native source change cannot wait for
+      // the sidebar safety scan. ID changes alone may still carry old text.
+      if (mutation.type !== "childList") continue;
+      const target = getElementTarget(mutation.target);
+      if (!target?.closest(".annotation-popup") || target.closest(
+        "[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-outline='true']"
+      )) continue;
+      const comment = adapter.getCommentNodeForTarget?.(target);
+      if (comment && !adapter.isEditable(comment) && !adapter.isSuppressed?.(comment)) {
+        comments.add(comment);
+      }
+    }
+    renderNodes(Array.from(comments));
   }
 
   function queueAddedCommentScans(mutations: MutationRecord[]): boolean {
@@ -870,10 +901,7 @@ export function createReaderController({
             // restarting here can prevent the popup from ever settling.
             continue;
           }
-          if (
-            activeTask?.renderComplete ||
-            target.querySelector("[data-annotation-markdown-preview='true']")
-          ) {
+          if (activeTask?.renderComplete) {
             // Once Markdown has changed the popup's dimensions, a subsequent
             // host style write is the positioning signal we were waiting for.
             // Begin the quiet-frame gate unless geometry changes again first.
@@ -909,12 +937,22 @@ export function createReaderController({
       return;
     }
 
+    const previousTask = popupRevealTasks.get(popup);
+    const repositionAfterRender = previousTask?.repositionAfterRender ?? true;
+    const clampBeforeReveal = previousTask?.clampBeforeReveal ||
+      (force && preparedPopups.has(popup) && popup.hasAttribute(POPUP_READY_ATTRIBUTE));
     cancelPopupRevealTask(popup, { keepDeadline: true });
     preparedPopups.add(popup);
     popup.removeAttribute(POPUP_READY_ATTRIBUTE);
     popup.setAttribute(POPUP_POSITIONING_ATTRIBUTE, "true");
     outlineController?.sync();
-    const task: PopupRevealTask = { stableFrames: 0 };
+    const task: PopupRevealTask = {
+      stableFrames: 0,
+      repositionAfterRender,
+      clampBeforeReveal,
+      awaitingEmptyEditor: previousTask?.awaitingEmptyEditor,
+      renderSettlingDeadline: previousTask?.renderSettlingDeadline
+    };
     popupRevealTasks.set(popup, task);
     ensurePopupRevealDeadline(popup);
 
@@ -930,6 +968,8 @@ export function createReaderController({
   }
 
   function schedulePopupRevealAfterHostPosition(popup: HTMLElement): void {
+    const previousTask = popupRevealTasks.get(popup);
+    const clampBeforeReveal = previousTask?.clampBeforeReveal;
     cancelPopupRevealTask(popup, { keepDeadline: true });
     preparedPopups.add(popup);
     popup.removeAttribute(POPUP_READY_ATTRIBUTE);
@@ -938,6 +978,9 @@ export function createReaderController({
     const task: PopupRevealTask = {
       stableFrames: 0,
       renderComplete: true,
+      clampBeforeReveal,
+      repositionAfterRender: false,
+      renderSettlingDeadline: previousTask?.renderSettlingDeadline,
       layoutSignature: getPopupLayoutSignature(popup)
     };
     popupRevealTasks.set(popup, task);
@@ -957,8 +1000,40 @@ export function createReaderController({
       return;
     }
     const task = popupRevealTasks.get(popup);
-    if (task) {
+    if (task && !task.renderComplete && !adapter.isEditable(node)) {
+      const hasRenderedContent = Boolean(adapter.getSourceText(node).trim());
+      const internalReader = reader._internalReader as InternalReaderLike | undefined;
+      if (!hasRenderedContent && settings.isFastEditorEnabled?.() &&
+        internalReader?._annotationSelectionTriggeredFromView &&
+        internalReader?._enableAnnotationDeletionFromComment) {
+        // Zotero schedules empty page-origin comment focus after 50 ms. Its
+        // editor and our textarea have different heights; finish that handoff
+        // while hidden instead of revealing the temporary native shell.
+        task.awaitingEmptyEditor = true;
+        return;
+      }
+      task.awaitingEmptyEditor = false;
       task.renderComplete = true;
+      task.stableFrames = 0;
+      task.layoutSignature = undefined;
+      if (!task.renderSettlingDeadline) {
+        // Formula rendering can occupy the main thread past the mount timeout.
+        // Give the rendered popup its own bounded host-positioning interval;
+        // an overdue mount timer must not reveal the pre-render transform.
+        task.renderSettlingDeadline = true;
+        clearPopupRevealDeadline(popup);
+        ensurePopupRevealDeadline(popup);
+      }
+      if (hasRenderedContent) task.clampBeforeReveal = true;
+      if (task.repositionAfterRender && hasRenderedContent) {
+        // Both a first mount and a reused popup can have a native transform
+        // measured before Markdown. Ask Zotero to measure the rendered size.
+        task.repositionAfterRender = false;
+        repositionReaderPopups(reader);
+      }
+      if (task.frame === undefined && task.timeout === undefined) {
+        schedulePopupStabilityFrame(popup, task);
+      }
     }
   }
 
@@ -971,7 +1046,7 @@ export function createReaderController({
     }
 
     if (typeof windowRef?.requestAnimationFrame !== "function") {
-      revealPopup(popup);
+      if (task.renderComplete) revealPopup(popup);
       return;
     }
 
@@ -984,6 +1059,10 @@ export function createReaderController({
         cancelPopupRevealTask(popup);
         return;
       }
+
+      // An old preview in a reused popup can have perfectly stable geometry.
+      // Wait for this positioning lifecycle's render, then start fresh frames.
+      if (!task.renderComplete) return;
 
       const layoutSignature = getPopupLayoutSignature(popup);
       if (task.layoutSignature === layoutSignature) {
@@ -1005,7 +1084,12 @@ export function createReaderController({
     // A max-wait reveal can run while a quiet-frame callback is still queued.
     // Cancel every remaining callback before making READY permanent for this
     // popup instance.
+    const clampBeforeReveal = popupRevealTasks.get(popup)?.clampBeforeReveal;
     cancelPopupRevealTask(popup);
+    if (clampBeforeReveal) {
+      positionPopupFromNativeAnchor(reader, popup);
+      clampPopupToViewport(popup);
+    }
     // Mount the outline only after Zotero's popup geometry is stable. It stays
     // hidden until READY is applied below, so popup and outline become visible
     // atomically without inserting DOM during the host positioning lifecycle.
@@ -1031,6 +1115,14 @@ export function createReaderController({
         !popupRevealTasks.has(popup)
       ) {
         return;
+      }
+      if (!popupRevealTasks.get(popup)?.renderComplete) {
+        renderNodes(adapter.findCommentNodes(popup));
+        if (!popupRevealTasks.get(popup)?.renderComplete) {
+          // Active native/fast editors may prevent rendering. The bounded
+          // fallback can show that editor, but must never expose an old preview.
+          adapter.clearRenderedState?.(popup);
+        }
       }
       revealPopup(popup);
     }, POPUP_MAX_HIDDEN_MS);
@@ -1699,7 +1791,9 @@ export function createReaderController({
         return;
       }
 
-      adapter.tryShowFastEditorForEmptyPopupAnnotationID?.(annotationID);
+      if (adapter.tryShowFastEditorForEmptyPopupAnnotationID?.(annotationID)) {
+        settleEmptyPopupEditorBeforeReveal(annotationID);
+      }
     };
 
     if (typeof windowRef?.requestAnimationFrame === "function") {
@@ -1708,6 +1802,35 @@ export function createReaderController({
     }
 
     Promise.resolve().then(() => Promise.resolve().then(openStablePopupEditor));
+  }
+
+  function settleEmptyPopupEditorBeforeReveal(annotationID: string): void {
+    const comment = adapter.getCommentNodesForAnnotationID?.(annotationID)
+      .find(node => adapter.isPopupComment?.(node));
+    const popup = comment?.closest(".annotation-popup");
+    if (!popup || !isHTMLElement(popup)) return;
+    const task = popupRevealTasks.get(popup);
+    if (!task?.awaitingEmptyEditor || popup.hasAttribute(POPUP_READY_ATTRIBUTE)) return;
+    task.awaitingEmptyEditor = false;
+    task.renderComplete = true;
+    task.stableFrames = 0;
+    task.layoutSignature = undefined;
+    task.repositionAfterRender = false;
+    task.clampBeforeReveal = true;
+    if (task.frame !== undefined) windowRef?.cancelAnimationFrame?.(task.frame);
+    const afterEditorLayout = () => {
+      task.frame = undefined;
+      if (popupRevealTasks.get(popup) !== task || !popup.isConnected) return;
+      repositionReaderPopups(reader);
+      schedulePopupStabilityFrame(popup, task);
+    };
+    // showFastEditor queued textarea sizing/focus first. Measure after that
+    // callback, then apply the same quiet-frame gate as a rendered comment.
+    if (typeof windowRef?.requestAnimationFrame === "function") {
+      task.frame = windowRef.requestAnimationFrame(afterEditorLayout);
+    } else {
+      afterEditorLayout();
+    }
   }
 
   function registerEditingPauseHandlers(): void {
@@ -2504,15 +2627,77 @@ function repositionReaderPopups(reader: ReaderLike): void {
   const repositioned = new Set<ReaderViewLike>();
 
   for (const target of targets) {
-    if (repositioned.has(target) || typeof target?._repositionPopups !== "function") {
+    if (repositioned.has(target)) {
       continue;
     }
     repositioned.add(target);
     try {
-      target._repositionPopups();
+      if (typeof target?._repositionPopups === "function") {
+        target._repositionPopups();
+      } else if (target?._annotationPopup && typeof target._openAnnotationPopup === "function") {
+        // Zotero 10 PDFView has no _repositionPopups; reopening its already
+        // active selection runs ViewPopup's native final-size measurement.
+        target._openAnnotationPopup();
+      }
     } catch {
       // Zotero's private Reader shape can vary between releases. A failed
       // optional reposition must not break the completed comment save.
+    }
+  }
+}
+
+function positionPopupFromNativeAnchor(reader: ReaderLike, popup: HTMLElement): void {
+  const internalReader = reader._internalReader as InternalReaderLike | undefined;
+  const annotationID = popup.querySelector(".comment .content[id]")?.id;
+  const width = popup.offsetWidth;
+  const height = popup.offsetHeight;
+  const viewport = popup.parentElement?.getBoundingClientRect();
+  if (!annotationID || !width || !height || !viewport?.width || !viewport.height) return;
+
+  for (const target of [reader, internalReader, ...(internalReader?._views ?? [])]) {
+    try {
+      const active = target?._annotationPopup as {
+        annotation?: { id?: string }; rect?: number[];
+      } | undefined;
+      if (active?.annotation?.id !== annotationID || !Array.isArray(active.rect)) continue;
+      // Reader renders the view and popup into separate primary/secondary
+      // layers. Match the pane, not DOM containment of the view's container.
+      const popupPane = popup.closest(".primary-view, .secondary-view");
+      const viewPane = target?._container?.closest(".primary-view, .secondary-view");
+      if (popupPane && viewPane && popupPane.matches(".primary-view") !== viewPane.matches(".primary-view")) continue;
+      const rect = Array.from(active.rect);
+      if (rect.length !== 4 || !rect.every(Number.isFinite)) continue;
+      const padding = POPUP_VIEWPORT_PADDING_PX;
+      let left = (rect[0] + rect[2] - width) / 2;
+      let top: number;
+      let side: string;
+      // Match Zotero ViewPopup's placement with the final rendered dimensions.
+      // A delayed React commit will then write the position already revealed,
+      // rather than moving a clamped pre-render transform across the page.
+      if (left >= 0 && left + width <= viewport.width && rect[3] + height + padding < viewport.height) {
+        top = rect[3] + padding;
+        side = "bottom";
+      } else if (left >= 0 && left + width <= viewport.width && rect[1] - padding - height > 0) {
+        top = rect[1] - padding - height;
+        side = "top";
+      } else {
+        side = left < 0 ? "right" : left + width > viewport.width ? "left" :
+          rect[0] < viewport.width / 2 ? "right" : "left";
+        left = side === "right" ? rect[2] + padding : rect[0] - width - padding;
+        top = (rect[1] + rect[3] - height) / 2;
+        if (top < 0) top = rect[1];
+        else if (top + height > viewport.height) top = rect[3] - height;
+      }
+      left = Math.max(padding, Math.min(left, viewport.width - width - padding));
+      top = Math.max(padding, Math.min(top, viewport.height - height - padding));
+      popup.style.transform = `translate(${left}px, ${top}px)`;
+      for (const name of Array.from(popup.classList)) {
+        if (name && /^page-popup-(top|bottom|left|right)-center$/.test(name)) popup.classList.remove(name);
+      }
+      popup.classList.add(`page-popup-${side}-center`);
+      return;
+    } catch {
+      // Older Reader views may not expose a compatible active anchor.
     }
   }
 }

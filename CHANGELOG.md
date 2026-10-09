@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.12.2 - 2026-10-09
+
+### Fixed
+
+- Avoid showing the previous annotation preview and a temporary popup size when switching page annotations.
+- Position formula-heavy popups using their final rendered size before showing them, avoiding a later visible jump.
+- Wait for the fast editor's final size before showing a newly opened empty annotation popup.
+
+### 修复
+
+- 修复切换页内标注时短暂显示上一条预览、随后弹窗尺寸变化的问题。
+- 公式较多的弹窗在显示前按最终渲染尺寸定位，避免弹出后再次跳动。
+- 新打开的空标注弹窗等待快速编辑器尺寸稳定后再显示。
+
+Test results and limitations / 测试结果与适用范围：[popup regression evidence](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.12.2/docs/test-evidence/2026-10-09-popup-release-summary.md).
+
 ## 0.12.1 - 2026-10-08
 
 ### Fixed

@@ -236,6 +236,8 @@ describe("createReaderController", () => {
     await controller.start();
 
     const comment = document.querySelector(".annotation-popup .comment");
+    // Initial preview positioning is separate from an existing-comment save.
+    repositionPopups.mockClear();
     const editor = comment.querySelector(".editor");
     const content = comment.querySelector(".content");
     const nativeInput = vi.fn();
