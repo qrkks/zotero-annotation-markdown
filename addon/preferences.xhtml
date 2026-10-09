@@ -5,16 +5,17 @@
     <label><html:h2>Reader Annotations</html:h2></label>
     <checkbox id="annotation-markdown-enabled"
               preference="extensions.annotationMarkdown.enabled"
-              label="Render annotation comments as Markdown"/>
-    <vbox id="annotation-markdown-popup-option" class="annotation-markdown-preference-suboption">
+              label="Render sidebar annotation comments as Markdown"/>
+    <vbox id="annotation-markdown-popup-option">
       <checkbox id="annotation-markdown-popup-enabled"
                 preference="extensions.annotationMarkdown.popupEnabled"
                 label="Render page annotation popups as Markdown"/>
-      <description class="annotation-markdown-preference-description">Show formatted Markdown previews in page annotation popups. Off by default.</description>
+      <description class="annotation-markdown-preference-description">Show formatted Markdown previews in page annotation popups independently of sidebar rendering. Off by default.</description>
     </vbox>
     <checkbox id="annotation-markdown-math-enabled"
               preference="extensions.annotationMarkdown.mathEnabled"
               label="Render LaTeX math formulas"/>
+    <description class="annotation-markdown-preference-description">Enable sidebar or page-popup Markdown rendering to use formulas. Your formula settings are kept when both are off.</description>
     <vbox id="annotation-markdown-math-output-option" class="annotation-markdown-preference-suboption">
       <hbox class="annotation-markdown-preference-field" align="center">
         <label value="Math rendering" control="annotation-markdown-math-output"/>

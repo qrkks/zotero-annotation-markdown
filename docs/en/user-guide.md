@@ -39,7 +39,7 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 
 Open Zotero Settings and select the **Annotation Markdown** pane. The available settings control:
 
-- Markdown rendering for annotation comments;
+- Markdown rendering for sidebar annotation comments;
 - Markdown rendering for page annotation popups, disabled by default;
 - pasting clipboard content into comments as plain text, recommended for AI responses so Markdown remains editable without imported rich-text formatting or hidden HTML;
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
@@ -53,7 +53,9 @@ Open Zotero Settings and select the **Annotation Markdown** pane. The available 
 - annotation rendering strategy;
 - experimental acceleration when clearing tag filters in very large annotation lists, disabled by default.
 
-**Math rendering** in **Reader Annotations** offers **KaTeX HTML + MathML (default)** and **Native MathML only (Experimental)**. The default uses KaTeX HTML for formula appearance and includes MathML for accessibility. Native MathML can reduce formula rendering cost in annotations with many formulas; it uses Zotero's native math layout, so spacing, height, and typography may differ. The option was validated on Windows with Zotero 10.0.5 and 10.0.6. Changing it refreshes open Readers and preserves the saved LaTeX source. Select **KaTeX HTML + MathML (default)** to switch back at any time. The output picker is disabled while Markdown or LaTeX rendering is off.
+**Render sidebar annotation comments as Markdown** and **Render page annotation popups as Markdown** are peer switches. Either can be enabled on its own, or both can be enabled or disabled. Sidebar rendering defaults on; popup rendering defaults off. Their saved choices are retained independently. Both use the same preview font size, LaTeX settings, and math output. The rendering strategy applies to sidebar comments; popups render immediately when enabled.
+
+**Math rendering** in **Reader Annotations** offers **KaTeX HTML + MathML (default)** and **Native MathML only (Experimental)**. The default uses KaTeX HTML for formula appearance and includes MathML for accessibility. Native MathML can reduce formula rendering cost in annotations with many formulas; it uses Zotero's native math layout, so spacing, height, and typography may differ. The option was validated on Windows with Zotero 10.0.5 and 10.0.6. Changing it refreshes open Readers and preserves the saved LaTeX source. Select **KaTeX HTML + MathML (default)** to switch back at any time. Formula rendering is part of Markdown previews. When both sidebar and popup rendering are off, the formula checkbox and output picker are disabled while retaining their saved choices. Enabling either rendering scope restores the formula checkbox; the output picker also requires formula rendering to be on.
 
 The rendering strategies are:
 

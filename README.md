@@ -39,6 +39,7 @@ Screenshots use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.
 - A persistent floating outline with adjustable text size for navigating long annotations with multiple headings.
 - Optional automatic `todo` tags from `todo:` or `t:` lines in saved annotation comments.
 - [Fast source editing](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster) that remains responsive in books with many annotation tags.
+- Independent sidebar and page-popup rendering switches; enable either surface on its own, with shared font size and math settings.
 - Adjustable preview font size and rendering strategy.
 - An off-by-default Zotero 10.0.3 experiment that lazily restores native rows when a tag filter is cleared in very large annotation lists.
 - Sanitized output with a plain-text fallback on rendering failure.

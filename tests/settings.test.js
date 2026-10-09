@@ -3,6 +3,21 @@ import { describe, expect, test, vi } from "vitest";
 import { createSettings } from "../src/settings.ts";
 
 describe("createSettings", () => {
+  test("keeps existing sidebar and popup choices independent without rewriting stored preferences", () => {
+    const values = new Map([
+      ["extensions.annotationMarkdown.enabled", false],
+      ["extensions.annotationMarkdown.popupEnabled", true]
+    ]);
+    const prefs = { get: (key, fallback) => values.get(key) ?? fallback, set: vi.fn((key, value) => values.set(key, value)) };
+    const settings = createSettings({ prefs });
+    expect(settings.isEnabled()).toBe(false);
+    expect(settings.isPopupEnabled()).toBe(true);
+    expect(prefs.set).not.toHaveBeenCalled();
+    settings.setEnabled(true);
+    expect(settings.isPopupEnabled()).toBe(true);
+    settings.setPopupEnabled(false);
+    expect(settings.isEnabled()).toBe(true);
+  });
   test("defaults to enabled without a preference service", () => {
     const settings = createSettings();
 

@@ -5,13 +5,61 @@ import vm from "node:vm";
 import { describe, expect, test, vi } from "vitest";
 
 describe("preferences pane", () => {
-  test("presents popup rendering as an indented dependent option", async () => {
-    const css = await readFile(path.join(process.cwd(), "addon", "preferences.css"), "utf8");
+  test.each([
+    [false, false, false], [false, false, true],
+    [true, false, false], [true, false, true],
+    [false, true, false], [false, true, true],
+    [true, true, false], [true, true, true]
+  ])("gates math controls by rendering scopes: sidebar=%s popup=%s math=%s", async (sidebar, popup, math) => {
+    const f = await mathPreferenceFixture(sidebar, popup, math);
+    const input = f.controls.get("annotation-markdown-math-enabled");
+    const output = f.controls.get("annotation-markdown-math-output");
+    expect(input.disabled).toBe(!(sidebar || popup));
+    expect(input.getAttribute("disabled")).toBe(sidebar || popup ? null : "true");
+    expect(input.checked).toBe(math);
+    expect(output.disabled).toBe(!(sidebar || popup) || !math);
+    expect(output.value).toBe("mathml");
+    expect(f.set).not.toHaveBeenCalled();
+  });
 
-    expect(css).toMatch(/\.annotation-markdown-preference-suboption\s*\{[^}]*margin-inline-start:\s*2em;/);
-    expect(css).toMatch(
-      /\.annotation-markdown-preference-suboption\[data-disabled="true"\] \.annotation-markdown-preference-description\s*\{[^}]*color:\s*GrayText;/
-    );
+  test("restores saved math choices when either rendering scope is re-enabled", async () => {
+    const f = await mathPreferenceFixture(false, false, true);
+    const sidebar = f.controls.get("annotation-markdown-enabled");
+    const popup = f.controls.get("annotation-markdown-popup-enabled");
+    const math = f.controls.get("annotation-markdown-math-enabled");
+    const output = f.controls.get("annotation-markdown-math-output");
+    expect(math.disabled).toBe(true);
+    popup.checked = true;
+    popup.dispatch("command");
+    expect(math.disabled).toBe(false);
+    expect(output.disabled).toBe(false);
+    popup.checked = false;
+    popup.dispatch("syncfrompreference");
+    expect(math.disabled).toBe(true);
+    expect(math.checked).toBe(true);
+    expect(output.disabled).toBe(true);
+    sidebar.checked = true;
+    sidebar.dispatch("syncfrompreference");
+    expect(math.disabled).toBe(false);
+    expect(output.disabled).toBe(false);
+    expect(output.value).toBe("mathml");
+    expect(f.set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.mathEnabled", expect.anything(), true);
+    expect(f.set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.mathOutput", expect.anything(), true);
+    math.checked = false;
+    math.dispatch("command");
+    sidebar.checked = false;
+    sidebar.dispatch("command");
+    popup.checked = true;
+    popup.dispatch("command");
+    expect(math.disabled).toBe(false);
+    expect(math.checked).toBe(false);
+    expect(output.disabled).toBe(true);
+  });
+
+  test("presents sidebar and popup rendering as peer options", async () => {
+    const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
+    expect(source).toContain('label="Render sidebar annotation comments as Markdown"');
+    expect(source).toContain('<vbox id="annotation-markdown-popup-option">');
   });
 
   test("uses a XUL menulist for the font size picker", async () => {
@@ -24,10 +72,10 @@ describe("preferences pane", () => {
       "label=\"Render page annotation popups as Markdown\""
     );
     expect(source).toContain(
-      "Show formatted Markdown previews in page annotation popups. Off by default."
+      "Show formatted Markdown previews in page annotation popups independently of sidebar rendering. Off by default."
     );
     expect(source).toContain(
-      "id=\"annotation-markdown-popup-option\" class=\"annotation-markdown-preference-suboption\""
+      "id=\"annotation-markdown-popup-option\""
     );
     expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
     expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
@@ -245,10 +293,17 @@ describe("preferences pane", () => {
     popupEnabledInput.dispatch("command");
     enabledInput.checked = false;
     enabledInput.dispatch("command");
-    expect(popupEnabledInput.disabled).toBe(true);
-    expect(popupEnabledInput.getAttribute("disabled")).toBe("true");
-    expect(popupOption.getAttribute("data-disabled")).toBe("true");
+    expect(popupEnabledInput.disabled).toBe(false);
+    expect(popupEnabledInput.checked).toBe(true);
+    expect(popupEnabledInput.getAttribute("disabled")).toBeNull();
+    expect(popupOption.getAttribute("data-disabled")).toBeNull();
+    expect(mathOutputSelect.disabled).toBe(false);
+    popupEnabledInput.checked = false;
+    popupEnabledInput.dispatch("command");
     expect(mathOutputSelect.disabled).toBe(true);
+    popupEnabledInput.checked = true;
+    popupEnabledInput.dispatch("syncfrompreference");
+    expect(mathOutputSelect.disabled).toBe(false);
     enabledInput.checked = true;
     enabledInput.dispatch("command");
     expect(popupEnabledInput.disabled).toBe(false);
@@ -323,6 +378,23 @@ describe("preferences pane", () => {
     expect(set).not.toHaveBeenCalled();
   });
 });
+
+async function mathPreferenceFixture(sidebar, popup, math) {
+  const values = {
+    "extensions.annotationMarkdown.enabled": sidebar,
+    "extensions.annotationMarkdown.popupEnabled": popup,
+    "extensions.annotationMarkdown.mathEnabled": math,
+    "extensions.annotationMarkdown.mathOutput": "mathml"
+  };
+  const set = vi.fn();
+  const preferences = await loadPreferencesScript({ Prefs: { get: (key, global) => global ? values[key] : undefined, set } });
+  const controls = new Map();
+  preferences.init({ getElementById(id) {
+    if (!controls.has(id)) controls.set(id, createInput());
+    return controls.get(id);
+  } });
+  return { controls, set };
+}
 
 async function loadPreferencesScript(Zotero = { Prefs: { get: vi.fn(() => undefined), set: vi.fn() } }) {
   const source = await readFile(path.join(process.cwd(), "addon", "preferences.js"), "utf8");

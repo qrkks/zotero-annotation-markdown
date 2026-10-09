@@ -252,7 +252,7 @@ export function createReaderController({
     let cachedRender = false;
 
     try {
-      if (!settings.isEnabled()) {
+      if (!isCommentRenderingEnabled(node)) {
         if (adapter.isRendered(node) || adapter.hasPreview?.(node)) {
           if (adapter.restoreSourceDomForEditing) {
             adapter.restoreSourceDomForEditing(node);
@@ -398,7 +398,7 @@ export function createReaderController({
       }
       restoreNativePopupStateWhenDisabled();
       preparePopupPositioning(root, { force: true });
-      if (!settings.isEnabled()) {
+      if (!isAnyRenderingEnabled()) {
         nativeRowLazyController.refresh();
         outlineController?.stop();
         outlineController = undefined;
@@ -613,7 +613,7 @@ export function createReaderController({
 
   function startNow(renderNow: () => void): void {
     adapter.clearRenderedState?.(root);
-    if (!settings.isEnabled()) {
+    if (!isAnyRenderingEnabled()) {
       syncPopupFeatureState();
       styleElement?.remove();
       styleElement = undefined;
@@ -639,7 +639,7 @@ export function createReaderController({
       document: documentRef,
       MutationObserver: MutationObserverRef,
       ResizeObserver: windowRef?.ResizeObserver,
-      isEnabled: () => settings.isEnabled() && (settings.isOutlineEnabled?.() ?? true),
+      isEnabled: () => isAnyRenderingEnabled() && (settings.isOutlineEnabled?.() ?? true),
       isExpanded: () => settings.isOutlineExpanded?.() ?? false,
       setExpanded: expanded => settings.setOutlineExpanded?.(expanded),
       getFontScale: () => settings.getOutlineFontScale?.() ?? 1
@@ -799,7 +799,7 @@ export function createReaderController({
   }
 
   function flushAddedCommentScan(): void {
-    if (!settings.isEnabled()) {
+    if (!isAnyRenderingEnabled()) {
       pendingAddedCommentRoots.clear();
       return;
     }
@@ -1186,7 +1186,15 @@ export function createReaderController({
   }
 
   function isPopupRenderingEnabled(): boolean {
-    return settings.isEnabled() && (settings.isPopupEnabled?.() ?? true);
+    return settings.isPopupEnabled?.() ?? settings.isEnabled();
+  }
+
+  function isAnyRenderingEnabled(): boolean {
+    return settings.isEnabled() || isPopupRenderingEnabled();
+  }
+
+  function isCommentRenderingEnabled(node: HTMLElement): boolean {
+    return adapter.isPopupComment?.(node) ? isPopupRenderingEnabled() : settings.isEnabled();
   }
 
   function syncPopupFeatureState(): void {
@@ -1277,6 +1285,11 @@ export function createReaderController({
       ? nodes.filter((node) => !adapter.isPopupComment?.(node))
       : nodes;
     const popupHandled = renderNodes(popupNodes);
+    if (!settings.isEnabled()) {
+      // Restore any former sidebar previews, without scheduling sidebar work.
+      renderNodes(regularNodes);
+      return { mode: "sync", handled: popupHandled, filtered: popupFiltered + regularNodes.length };
+    }
     if (regularNodes.length === 0) {
       return { mode: "sync", handled: popupHandled, filtered: popupFiltered };
     }
@@ -1512,7 +1525,7 @@ export function createReaderController({
       return;
     }
     annotationScrollbarHandler = (event: Event) => {
-      if (!settings.isEnabled()) {
+      if (!isAnyRenderingEnabled()) {
         clearAnnotationScrollbarInteraction();
         return;
       }
@@ -1726,7 +1739,7 @@ export function createReaderController({
             recovery: createAnnotationEscapeRecovery({
               document: documentRef,
               getComment: () => adapter.getCommentNodeForAnnotationID?.(detail.annotationID) ?? comment,
-              isEnabled: () => settings.isEnabled()
+              isEnabled: () => isCommentRenderingEnabled(comment)
             })
           };
         }

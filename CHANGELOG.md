@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.12.3 - 2026-10-09
+
+### Changed
+
+- Make the existing sidebar and page-popup Markdown rendering controls independent peers, preserving their saved choices and shared font/math settings.
+
+### Fixed
+
+- Disable formula controls when both Markdown rendering scopes are off. Re-enabling either scope restores the controls with the saved formula choice and output mode.
+
+### 变更
+
+- 将侧栏与页内弹窗的 Markdown 渲染改为平级开关，支持只开启弹窗渲染，并共用字号和公式设置。
+
+### 修复
+
+- 两个 Markdown 渲染都关闭时禁用公式设置；重新开启任一渲染后恢复控件，并保留已有的公式开关和输出方式选择。
+
+Test results and limitations / 测试结果与适用范围：[rendering controls validation](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.12.3/docs/test-evidence/2026-10-09-rendering-controls-release.md).
+
 ## 0.12.2 - 2026-10-09
 
 ### Fixed

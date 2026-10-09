@@ -27,6 +27,7 @@ export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
 
 /** Settings consumed by rendering and preference UI integration. */
 export interface Settings {
+  /** Sidebar rendering; keeps the existing enabled preference and its value. */
   isEnabled(): boolean;
   setEnabled(enabled: boolean): void;
   isPopupEnabled(): boolean;

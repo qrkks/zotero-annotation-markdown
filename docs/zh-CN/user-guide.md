@@ -39,7 +39,7 @@
 
 打开 Zotero 设置并选择 **Annotation Markdown** 面板。当前设置包括：
 
-- 是否渲染标注评论中的 Markdown；
+- 是否渲染侧边栏标注评论中的 Markdown；
 - 是否在页内标注弹窗中渲染 Markdown；默认关闭；
 - 是否把剪贴板内容以纯文本形式粘贴到评论中；推荐在粘贴 AI 回复时启用，使 Markdown 保持可编辑，并避免带入富文本格式或隐藏 HTML；
 - 是否使用快速评论编辑器；该功能默认开启，也可以关闭并恢复 Zotero 原生编辑器；
@@ -53,7 +53,7 @@
 - 选择标注渲染策略；
 - 是否实验性加速超大标注列表取消标签筛选后的恢复；默认关闭。
 
-**Reader Annotations** 分组中的 **Math rendering** 提供 **KaTeX HTML + MathML (default)** 和 **Native MathML only (Experimental)** 两种模式。默认模式由 KaTeX HTML 负责公式的可视排版，并附带供辅助阅读使用的 MathML。原生 MathML 可以降低公式较多的标注的渲染开销，使用 Zotero 原生数学排版，因此公式间距、高度和字体外观可能有所不同。该选项已在 Windows 上的 Zotero 10.0.5 和 10.0.6 中验证。切换后会立即刷新已打开的 Reader，并保留保存的 LaTeX 源码；随时选择 **KaTeX HTML + MathML (default)** 即可切回。关闭 Markdown 或 LaTeX 渲染时，渲染方式选择框会禁用。
+**Reader Annotations** 分组中的 **Math rendering** 提供 **KaTeX HTML + MathML (default)** 和 **Native MathML only (Experimental)** 两种模式。默认模式由 KaTeX HTML 负责公式的可视排版，并附带供辅助阅读使用的 MathML。原生 MathML 可以降低公式较多的标注的渲染开销，使用 Zotero 原生数学排版，因此公式间距、高度和字体外观可能有所不同。该选项已在 Windows 上的 Zotero 10.0.5 和 10.0.6 中验证。切换后会立即刷新已打开的 Reader，并保留保存的 LaTeX 源码；随时选择 **KaTeX HTML + MathML (default)** 即可切回。公式渲染是 Markdown 预览的一部分。侧栏和弹窗渲染都关闭时，公式开关与输出方式选择框会置灰，但保留已有选择。重新开启任一渲染后，公式开关恢复可用；输出方式选择框还需要开启公式渲染。
 
 渲染策略包括：
 
@@ -66,6 +66,8 @@
 设置会自动保存。Markdown 预览字号位于 **Reader Annotations** 分组中，紧邻渲染选项。如果阅读器没有反映新的设置，可以关闭并重新打开该阅读器，或重启 Zotero。
 
 ## 预览与编辑状态
+
+**Render sidebar annotation comments as Markdown** 与 **Render page annotation popups as Markdown** 是两个平级开关，可以只开其中一项，也可以同时开启或关闭。侧栏渲染默认开启，弹窗渲染默认关闭；两项分别保留已有的勾选状态。预览字号、LaTeX 设置和公式输出方式由两者共用。渲染策略只控制侧栏评论，开启弹窗渲染后弹窗会即时处理。
 
 标注未处于编辑状态时，评论显示为渲染后的预览。默认点击侧栏评论后会使用更快的源码编辑器；失焦或按 Esc 时保存修改。关闭 **Use the fast annotation comment editor** 后会恢复 Zotero 原生侧栏编辑路径。侧栏标注折叠时仍沿用 Zotero 的紧凑显示方式。
 
