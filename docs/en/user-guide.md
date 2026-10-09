@@ -17,6 +17,8 @@
 
 Enable **Render SVG code blocks (Experimental)** in Settings to preview static diagrams in fenced `svg` blocks. The option is off by default and available when sidebar or page-popup Markdown rendering is enabled. Changes refresh open Readers. Zotero still saves the original Markdown and SVG text; no attachment or external image service is created.
 
+When copying a whole AI reply, a diagram may arrive in a code block without a language label. Such blocks are also recognized when their entire contents form one complete SVG document, with optional whitespace, XML declaration and comments. The same SVG option and restrictions apply. Ordinary code, incomplete fragments, and blocks explicitly labeled `xml`, `html`, `text` or another language remain code. Use one of those labels when you want to display SVG source instead of a diagram.
+
 ~~~~markdown
 ```svg
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100">

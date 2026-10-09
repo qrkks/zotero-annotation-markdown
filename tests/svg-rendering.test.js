@@ -7,6 +7,7 @@ import { createSettings } from "../src/settings.ts";
 
 const simple = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280"><rect width="640" height="280" fill="#f8fafc"/><text x="20" y="35" font-size="18">Jordan 变换</text><polygon points="20,200 130,200 185,90 75,90" fill="#fbbf24"/></svg>';
 const fence = source => `\`\`\`svg\n${source}\n\`\`\``;
+const unlabeledFence = source => `\`\`\`\n${source}\n\`\`\``;
 const render = source => createMarkdownRenderer({ isSvgEnabled: () => true }).render(fence(source));
 function imageSvg(html) {
   const root = document.createElement("div");
@@ -46,6 +47,68 @@ describe("opt-in SVG fences", () => {
     expect(imageSvg(renderer.render(simple))).toBeNull();
     expect(imageSvg(render(simple))).toContain("Jordan 变换");
     expect(createSettings().isSvgEnabled()).toBe(false);
+  });
+
+  test.each([false, true])("recognizes a complete unlabeled SVG in a copied reply (math enabled: %s)", mathEnabled => {
+    const source = readFileSync("tests/fixtures/jordan.svg", "utf8");
+    const reply = `**Jordan diagram** $x^2$\n\n${unlabeledFence(source)}\n\nThe original source stays editable.\n\n${unlabeledFence("const x = 2;")}`;
+    const html = createMarkdownRenderer({ isSvgEnabled: () => true, isMathEnabled: () => mathEnabled }).render(reply);
+    const root = document.createElement("div"); root.innerHTML = html;
+    expect(root.querySelectorAll(".annotation-markdown-svg-image")).toHaveLength(1);
+    expect(imageSvg(html)).toContain("Jordan 变换后");
+    expect(root.querySelector("strong").textContent).toBe("Jordan diagram");
+    expect(Boolean(root.querySelector(".katex"))).toBe(mathEnabled);
+    expect([...root.querySelectorAll("code")].map(node => node.textContent)).toContain(`${source}\n`);
+    expect(root.textContent).toContain("const x = 2;");
+    expect(root.querySelector("svg")).toBeNull();
+    expect(imageSvg(createMarkdownRenderer().render(reply))).toBeNull();
+  });
+
+  test.each([
+    ` \n${simple}\n `,
+    `<?xml version="1.0" encoding="UTF-8"?>\n<!-- copied diagram -->\n${simple}\n<!-- end -->`,
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"/>'
+  ])("recognizes a standalone unlabeled SVG document (%#)", source => {
+    const renderer = createMarkdownRenderer({ isSvgEnabled: () => true });
+    expect(imageSvg(renderer.render(unlabeledFence(source)))).not.toBeNull();
+    expect(imageSvg(renderer.render(`~~~   \n${source}\n~~~`))).not.toBeNull();
+  });
+
+  test.each([
+    "ordinary code",
+    `const diagram = '${simple}';`,
+    `Example:\n${simple}`,
+    `${simple}\nexplanation`,
+    `${simple}\n${simple}`,
+    `<div>${simple}</div>`,
+    '<rect width="100" height="100"/>',
+    '<svg xmlns="http://www.w3.org/2000/svg"><text>unfinished',
+    '<svg xmlns="http://www.w3.org/1999/xhtml" viewBox="0 0 100 100"/>',
+    '<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"/>'
+  ])("leaves unlabeled examples and SVG fragments as ordinary code (%#)", source => {
+    const markdown = unlabeledFence(source);
+    expect(createMarkdownRenderer({ isSvgEnabled: () => true }).render(markdown))
+      .toBe(createMarkdownRenderer().render(markdown));
+  });
+
+  test.each(["xml", "html", "text", "javascript", "svg example"])("respects an explicit %s code-block language", language => {
+    const markdown = `\`\`\`${language}\n${simple}\n\`\`\``;
+    expect(createMarkdownRenderer({ isSvgEnabled: () => true }).render(markdown))
+      .toBe(createMarkdownRenderer().render(markdown));
+  });
+
+  test.each([
+    simple.replace('<rect ', '<rect onload="alert(1)" '),
+    simple.replace('<rect ', '<rect style="fill:red" '),
+    simple.replace('<rect width="640" height="280" fill="#f8fafc"/>', '<image href="https://example.com/x.png"/>'),
+    simple.replace("Jordan 变换", "x".repeat(33000))
+  ])("applies the same SVG restrictions to inferred fences (%#)", source => {
+    const html = createMarkdownRenderer({ isSvgEnabled: () => true }).render(unlabeledFence(source));
+    expect(imageSvg(html)).toBeNull();
+    expect(html).toContain("annotation-markdown-svg-error");
+    const root = document.createElement("div"); root.innerHTML = html;
+    expect(root.querySelector("code").textContent).toBe(`${source}\n`);
+    expect(root.querySelector("svg, script, style")).toBeNull();
   });
 
   test("renders mixed Markdown, math and multiple isolated images", () => {

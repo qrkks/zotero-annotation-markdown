@@ -138,9 +138,9 @@ function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: Ret
   const originalFence = markdown.renderer.rules.fence!;
   markdown.renderer.rules.fence = (tokens, index, options, env, self) => {
     const fallback = originalFence(tokens, index, options, env, self);
-    return isSvgEnabled() && tokens[index].info.trim().toLowerCase() === "svg"
-      ? renderSvg(tokens[index].content, fallback)
-      : fallback;
+    const language = tokens[index].info.trim().toLowerCase();
+    if (!isSvgEnabled() || (language && language !== "svg")) return fallback;
+    return renderSvg(tokens[index].content, fallback, { inferFromSource: !language });
   };
   return markdown;
 }

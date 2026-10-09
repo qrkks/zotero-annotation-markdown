@@ -39,7 +39,12 @@ const ENUMS: Record<string, RegExp> = {
 
 export function createSvgRenderer(windowRef: Window | null) {
   const purifier = windowRef?.document ? createDOMPurify(windowRef as unknown as WindowLike) : null;
-  return (source: string, codeFallback: string): string => {
+  return (source: string, codeFallback: string, { inferFromSource = false }: { inferFromSource?: boolean } = {}): string => {
+    // This is only a cheap candidate check. XML parsing below must confirm that
+    // the entire unlabeled block is one SVG document before applying SVG policy.
+    if (inferFromSource && !/^\s*(?:<\?xml\b[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?=[\s/>])/.test(source.slice(0, SVG_LIMITS.sourceChars))) {
+      return codeFallback;
+    }
     try {
       if (!windowRef || !purifier?.isSupported) throw new Error("SVG rendering is unavailable.");
       if (source.length > SVG_LIMITS.sourceChars) throw new Error("SVG source exceeds 32,000 characters.");
@@ -47,6 +52,7 @@ export function createSvgRenderer(windowRef: Window | null) {
       const xml: Document = new windowRef.DOMParser().parseFromString(source, "application/xml");
       const root = xml.documentElement;
       if (xml.querySelector("parsererror") || root.localName !== "svg" || root.namespaceURI !== SVG_NS) {
+        if (inferFromSource) return codeFallback;
         throw new Error("SVG must be a well-formed SVG document.");
       }
       if (Array.from(xml.childNodes).some(node => node.nodeType === 7)) throw new Error("SVG processing instructions are unsupported.");

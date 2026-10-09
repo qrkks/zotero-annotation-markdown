@@ -17,6 +17,8 @@
 
 在设置中开启 **Render SVG code blocks (Experimental)**，即可预览 fenced `svg` 代码块中的静态图。默认关闭；开启侧栏或页内弹窗 Markdown 渲染后可用。切换会刷新已打开的 Reader。Zotero 仍保存原始 Markdown 和 SVG 文本，不会创建附件，也不依赖外部图片服务。
 
+复制 AI 的整段回复时，图示可能位于没有语言标记的代码块中。只要整个代码块是一份完整 SVG 文档，也会自动识别；可包含外围空白、XML 声明和注释。仍由同一个 SVG 开关控制，并遵守相同限制。普通代码、不完整片段，以及明确标记为 `xml`、`html`、`text` 等其他语言的代码块继续显示源码。想展示 SVG 源码时，可使用这些语言标记。
+
 ~~~~markdown
 ```svg
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100">
