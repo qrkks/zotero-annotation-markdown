@@ -24,6 +24,7 @@ import {
   LIGHTWEIGHT_MODE_PREF_KEY,
   MATH_ENABLED_PREF_KEY,
   MATH_OUTPUT_PREF_KEY,
+  SVG_ENABLED_PREF_KEY,
   NATIVE_ROW_LAZY_PREF_KEY,
   OUTLINE_ENABLED_PREF_KEY,
   PERFORMANCE_DIAGNOSTICS_PREF_KEY,
@@ -191,6 +192,7 @@ export function createPlugin({
             renderer: createMarkdownRenderer({
               isMathEnabled: () => settings.isMathEnabled(),
               getMathOutput: () => settings.getMathOutput(),
+              isSvgEnabled: () => settings.isSvgEnabled(),
               windowRef: readerWindow
             }),
             settings,
@@ -375,6 +377,7 @@ function registerPreferenceObservers(
     [FONT_SCALE_PERCENT_PREF_KEY, true],
     [MATH_ENABLED_PREF_KEY, true],
     [MATH_OUTPUT_PREF_KEY, true],
+    [SVG_ENABLED_PREF_KEY, true],
     [OUTLINE_ENABLED_PREF_KEY, true],
     [OUTLINE_FONT_SCALE_PERCENT_PREF_KEY, true],
     [LIGHTWEIGHT_MODE_PREF_KEY, true],

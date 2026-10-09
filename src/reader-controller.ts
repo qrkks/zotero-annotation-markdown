@@ -15,6 +15,7 @@ import { trackAnnotationScrollTarget } from "./annotation-scroll-target.js";
 import { createAnnotationEscapeRecovery, type EscapeScrollRecovery } from "./annotation-escape-scroll.js";
 import { trackAnnotationOutline, type AnnotationOutlineController } from "./annotation-outline.js";
 import { createNativeAnnotationRowLazyController } from "./native-annotation-row-lazy.js";
+import { createSvgPreviewViewer, isSvgPreviewControl, isSvgViewerTarget } from "./svg-preview-viewer.js";
 
 interface ReaderViewLike {
   _repositionPopups?(): void;
@@ -68,6 +69,7 @@ interface CachedRender {
   source: string;
   mathEnabled: boolean;
   mathOutput: string;
+  svgEnabled: boolean;
   html: string;
   sizeBytes?: number;
 }
@@ -215,7 +217,7 @@ export function createReaderController({
   let addedCommentScanTimer: number | undefined;
   let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
   const renderCache = new Map<RenderCacheKey, CachedRender>();
-  const renderedMathSettings = new WeakMap<HTMLElement, Pick<CachedRender, "mathEnabled" | "mathOutput">>();
+  const renderedMathSettings = new WeakMap<HTMLElement, Pick<CachedRender, "mathEnabled" | "mathOutput" | "svgEnabled">>();
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
   const renderedNodeWeights = new WeakMap<HTMLElement, number>();
@@ -229,6 +231,11 @@ export function createReaderController({
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader.document ?? globalThis.document;
   const windowRef = documentRef.defaultView ?? globalThis.window;
+  const svgViewer = createSvgPreviewViewer({
+    document: documentRef,
+    isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
+    beforeOpen: () => adapter.closeActiveFastEditor?.() ?? true
+  });
   const IntersectionObserverCtor = IntersectionObserverRef ?? windowRef?.IntersectionObserver ?? globalThis.IntersectionObserver;
   const requestIdleCallbackRef = requestIdleCallbackOverride ??
     windowRef.requestIdleCallback?.bind(windowRef) as RequestIdleCallbackLike | undefined;
@@ -286,13 +293,14 @@ export function createReaderController({
 
       const mathEnabled = Boolean(settings.isMathEnabled?.() ?? true);
       const mathOutput = settings.getMathOutput?.() ?? "htmlAndMathml";
+      const svgEnabled = Boolean(settings.isSvgEnabled?.());
       const cached = getCachedRender(node);
-      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput) {
+      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput && cached?.svgEnabled === svgEnabled) {
         cachedRender = true;
         renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
         const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
-        renderedMathSettings.set(node, { mathEnabled, mathOutput });
+        renderedMathSettings.set(node, { mathEnabled, mathOutput, svgEnabled });
         if (diagnosticsEnabled) {
           domDurationMs = Math.max(0, nowRef() - domStartedAt);
           return createRenderDiagnosticSample();
@@ -305,10 +313,10 @@ export function createReaderController({
       if (diagnosticsEnabled) {
         markdownDurationMs = Math.max(0, nowRef() - markdownStartedAt);
       }
-      setCachedRender(node, { source, mathEnabled, mathOutput, html });
+      setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, html });
       const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
-      renderedMathSettings.set(node, { mathEnabled, mathOutput });
+      renderedMathSettings.set(node, { mathEnabled, mathOutput, svgEnabled });
       if (diagnosticsEnabled) {
         domDurationMs = Math.max(0, nowRef() - domStartedAt);
         return createRenderDiagnosticSample();
@@ -376,6 +384,7 @@ export function createReaderController({
     },
 
     refresh() {
+      svgViewer.close(false);
       clearEscapeScrollRecovery();
       stopScrollTargetTracking?.();
       stopScrollTargetTracking = undefined;
@@ -399,6 +408,7 @@ export function createReaderController({
       restoreNativePopupStateWhenDisabled();
       preparePopupPositioning(root, { force: true });
       if (!isAnyRenderingEnabled()) {
+        svgViewer.stop();
         nativeRowLazyController.refresh();
         outlineController?.stop();
         outlineController = undefined;
@@ -408,6 +418,7 @@ export function createReaderController({
         syncPopupFeatureState();
         return;
       }
+      svgViewer.start();
       registerPasteHandler();
       registerAnnotationScrollbarHandlers();
       registerFastEditorHandlers();
@@ -422,6 +433,7 @@ export function createReaderController({
 
     stop() {
       shutdownCleanupFailures = [];
+      runShutdownStep(() => svgViewer.stop());
       runShutdownStep(() => nativeRowLazyController.stop());
       runShutdownStep(clearEscapeScrollRecovery);
       runShutdownStep(() => outlineController?.stop());
@@ -620,6 +632,7 @@ export function createReaderController({
       return;
     }
     injectStyles();
+    svgViewer.start();
     syncPopupFeatureState();
     registerPasteHandler();
     registerAnnotationScrollbarHandlers();
@@ -1602,6 +1615,7 @@ export function createReaderController({
     }
 
     fastEditorExitHandler = (event: Event) => {
+      if (isSvgPreviewControl(event.target) || isSvgViewerTarget(event.target)) return;
       if (
         adapter.isOutlineTarget?.(event.target) &&
         (event.type === "pointerdown" || event.type === "mousedown" || event.type === "focusin")
@@ -1659,6 +1673,7 @@ export function createReaderController({
     };
 
     fastEditorEntryHandler = (event: Event) => {
+      if (isSvgPreviewControl(event.target) || isSvgViewerTarget(event.target)) return;
       if (adapter.isFastEditorTarget?.(event.target) || adapter.isOutlineTarget?.(event.target)) {
         return;
       }
@@ -2170,7 +2185,8 @@ export function createReaderController({
     // still invalidate the lazy/eager scheduling shortcut after a live switch.
     const rendered = renderedMathSettings.get(node);
     return rendered?.mathEnabled === Boolean(settings.isMathEnabled?.() ?? true) &&
-      rendered.mathOutput === (settings.getMathOutput?.() ?? "htmlAndMathml");
+      rendered.mathOutput === (settings.getMathOutput?.() ?? "htmlAndMathml") &&
+      rendered.svgEnabled === Boolean(settings.isSvgEnabled?.());
   }
 
   function getCachedRender(node: HTMLElement): CachedRender | undefined {

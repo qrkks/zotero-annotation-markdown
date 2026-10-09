@@ -13,6 +13,25 @@
 - Raw HTML is not trusted; rendered output is sanitized.
 - Rendering failures leave the original plain text visible.
 
+### SVG diagrams (Experimental)
+
+Enable **Render SVG code blocks (Experimental)** in Settings to preview static diagrams in fenced `svg` blocks. The option is off by default and available when sidebar or page-popup Markdown rendering is enabled. Changes refresh open Readers. Zotero still saves the original Markdown and SVG text; no attachment or external image service is created.
+
+~~~~markdown
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100">
+  <rect x="10" y="10" width="300" height="80" rx="8" fill="#eff6ff"/>
+  <text x="160" y="56" text-anchor="middle" font-size="18" fill="#1e293b">My diagram</text>
+</svg>
+```
+~~~~
+
+Images fit the preview width. **View larger** opens the same sanitized image at its intrinsic size in a scrollable viewer. Close it with **Close**, Escape, or the backdrop. Tab stays inside the viewer. Ordinary image clicks follow the existing source-editing workflow.
+
+Supported SVG includes basic shapes, paths, groups, text/tspan, local arrow markers, and local linear/radial gradients. Use presentation attributes such as `fill`, `stroke`, and `font-size`. CSS/style attributes, embedded HTML, external resources, `use`, animation, filters, document declarations and foreign namespaces are unsupported. SVG labels are literal text; LaTeX is rendered only in the surrounding Markdown. Image labels cannot be selected as Markdown text.
+
+Each block is limited to 32,000 source characters, 512 elements, 32 nesting levels and image/viewBox dimensions of at most 4096 × 4096. A viewBox or numeric width and height is required. Malformed, unsupported or oversized SVG shows a short reason and the escaped code block. A failed image load also reveals the code. To generate compatible diagrams with an AI tool, request a fenced `svg` block with a viewBox, basic shapes and text, styles expressed as attributes, and no external resources.
+
 ### Highlight colors
 
 Use `==text==` for the default yellow highlight. Put one supported color suffix immediately after the closing `==` to select another preset:

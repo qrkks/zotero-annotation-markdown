@@ -13,6 +13,25 @@
 - 不信任原始 HTML，渲染结果会经过清理。
 - Markdown 渲染失败时保留原始纯文本。
 
+### SVG 示意图（实验性）
+
+在设置中开启 **Render SVG code blocks (Experimental)**，即可预览 fenced `svg` 代码块中的静态图。默认关闭；开启侧栏或页内弹窗 Markdown 渲染后可用。切换会刷新已打开的 Reader。Zotero 仍保存原始 Markdown 和 SVG 文本，不会创建附件，也不依赖外部图片服务。
+
+~~~~markdown
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100">
+  <rect x="10" y="10" width="300" height="80" rx="8" fill="#eff6ff"/>
+  <text x="160" y="56" text-anchor="middle" font-size="18" fill="#1e293b">示意图</text>
+</svg>
+```
+~~~~
+
+图片适配预览宽度。**View larger** 在可滚动的浮层中按原始尺寸查看同一张清洗后的图片；可通过 **Close**、Escape 或点击遮罩关闭。Tab 保持在浮层内。普通点击图片仍沿用现有源码编辑流程。
+
+支持基本图形、路径、分组、文字/tspan、局部箭头标记及局部线性/径向渐变。请用 `fill`、`stroke`、`font-size` 等属性设置外观。暂不支持 CSS/style 属性、嵌入 HTML、外部资源、`use`、动画、滤镜、文档声明和其他命名空间。SVG 标签中的文字按字面显示；LaTeX 仅在外围 Markdown 中渲染。图中文字不能像 Markdown 文本一样直接选择。
+
+每个代码块限制为 32,000 个源码字符、512 个元素、32 层嵌套，图片及 viewBox 尺寸不超过 4096 × 4096。需要 viewBox 或数值形式的宽高。格式错误、不支持的内容或超出限制时显示简短原因和转义后的代码块；图片加载失败也会显示源码。向 AI 请求图示时，可要求：输出到 `svg` 代码块，包含 viewBox，使用基本图形与文字，通过属性设置样式，不引用外部资源。
+
 ### 高亮颜色
 
 使用 `==文字==` 显示默认黄色高亮。在结束的 `==` 后面紧接一个受支持的颜色后缀，即可选择其他预设颜色：

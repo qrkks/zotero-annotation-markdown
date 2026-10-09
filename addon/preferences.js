@@ -6,6 +6,7 @@ Zotero.AnnotationMarkdownPreferences = {
   fastEditorKey: "extensions.annotationMarkdown.fastEditor",
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
   mathOutputKey: "extensions.annotationMarkdown.mathOutput",
+  svgEnabledKey: "extensions.annotationMarkdown.svgEnabled",
   outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
   outlineFontScalePercentKey: "extensions.annotationMarkdown.outlineFontScalePercent",
   autoTodoTagKey: "extensions.annotationMarkdown.autoTodoTag",
@@ -23,6 +24,7 @@ Zotero.AnnotationMarkdownPreferences = {
     const mathEnabledInput = documentRef.getElementById("annotation-markdown-math-enabled");
     const mathOutputOption = documentRef.getElementById("annotation-markdown-math-output-option");
     const mathOutputSelect = documentRef.getElementById("annotation-markdown-math-output");
+    const svgEnabledInput = documentRef.getElementById("annotation-markdown-svg-enabled");
     const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
     const outlineFontScaleSelect = documentRef.getElementById("annotation-markdown-outline-font-scale");
     const autoTodoTagInput = documentRef.getElementById("annotation-markdown-auto-todo-tag");
@@ -57,12 +59,14 @@ Zotero.AnnotationMarkdownPreferences = {
     pasteAsPlainTextInput.checked = this.getPref(this.pasteAsPlainTextKey, true);
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
+    if (svgEnabledInput) svgEnabledInput.checked = this.getPref(this.svgEnabledKey, false);
     mathOutputSelect.value = this.getPref(this.mathOutputKey, "htmlAndMathml") === "mathml"
       ? "mathml"
       : "htmlAndMathml";
     const syncMathControlsEnabled = () => {
       const renderingEnabled = enabledInput.checked || popupEnabledInput.checked;
       this.setControlEnabled(mathEnabledInput, renderingEnabled);
+      if (svgEnabledInput) this.setControlEnabled(svgEnabledInput, renderingEnabled);
       this.setDependentOptionEnabled(mathOutputOption, mathOutputSelect,
         renderingEnabled && mathEnabledInput.checked);
     };
@@ -104,6 +108,9 @@ Zotero.AnnotationMarkdownPreferences = {
     mathEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.mathEnabledKey, Boolean(mathEnabledInput.checked), true);
       syncMathControlsEnabled();
+    });
+    svgEnabledInput?.addEventListener("command", () => {
+      Zotero.Prefs.set(this.svgEnabledKey, Boolean(svgEnabledInput.checked), true);
     });
     mathEnabledInput.addEventListener("syncfrompreference", syncMathControlsEnabled);
 

@@ -33,6 +33,7 @@ Screenshots use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
 - Optional native MathML rendering, marked experimental and off by default. Select **Native MathML only (Experimental)** under **Math rendering** in Settings to reduce formula rendering cost; spacing and appearance may differ.
+- Optional static SVG diagrams from fenced `svg` code blocks, with source editing and a larger-image viewer. Experimental and off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 - Optional, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
 - Highlight syntax from the markdown-it ecosystem: `==Highlighted text==` via [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark), with optional color suffixes such as `==Highlighted text=={.red}` following the [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) convention and limited to safe preset colors.
 - Automatic links for bare URLs in rendered previews.

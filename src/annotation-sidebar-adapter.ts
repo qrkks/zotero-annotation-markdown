@@ -4,6 +4,8 @@
  * The adapter discovers renderable comments and manages plugin-owned preview
  * nodes while preserving Zotero's original source and native editor structure.
  */
+import { isSvgPreviewControl } from "./svg-preview-viewer.js";
+
 const COMMENT_SELECTORS: string[] = [
   "[data-annotation-comment]",
   ".annotation-comment",
@@ -437,6 +439,7 @@ export function createAnnotationSidebarAdapter({
       }
 
       const targetElement = getElementTarget(target);
+      if (isSvgPreviewControl(target)) return false;
       if (targetElement?.closest(`a[href], [${OUTLINE_ATTRIBUTE}='true']`)) {
         return false;
       }
@@ -1358,6 +1361,7 @@ function createPreviewNode(
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
   preview.addEventListener("pointerdown", (event) => {
+    if (isSvgPreviewControl(event.target)) { event.stopPropagation(); return; }
     if (getPreviewScrollbar(event)) {
       event.stopPropagation();
       return;
@@ -1374,6 +1378,7 @@ function createPreviewNode(
     }
   }, { capture: true });
   preview.addEventListener("mousedown", (event) => {
+    if (isSvgPreviewControl(event.target)) { event.stopPropagation(); return; }
     if (getPreviewScrollbar(event)) {
       event.stopPropagation();
       return;
@@ -1756,7 +1761,7 @@ function readSourceText(node: Node | null | undefined): string {
 
 function hasFocusInside(node: HTMLElement): boolean {
   const activeElement = node.ownerDocument.activeElement;
-  return Boolean(activeElement && activeElement !== node.ownerDocument.body && node.contains(activeElement));
+  return Boolean(activeElement && activeElement !== node.ownerDocument.body && node.contains(activeElement) && !isSvgPreviewControl(activeElement));
 }
 
 function hasEditorControl(node: HTMLElement): boolean {

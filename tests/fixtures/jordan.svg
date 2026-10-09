@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="640" height="280" viewBox="0 0 640 280">
+  <rect width="640" height="280" rx="12" fill="#f8fafc"/>
+
+  <text x="160" y="35" font-size="18" text-anchor="middle"
+        fill="#1e293b">原始正方形</text>
+  <text x="475" y="35" font-size="18" text-anchor="middle"
+        fill="#1e293b">Jordan 变换后</text>
+
+  <!-- 坐标轴 -->
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <path d="M55 202H280 M95 225V65"/>
+    <path d="M355 202H605 M392 225V65"/>
+  </g>
+
+  <!-- 原始单位正方形 -->
+  <polygon points="95,202 150,202 150,147 95,147"
+           fill="#93c5fd" fill-opacity="0.45"
+           stroke="#2563eb" stroke-width="2.5"/>
+
+  <!-- J = [2,1;0,2] 变换后的平行四边形 -->
+  <polygon points="392,202 502,202 557,92 447,92"
+           fill="#fbbf24" fill-opacity="0.45"
+           stroke="#d97706" stroke-width="2.5"/>
+
+  <!-- 变换箭头 -->
+  <path d="M285 151H345" stroke="#64748b"
+        stroke-width="2.5" fill="none"/>
+  <path d="M335 144L345 151L335 158"
+        stroke="#64748b" stroke-width="2.5"
+        fill="none"/>
+
+  <!-- 顶点标记 -->
+  <g fill="#2563eb">
+    <circle cx="95" cy="202" r="4"/>
+    <circle cx="150" cy="202" r="4"/>
+    <circle cx="150" cy="147" r="4"/>
+    <circle cx="95" cy="147" r="4"/>
+  </g>
+  <g fill="#d97706">
+    <circle cx="392" cy="202" r="4"/>
+    <circle cx="502" cy="202" r="4"/>
+    <circle cx="557" cy="92" r="4"/>
+    <circle cx="447" cy="92" r="4"/>
+  </g>
+
+  <g fill="#334155" font-size="15" text-anchor="middle">
+    <text x="160" y="258">单位正方形</text>
+    <text x="475" y="258">J = [2, 1; 0, 2]</text>
+  </g>
+</svg>

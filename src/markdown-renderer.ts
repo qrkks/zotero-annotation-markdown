@@ -11,6 +11,7 @@ import markdownItMark from "markdown-it-mark";
 import markdownItTexmath from "markdown-it-texmath";
 
 import markdownItMarkColors from "./markdown-it-mark-colors.js";
+import { createSvgRenderer } from "./svg-renderer.js";
 import type { MarkdownRenderer } from "./types.js";
 import type { MathOutput } from "./settings.js";
 
@@ -32,6 +33,7 @@ interface CreateMarkdownRendererOptions {
   mathPlugin?: MathPlugin | null;
   mathPluginOptions?: MathPluginOptions;
   isMathEnabled?: () => boolean;
+  isSvgEnabled?: () => boolean;
   getMathOutput?: () => MathOutput;
   windowRef?: Window | null;
 }
@@ -60,13 +62,15 @@ export function createMarkdownRenderer({
   mathPluginOptions = { delimiters: ["dollars", "brackets"] },
   getMathOutput = () => mathPluginOptions?.katexOptions?.output ?? "htmlAndMathml",
   isMathEnabled = () => true,
+  isSvgEnabled = () => false,
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
-  const plainMarkdown = markdown ?? createDefaultMarkdownEngine();
+  const renderSvg = createSvgRenderer(windowRef);
+  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg);
   // Separate default engines let math be disabled again after the plugin has
   // been loaded without leaving texmath rules attached to the plain renderer.
   const mathCapableMarkdown = mathMarkdown ?? (
-    markdown ? plainMarkdown : createDefaultMarkdownEngine()
+    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg)
   );
   const purifier = createPurifier(windowRef);
   // texmath retains this options object, so live switches do not rebuild its rules.
@@ -125,12 +129,19 @@ function wrapMathmlDisplayMath(html: string): string {
   );
 }
 
-function createDefaultMarkdownEngine(): MarkdownIt {
+function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: ReturnType<typeof createSvgRenderer>): MarkdownIt {
   const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
   markdown.use(markdownItCjkFriendly);
   markdown.use(markdownItMark);
   markdown.use(markdownItMarkColors);
   markdown.linkify.add("zotero:", "http:");
+  const originalFence = markdown.renderer.rules.fence!;
+  markdown.renderer.rules.fence = (tokens, index, options, env, self) => {
+    const fallback = originalFence(tokens, index, options, env, self);
+    return isSvgEnabled() && tokens[index].info.trim().toLowerCase() === "svg"
+      ? renderSvg(tokens[index].content, fallback)
+      : fallback;
+  };
   return markdown;
 }
 
@@ -157,6 +168,37 @@ function normalizeMathDelimiters(text: string): string {
   const normalizedLineEndings = text
     .replaceAll("\r\n", "\n")
     .replaceAll("\r", "\n");
+
+  // Code fences are literal source; formula normalization must not rewrite SVG
+  // labels, whitespace or attributes before the SVG fence renderer reads them.
+  if (normalizedLineEndings.includes("```") || normalizedLineEndings.includes("~~~")) {
+    const output: string[] = [];
+    let plain: string[] = [];
+    let fence: { marker: string; length: number } | null = null;
+    const flushPlain = () => {
+      if (plain.length) output.push(normalizeNonCodeMathDelimiters(plain.join("\n")));
+      plain = [];
+    };
+    for (const line of normalizedLineEndings.split("\n")) {
+      const content = splitMarkdownBlockPrefix(line.replace(/[\u00a0\u202f]/g, " ")).content;
+      const marker = content.match(/^(`{3,}|~{3,})(.*)$/);
+      if (fence) {
+        output.push(line);
+        if (marker && marker[1][0] === fence.marker && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+      } else if (marker) {
+        flushPlain(); output.push(line);
+        fence = { marker: marker[1][0], length: marker[1].length };
+      } else {
+        plain.push(line);
+      }
+    }
+    flushPlain();
+    return output.join("\n");
+  }
+  return normalizeNonCodeMathDelimiters(normalizedLineEndings);
+}
+
+function normalizeNonCodeMathDelimiters(normalizedLineEndings: string): string {
 
   const normalizedWhitespace = normalizedLineEndings
     .replace(/[\u00a0\u202f]/g, " ");

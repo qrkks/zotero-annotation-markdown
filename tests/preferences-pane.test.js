@@ -5,6 +5,22 @@ import vm from "node:vm";
 import { describe, expect, test, vi } from "vitest";
 
 describe("preferences pane", () => {
+  test("SVG is opt-in, follows rendering scopes, and writes the full pref key", async () => {
+    const f = await mathPreferenceFixture(false, false, true);
+    const svg = f.controls.get("annotation-markdown-svg-enabled");
+    expect(svg.checked).toBe(false);
+    expect(svg.disabled).toBe(true);
+    svg.checked = true;
+    f.controls.get("annotation-markdown-popup-enabled").checked = true;
+    f.controls.get("annotation-markdown-popup-enabled").dispatch("command");
+    expect(svg.disabled).toBe(false);
+    expect(svg.checked).toBe(true);
+    svg.dispatch("command");
+    expect(f.set).toHaveBeenCalledWith("extensions.annotationMarkdown.svgEnabled", true, true);
+    const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
+    expect(source).toContain('preference="extensions.annotationMarkdown.svgEnabled"');
+    expect(source).toContain('label="Render SVG code blocks (Experimental)"');
+  });
   test.each([
     [false, false, false], [false, false, true],
     [true, false, false], [true, false, true],

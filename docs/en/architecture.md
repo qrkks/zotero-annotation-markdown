@@ -146,6 +146,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 - Disabling the preference or missing the required annotation update capability leaves Zotero's native editor in control.
 - Each open Reader has at most one controller. Registration and shutdown remain safe when startup is asynchronous.
 - Raw Markdown HTML is disabled, highlight color suffixes map only to namespaced classes from a fixed palette, and DOMPurify is the final boundary for generated HTML.
+- SVG fences are opt-in and rendered through a separate XML/namespace, element/attribute, local-reference and resource-limit boundary plus DOMPurify. Unsupported content falls back to escaped code. Only sanitized SVG data images enter previews and the viewer; SVG source remains unchanged in Zotero. The SVG choice invalidates both HTML caches and mounted-preview shortcuts. Viewer controls bypass edit entry, restore focus on close, and release overlays/listeners on refresh or shutdown.
 - Lazy rendering limits viewport and idle-time work. Performance diagnostics remain opt-in.
 - Native-row lazy restoration is off by default, exact-version gated, limited to relaxing tag filters after a height cache exists, and must fall back without changing host DOM when any private React signature differs.
 - Shutdown is best-effort per operation and per Reader root because closed Zotero windows can expose dead host objects.
@@ -156,6 +157,8 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 | --- | --- |
 | `src/plugin.ts` | Plugin composition root and Zotero startup/shutdown integration. Registers Reader events and preference observers, detects fast-editor capability, bridges commits to Zotero's annotation manager, and delegates supported Zotero links to Weavero when available. |
 | `src/reader-registry.ts` | Owns one controller per Reader, deduplicates registration, and coordinates asynchronous start/stop. |
+| `src/svg-renderer.ts` | Validates and sanitizes static SVG fences, bounds complexity, and generates isolated data images or escaped-code fallbacks. |
+| `src/svg-preview-viewer.ts` | Owns SVG image load fallback, larger-image interaction, focus, keyboard handling and cleanup. |
 | `src/reader-controller.ts` | Orchestrates Reader readiness, DOM discovery, eager/lazy rendering, fast-editor entry/exit events, editing pauses, caches, diagnostics, styles, and cleanup. |
 | `src/annotation-sidebar-adapter.ts` | Encapsulates Zotero Reader selectors, source-plus-preview DOM operations, and the fast textarea session. Excludes native note editors. |
 | `src/annotation-scroll-target.ts` | Tracks the selected oversized row and applies reversible CSS margins for Zotero's native selection scroll. |

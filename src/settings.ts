@@ -12,6 +12,7 @@ export const PASTE_AS_PLAIN_TEXT_PREF_KEY = "extensions.annotationMarkdown.paste
 export const FAST_EDITOR_PREF_KEY = "extensions.annotationMarkdown.fastEditor";
 export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled";
 export const MATH_OUTPUT_PREF_KEY = "extensions.annotationMarkdown.mathOutput";
+export const SVG_ENABLED_PREF_KEY = "extensions.annotationMarkdown.svgEnabled";
 export type MathOutput = "htmlAndMathml" | "mathml";
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
@@ -42,6 +43,8 @@ export interface Settings {
   setMathEnabled(enabled: boolean): void;
   getMathOutput(): MathOutput;
   setMathOutput(output: MathOutput): void;
+  isSvgEnabled(): boolean;
+  setSvgEnabled(enabled: boolean): void;
   isPerformanceDiagnosticsEnabled(): boolean;
   setPerformanceDiagnosticsEnabled(enabled: boolean): void;
   isLightweightModeEnabled(): boolean;
@@ -71,6 +74,7 @@ interface CreateSettingsOptions {
   fastEditorKey?: string;
   mathEnabledKey?: string;
   mathOutputKey?: string;
+  svgEnabledKey?: string;
   performanceDiagnosticsKey?: string;
   lightweightModeKey?: string;
   renderStrategyKey?: string;
@@ -100,6 +104,7 @@ export function createSettings({
   fastEditorKey = FAST_EDITOR_PREF_KEY,
   mathEnabledKey = MATH_ENABLED_PREF_KEY,
   mathOutputKey = MATH_OUTPUT_PREF_KEY,
+  svgEnabledKey = SVG_ENABLED_PREF_KEY,
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
@@ -117,6 +122,7 @@ export function createSettings({
   let memoryFastEditor = true;
   let memoryMathEnabled = true;
   let memoryMathOutput: MathOutput = "htmlAndMathml";
+  let memorySvgEnabled = false;
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
   let memoryRenderStrategy: RenderStrategy = "auto";
@@ -246,6 +252,16 @@ export function createSettings({
       const value = normalizeMathOutput(output);
       prefs?.set?.(mathOutputKey, value);
       memoryMathOutput = value;
+    },
+
+    isSvgEnabled() {
+      return prefs?.get ? prefs.get(svgEnabledKey, false) === true : memorySvgEnabled;
+    },
+
+    setSvgEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(svgEnabledKey, value);
+      memorySvgEnabled = value;
     },
 
     isPerformanceDiagnosticsEnabled() {

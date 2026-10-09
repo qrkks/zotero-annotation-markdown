@@ -731,6 +731,12 @@ describe("createPlugin", () => {
     observers.get("extensions.annotationMarkdown.mathOutput")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith(
+      "extensions.annotationMarkdown.svgEnabled", expect.any(Function), true
+    );
+    observers.get("extensions.annotationMarkdown.svgEnabled")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
     observers.get("extensions.annotationMarkdown.renderStrategy")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
@@ -749,6 +755,9 @@ describe("createPlugin", () => {
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.mathOutput"
+    );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.svgEnabled"
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.renderStrategy"
