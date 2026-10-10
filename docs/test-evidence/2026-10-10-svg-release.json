@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-10",
+  "tag": "v0.13.0",
+  "localChecks": {
+    "verification": "pnpm run verify",
+    "testFilesPassed": 30,
+    "testsPassed": 571,
+    "typecheckPassed": true,
+    "bilingualDocumentationPairs": 4,
+    "productionAudit": "No known vulnerabilities found",
+    "releaseVerification": "pnpm run release:verify v0.13.0"
+  },
+  "package": {
+    "version": "0.13.0",
+    "entries": 49,
+    "unchangedFiles": 48,
+    "onlyChangedFile": "manifest.json",
+    "onlyManifestChange": "version",
+    "svgDefaultOff": true,
+    "bytes": 1143094,
+    "sha256": "4e9c063bd3bea7b37ba08c3c49a971ce2a0f91955f64585852f104c77303f802"
+  },
+  "nativeSmoke": {
+    "version": "0.13.0",
+    "zotero": "10.0.6",
+    "previews": [
+      {
+        "sample": "sample-1",
+        "decoded": true,
+        "dimensions": [
+          103,
+          45
+        ],
+        "sourcePresent": true,
+        "notDeleted": true
+      },
+      {
+        "sample": "sample-2",
+        "decoded": true,
+        "dimensions": [
+          360,
+          184
+        ],
+        "sourcePresent": true,
+        "notDeleted": true
+      },
+      {
+        "sample": "sample-3",
+        "decoded": true,
+        "dimensions": [
+          700,
+          300
+        ],
+        "sourcePresent": true,
+        "notDeleted": true
+      },
+      {
+        "sample": "sample-4",
+        "decoded": true,
+        "dimensions": [
+          660,
+          212
+        ],
+        "sourcePresent": true,
+        "notDeleted": true
+      },
+      {
+        "sample": "sample-5",
+        "decoded": true,
+        "dimensions": [
+          800,
+          800
+        ],
+        "sourcePresent": true,
+        "notDeleted": true
+      },
+      {
+        "sample": "jordan",
+        "decoded": true,
+        "dimensions": [
+          640,
+          280
+        ],
+        "sourcePresent": true,
+        "notDeleted": true
+      }
+    ],
+    "viewer": {
+      "decoded": true,
+      "closed": true,
+      "selectionPreserved": true,
+      "focusReturned": true
+    },
+    "annotationCount": 13,
+    "svgEnabled": true,
+    "popupPreferencePreserved": true,
+    "originalAnnotationsPreserved": true
+  }
+}

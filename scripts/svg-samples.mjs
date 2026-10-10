@@ -26,9 +26,9 @@ The first five samples come from [issue #3](https://github.com/qrkks/zotero-anno
 
 ## How to test / 如何测试
 
-Use a test build with SVG support. Enable **Render SVG code blocks (Experimental)** and sidebar Markdown rendering. For page popups, also enable **Render page annotation popups as Markdown**. SVG is off by default; the released 0.12.3 package does not include this trial feature.
+Install [v0.13.0 or newer](https://github.com/qrkks/zotero-annotation-markdown/releases/tag/v0.13.0). Enable **Render SVG code blocks (Experimental)** and sidebar Markdown rendering. For page popups, also enable **Render page annotation popups as Markdown**. SVG is off by default; releases through 0.12.3 do not include this feature.
 
-使用包含 SVG 功能的测试版，开启 **Render SVG code blocks (Experimental)** 和侧栏 Markdown 渲染。测试页内弹窗时，再开启 **Render page annotation popups as Markdown**。SVG 默认关闭；已发布的 0.12.3 安装包不包含此次试验功能。
+安装 [v0.13.0 或更新版本](https://github.com/qrkks/zotero-annotation-markdown/releases/tag/v0.13.0)，开启 **Render SVG code blocks (Experimental)** 和侧栏 Markdown 渲染。测试页内弹窗时，再开启 **Render page annotation popups as Markdown**。SVG 默认关闭；0.12.3 及更早的版本不包含此功能。
 
 Open any PDF and create a note annotation. Copy **one complete Markdown block below** with its copy button, paste it into the annotation comment as plain text, then click elsewhere or press Escape to save. Each copy block includes the inner SVG fence; copying only the SVG source omits that fence. Samples 4 and 6 deliberately leave its language blank. The outer four-backtick fence belongs to this guide and is not part of the copied annotation.
 
@@ -45,7 +45,7 @@ Check the expected image, **View larger**, Escape returning to the selected anno
     markdown += "````markdown\n" + `# SVG ${index + 1} — ${title}\n\n`;
     markdown += "```" + language + "\n" + samples[index] + "\n```\n````\n\n";
   }
-  markdown += "## Verification record / 验证记录\n\nSee the [saved SVG validation report](../test-evidence/2026-10-10-svg-mvp.md) for the environment, results and tested package digest. / 环境、结果及测试包摘要见[已保存的 SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。\n";
+  markdown += "## Verification record / 验证记录\n\nSee the [0.13.0 release validation](../test-evidence/2026-10-10-svg-release.md) and [initial compatibility results](../test-evidence/2026-10-10-svg-mvp.md) for the environment, results and package digests. / 环境、结果及安装包摘要见 [0.13.0 发版验证](../test-evidence/2026-10-10-svg-release.md)和[最初的兼容性验证](../test-evidence/2026-10-10-svg-mvp.md)。\n";
   return markdown;
 }
 

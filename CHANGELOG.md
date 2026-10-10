@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.13.0 - 2026-10-10
+
+### Added
+
+- Add optional static SVG previews for `svg` code fences and complete SVG documents in unlabeled code fences. Enable **Render SVG code blocks (Experimental)** in Settings; it is off by default. Original Markdown and SVG source remain editable in Zotero.
+- Add **View larger** for viewing the same sanitized image at its intrinsic size, with scrolling, keyboard focus containment and Escape closure.
+- Support basic shapes, text, local arrows and gradients, compact paths, copied tag whitespace, and restricted embedded WOFF2 fonts. The five examples supplied in [#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3) pass compatibility checks.
+- Provide [six copyable SVG samples and a manual test checklist](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.13.0/docs/examples/svg-samples.md), backed by persisted regression fixtures and validation records.
+
+### Scope
+
+- SVG source is rendered only as a validated image. Unsupported or oversized content falls back to source code. Scripts, general CSS, external resources, embedded HTML and animation remain unsupported. Raw SVG outside code fences remains text.
+- Embedded WOFF2 fonts are limited to four faces, 8 KiB per face and 16 KiB total; fonts are not installed or registered in the Reader.
+
+### 新增
+
+- 新增 `svg` 代码围栏和无语言围栏中完整 SVG 文档的静态预览。在设置中开启 **Render SVG code blocks (Experimental)**，默认关闭；Zotero 继续保存可编辑的原始 Markdown 和 SVG 源码。
+- 新增 **View larger**，按原始尺寸查看同一张清洗后的图片，支持滚动、键盘焦点限制和 Escape 关闭。
+- 支持基本图形、文字、局部箭头和渐变、紧凑路径、复制产生的标签空白及受限内嵌 WOFF2 字体。[#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3) 提供的五个样例已通过兼容验证。
+- 提供[六个可复制 SVG 样例和人工测试清单](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.13.0/docs/examples/svg-samples.md)，并保留自动回归样例和验证记录。
+
+### 支持范围
+
+- SVG 仅作为经过验证的图片显示；不支持或超限的内容回退为源码。暂不支持脚本、一般 CSS、外部资源、嵌入 HTML 和动画。代码围栏外的裸 SVG 仍显示为文本。
+- 内嵌 WOFF2 限制为最多 4 个字体、单个 8 KiB、合计 16 KiB，不会安装或注册到 Reader。
+
+Test results and limitations / 测试结果与适用范围：[SVG release validation](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.13.0/docs/test-evidence/2026-10-10-svg-release.md).
+
 ## 0.12.3 - 2026-10-09
 
 ### Changed
