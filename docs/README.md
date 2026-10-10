@@ -8,6 +8,8 @@ English | [简体中文](#简体中文)
 - [Architecture and file map](en/architecture.md)
 - [Development and release](en/development.md)
 - [Performance diagnostics](en/performance-diagnostics.md)
+- [Copyable SVG test samples (English and Chinese)](examples/svg-samples.md)
+- [Saved SVG validation results](test-evidence/2026-10-10-svg-mvp.md)
 
 ### Performance investigations
 
@@ -23,6 +25,8 @@ The English pages are the source of truth for release and developer documentatio
 - [架构与文件职责](zh-CN/architecture.md)
 - [开发与发布](zh-CN/development.md)
 - [性能诊断](zh-CN/performance-diagnostics.md)
+- [可直接复制的 SVG 测试样例（中英双语）](examples/svg-samples.md)
+- [已保存的 SVG 验证结果](test-evidence/2026-10-10-svg-mvp.md)
 
 ### 性能调查记录（英文）
 

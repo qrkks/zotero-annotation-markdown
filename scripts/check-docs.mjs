@@ -1,10 +1,20 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { buildSvgSampleGuide, svgSampleGuidePath } from "./svg-samples.mjs";
 
 const root = process.cwd();
 const localeRoots = ["en", "zh-CN"];
 const docsRoot = path.join(root, "docs");
 const errors = [];
+
+try {
+  const [saved, expected] = await Promise.all([
+    readFile(svgSampleGuidePath, "utf8"), buildSvgSampleGuide()
+  ]);
+  if (saved !== expected) errors.push("SVG sample guide is stale; run node scripts/svg-samples.mjs.");
+} catch (error) {
+  errors.push(`SVG sample guide check failed: ${error.message}`);
+}
 
 const localeFiles = new Map();
 for (const locale of localeRoots) {
@@ -24,6 +34,7 @@ const activeDocs = [
   path.join(root, "README.md"),
   path.join(root, "README.zh-CN.md"),
   path.join(docsRoot, "README.md"),
+  svgSampleGuidePath,
   ...localeRoots.flatMap((locale) =>
     localeFiles.get(locale).map((relativePath) => path.join(docsRoot, locale, relativePath))
   )

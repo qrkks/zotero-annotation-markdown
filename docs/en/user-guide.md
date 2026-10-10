@@ -38,6 +38,8 @@ Embedded fonts require a font-only stylesheet with `@font-face`, a simple `font-
 
 Each block is limited to 32,000 source characters, 512 elements, 32 nesting levels and image/viewBox dimensions of at most 4096 × 4096. A viewBox or numeric width and height is required. Malformed, unsupported or oversized SVG shows a short reason and the escaped code block. A failed image load also reveals the code. To generate compatible diagrams with an AI tool, request a fenced `svg` block with a viewBox, basic shapes and text, styles expressed as attributes, and no external resources.
 
+Try the [six copyable SVG samples](../examples/svg-samples.md), including the five examples from issue #3. Each block includes the Markdown fence needed for an annotation comment, with expected output and a manual test checklist.
+
 ### Highlight colors
 
 Use `==text==` for the default yellow highlight. Put one supported color suffix immediately after the closing `==` to select another preset:

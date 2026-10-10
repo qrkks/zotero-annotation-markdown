@@ -32,6 +32,8 @@ pnpm run verify
 
 This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI. All modules under `src/` use strict TypeScript; JavaScript under `addon/` remains where Zotero executes files directly, and `scripts/*.mjs` remains Node tooling. See the [architecture and file map](architecture.md) for ownership and runtime boundaries. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
 
+The [SVG sample guide](../examples/svg-samples.md) is generated from the regression fixtures. After changing a fixture, run `node scripts/svg-samples.mjs`. The documentation check verifies that all six published copy blocks still match their source fixtures. Run the SVG regressions with `pnpm exec vitest run tests/svg-rendering.test.js tests/svg-compatibility.test.js tests/svg-fonts.test.js`; saved native-host results are in the [SVG validation report](../test-evidence/2026-10-10-svg-mvp.md).
+
 ## Real-Zotero release smoke test
 
 Install the exact final XPI and record its SHA-256 before tagging a release. On the latest supported Zotero version, use a document with many annotations and verify:

@@ -1,0 +1,264 @@
+{
+  "date": "2026-10-10",
+  "implementationCommit": "ff9f219",
+  "environment": {
+    "zotero": "10.0.6",
+    "gecko": "140",
+    "platform": "Windows",
+    "input": "MCP native APIs and untrusted DOM events"
+  },
+  "package": {
+    "bytes": 1143093,
+    "sha256": "33b972b3b50c4c85061e1bfa8cbe90917b5085cfef7ed2fd0422280bd4838954",
+    "version": "0.12.3",
+    "svgDefaultOff": true,
+    "viewerFrame": true,
+    "viewerLoadRebuild": true,
+    "entryCount": 49
+  },
+  "referenceComparison": {
+    "buildPhase": "Before final viewer height adjustment",
+    "sample4Reference": "NBSP tag syntax normalized in reference and preview only",
+    "rows": [
+      {
+        "id": "sample-1",
+        "decoded": true,
+        "size": [
+          103,
+          45
+        ],
+        "changedPixels": 0,
+        "sourcePreserved": true,
+        "fallbackPreserved": true,
+        "liveSvgOrStyle": 0
+      },
+      {
+        "id": "sample-2",
+        "decoded": true,
+        "size": [
+          360,
+          184
+        ],
+        "changedPixels": 0,
+        "sourcePreserved": true,
+        "fallbackPreserved": true,
+        "liveSvgOrStyle": 0
+      },
+      {
+        "id": "sample-3",
+        "decoded": true,
+        "size": [
+          700,
+          300
+        ],
+        "changedPixels": 0,
+        "sourcePreserved": true,
+        "fallbackPreserved": true,
+        "liveSvgOrStyle": 0
+      },
+      {
+        "id": "sample-4",
+        "decoded": true,
+        "size": [
+          660,
+          212
+        ],
+        "changedPixels": 0,
+        "sourcePreserved": true,
+        "fallbackPreserved": true,
+        "liveSvgOrStyle": 0
+      },
+      {
+        "id": "sample-5",
+        "decoded": true,
+        "size": [
+          800,
+          800
+        ],
+        "changedPixels": 0,
+        "sourcePreserved": true,
+        "fallbackPreserved": true,
+        "liveSvgOrStyle": 0
+      },
+      {
+        "id": "jordan",
+        "decoded": true,
+        "size": [
+          640,
+          280
+        ],
+        "changedPixels": 0,
+        "sourcePreserved": true,
+        "fallbackPreserved": true,
+        "liveSvgOrStyle": 0
+      }
+    ]
+  },
+  "font": {
+    "familyRenamed": "SvgEmbeddedMCPQA",
+    "fontDecodedBytes": 3952,
+    "textChangedPixels": 881,
+    "readerFontSetUnmodified": true
+  },
+  "negativeCases": {
+    "cases": [
+      {
+        "name": "remote-font",
+        "escapedSourceExact": true
+      },
+      {
+        "name": "general-css",
+        "escapedSourceExact": true
+      },
+      {
+        "name": "corrupt-font-header",
+        "escapedSourceExact": true
+      },
+      {
+        "name": "oversized-font",
+        "escapedSourceExact": true
+      },
+      {
+        "name": "svg-script",
+        "escapedSourceExact": true
+      }
+    ],
+    "previewImageCount": 0,
+    "errorCount": 5,
+    "liveSvgStyleScriptCount": 0,
+    "scriptDidNotExecute": true,
+    "storedSourceUnchanged": true
+  },
+  "readerReopen": {
+    "readerActuallyClosedAndReopened": true,
+    "nativeItemExact": true,
+    "fontSourceExact": true,
+    "previewDecoded": true,
+    "editedTextVisible": true,
+    "fallbackFontSourceExact": true
+  },
+  "finalViewer": {
+    "opened": true,
+    "decoded": true,
+    "fontRetained": true,
+    "dimensions": [
+      360,
+      184
+    ],
+    "frameRect": {
+      "width": 360,
+      "height": 234
+    },
+    "smallImageFits": true,
+    "tabFocusTrapped": true,
+    "escapeClosed": true,
+    "nativeReaderKeys": [],
+    "annotationNotDeleted": true,
+    "sourceUnchanged": true,
+    "focusReturned": true,
+    "selectionPreserved": true
+  },
+  "retainedFixtures": [
+    {
+      "sample": "sample-1",
+      "language": "svg",
+      "sourceLength": 8194,
+      "stored": true,
+      "decoded": true,
+      "fallbackPreserved": true,
+      "visibleInViewport": true
+    },
+    {
+      "sample": "sample-2",
+      "language": "svg",
+      "sourceLength": 8917,
+      "stored": true,
+      "decoded": true,
+      "fallbackPreserved": true,
+      "visibleInViewport": true
+    },
+    {
+      "sample": "sample-3",
+      "language": "svg",
+      "sourceLength": 1057,
+      "stored": true,
+      "decoded": true,
+      "fallbackPreserved": true,
+      "visibleInViewport": true
+    },
+    {
+      "sample": "sample-4",
+      "language": "",
+      "sourceLength": 2543,
+      "stored": true,
+      "decoded": true,
+      "fallbackPreserved": true,
+      "visibleInViewport": true
+    },
+    {
+      "sample": "sample-5",
+      "language": "svg",
+      "sourceLength": 4041,
+      "stored": true,
+      "decoded": true,
+      "fallbackPreserved": true,
+      "visibleInViewport": true
+    },
+    {
+      "sample": "jordan",
+      "language": "",
+      "sourceLength": 1575,
+      "stored": true,
+      "decoded": true,
+      "fallbackPreserved": true,
+      "visibleInViewport": true
+    }
+  ],
+  "manual": {
+    "maintainerReportedNoIssues": true,
+    "detailedChecklistNotRecorded": true
+  },
+  "publicSampleValidation": {
+    "regressionFiles": 3,
+    "regressionTestsPassed": 147,
+    "documentationCheckPassed": true,
+    "copyBlocks": [
+      {
+        "sample": 1,
+        "language": "svg",
+        "sourcePreserved": true,
+        "copyIncludesFence": true
+      },
+      {
+        "sample": 2,
+        "language": "svg",
+        "sourcePreserved": true,
+        "copyIncludesFence": true
+      },
+      {
+        "sample": 3,
+        "language": "svg",
+        "sourcePreserved": true,
+        "copyIncludesFence": true
+      },
+      {
+        "sample": 4,
+        "language": "",
+        "sourcePreserved": true,
+        "copyIncludesFence": true
+      },
+      {
+        "sample": 5,
+        "language": "svg",
+        "sourcePreserved": true,
+        "copyIncludesFence": true
+      },
+      {
+        "sample": 6,
+        "language": "",
+        "sourcePreserved": true,
+        "copyIncludesFence": true
+      }
+    ]
+  }
+}

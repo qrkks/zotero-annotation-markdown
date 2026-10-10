@@ -32,6 +32,8 @@ pnpm run verify
 
 该命令会运行自动化测试和 TypeScript 检查、构建插件并打包 XPI。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
 
+[SVG 样例指南](../examples/svg-samples.md)从回归样例生成。修改样例后运行 `node scripts/svg-samples.mjs`；文档检查会确认六个公开复制块仍与原始样例一致。运行 `pnpm exec vitest run tests/svg-rendering.test.js tests/svg-compatibility.test.js tests/svg-fonts.test.js` 可复跑 SVG 回归，真实宿主的已保存结果见 [SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。
+
 ## 真实 Zotero 发版冒烟
 
 打标签前，应安装最终生成的准确 XPI，并记录其 SHA-256。在最新受支持的 Zotero 版本中，使用标注很多的文档检查：
