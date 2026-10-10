@@ -27,12 +27,28 @@
 | <img src="docs/images/floating-outline.webp" width="420" alt="包含多级标题和彩色高亮的长标注，以及对应的浮动大纲"> | <img src="docs/images/popup-preview.webp" width="420" alt="页内标注弹窗中的 Markdown 排版、彩色高亮和 LaTeX 公式预览"> |
 | 点击大纲条目，直接跳转到标注侧栏内的对应章节。 | 在设置中开启 **Render page annotation popups as Markdown** 即可使用；该选项默认关闭。 |
 
-截图使用演示文本，取自 Zotero 10.0.5 与 Annotation Markdown v0.11.0，预览字号设为 125%。
+上面的 Markdown、大纲和弹窗截图使用演示文本，取自 Zotero 10.0.5 与 Annotation Markdown v0.11.0，预览字号设为 125%。
+
+![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的鹈鹕示意图](docs/images/svg-source-and-preview.webp)
+
+**SVG 示意图**：编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
+
+SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG code blocks (Experimental)**，即可尝试[六个可复制的 SVG 样例](docs/examples/svg-samples.md)。这两张 SVG 截图使用样例 5 的图形和英文演示文字，取自 Zotero 10.0.6 与 Annotation Markdown v0.13.0。
+
+<details>
+<summary>查看 SVG 大图查看器</summary>
+
+![左侧为采用英文演示文字的 SVG 标注预览，右侧为对应的大图查看器](docs/images/svg-preview-and-viewer.webp)
+
+点击 **View larger** 查看图形细节，按 **Esc** 或点击 **Close** 返回标注。
+
+</details>
 
 ## 主要功能
 
 - 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
 - 可选择原生 MathML 渲染，作为默认关闭的实验选项。在设置的 **Math rendering** 中选择 **Native MathML only (Experimental)**，可降低公式渲染开销，但公式间距和外观可能有所不同。
+- 可选的 fenced `svg` 代码块静态图预览，也可识别无语言标记代码块中的完整 SVG 文档，保留源码编辑并提供大图查看。实验性功能，默认关闭；详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
 - 可选择在页内标注弹窗中启用 Markdown 预览（默认关闭）；快速编辑由独立偏好控制，并可回退 Zotero 原生行为。
 - 沿用 markdown-it 生态的高亮语法：通过 [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark) 支持 `==高亮文字==`；`==高亮文字=={.red}` 等颜色后缀沿用 [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) 的属性写法，并限定为安全的预设颜色。
 - 在渲染预览中自动把裸 URL 转为可点击链接。
@@ -44,8 +60,6 @@
 - 可在 Zotero 10.0.3 中实验性加速超大标注列表取消标签筛选后的恢复；默认关闭。
 - 渲染内容经过清理，渲染失败时保留纯文本。
 - 支持 Zotero Desktop 9.0 和 10.0.x。本版优先在 Zotero 10 上验证；Zotero 9 无法使用快速编辑能力时会自动回退原生编辑器。
-
-- 可选的 fenced `svg` 代码块静态图预览，也可识别无语言标记代码块中的完整 SVG 文档，保留源码编辑并提供大图查看。实验性功能，默认关闭；详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
 
 ## 安装
 

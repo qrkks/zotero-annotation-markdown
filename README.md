@@ -27,7 +27,22 @@ Make Zotero annotation comments easier to read with Markdown headings, lists, co
 | <img src="docs/images/floating-outline.webp" width="420" alt="A long annotation with nested headings, colored highlights, and its floating outline"> | <img src="docs/images/popup-preview.webp" width="420" alt="An optional page annotation popup displaying formatted Markdown, color highlights, and LaTeX math"> |
 | Choose a heading to jump to its section within the annotation sidebar. | Enable **Render page annotation popups as Markdown** in Settings; this option is off by default. |
 
-Screenshots use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
+The Markdown, outline, and popup screenshots above use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
+
+![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a pelican diagram on the right](docs/images/svg-source-and-preview.webp)
+
+**SVG diagrams:** edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
+
+SVG rendering is experimental and off by default. Enable **Render SVG code blocks (Experimental)** in Settings to try the [six copyable SVG samples](docs/examples/svg-samples.md). These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6 with Annotation Markdown v0.13.0.
+
+<details>
+<summary>See the SVG larger-image viewer</summary>
+
+![The English SVG demonstration in the annotation sidebar on the left and its larger-image viewer on the right](docs/images/svg-preview-and-viewer.webp)
+
+Choose **View larger** to inspect the diagram. Press **Escape** or choose **Close** to return to the annotation.
+
+</details>
 
 ## Highlights
 
