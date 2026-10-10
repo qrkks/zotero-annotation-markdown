@@ -212,11 +212,12 @@ describe("SVG preview lifecycle", () => {
       for (const type of ["pointerdown","mousedown","click"]) button.dispatchEvent(new MouseEvent(type,{ bubbles:true, button:0, cancelable:true }));
       const dialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
       expect(dialog).not.toBeNull();
-      expect(dialog.querySelector("img").getAttribute("src")).toBe(src);
+      const viewerDocument = dialog.querySelector("iframe").contentDocument;
+      expect(viewerDocument.querySelector("img").getAttribute("src")).toBe(src);
       expect(document.querySelector("textarea")).toBeNull();
       expect(document.querySelector(".annotation-markdown-rendered")).toBe(preview);
-      const escape = new KeyboardEvent("keydown",{ key:"Escape", bubbles:true, cancelable:true });
-      dialog.querySelector("button").dispatchEvent(escape);
+      const escape = new viewerDocument.defaultView.KeyboardEvent("keydown",{ key:"Escape", bubbles:true, cancelable:true });
+      viewerDocument.querySelector("button").dispatchEvent(escape);
       expect(escape.defaultPrevented).toBe(true);
       expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
       expect(document.activeElement).toBe(button);
@@ -237,6 +238,46 @@ describe("SVG preview lifecycle", () => {
     } finally { f.controller.stop(); }
   });
 
+  test("viewer keys do not reach a native Reader capture listener registered first", async () => {
+    const nativeKeys = [];
+    const nativeHandler = event => nativeKeys.push(event.key);
+    window.addEventListener("keydown", nativeHandler, true);
+    const f = await fixture({ popup: true });
+    try {
+      document.querySelector(".annotation-markdown-svg-open").click();
+      const dialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
+      const viewerDocument = dialog.querySelector("iframe")?.contentDocument ?? document;
+      const button = dialog.querySelector("iframe")
+        ? viewerDocument.querySelector("button") : dialog.querySelector("button");
+      for (const key of ["Tab", "ArrowRight", "Delete", "Escape"]) {
+        button.dispatchEvent(new viewerDocument.defaultView.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+      }
+      expect(nativeKeys).toEqual([]);
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
+      expect(nativeKeys).toEqual(["ArrowRight"]);
+    } finally {
+      f.controller.stop();
+      window.removeEventListener("keydown", nativeHandler, true);
+    }
+  });
+
+  test("rebuilds viewer controls when Gecko replaces the initial blank frame document", async () => {
+    const f = await fixture();
+    try {
+      document.querySelector(".annotation-markdown-svg-open").click();
+      const frame = document.querySelector("[data-annotation-markdown-svg-viewer] iframe");
+      const content = frame.contentDocument;
+      content.open(); content.write("<!doctype html><html><head></head><body></body></html>"); content.close();
+      frame.dispatchEvent(new Event("load"));
+      expect(frame.contentDocument.querySelector("img").getAttribute("src")).toBe(document.querySelector(".annotation-markdown-svg-image").getAttribute("src"));
+      const button = frame.contentDocument.querySelector("button");
+      expect(frame.contentDocument.activeElement).toBe(button);
+      button.click();
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
+    } finally { f.controller.stop(); }
+  });
+
   test("focus returned to a preview control does not postpone preference refresh", async () => {
     const f = await fixture();
     try {
@@ -252,7 +293,7 @@ describe("SVG preview lifecycle", () => {
       const image = document.querySelector(".annotation-markdown-svg-image");
       Object.defineProperties(image, { width: { value: 320 }, height: { value: 140 } });
       document.querySelector(".annotation-markdown-svg-open").click();
-      expect(document.querySelector("[data-annotation-markdown-svg-viewer] img").getAttribute("width")).toBe("640");
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer] iframe").contentDocument.querySelector("img").getAttribute("width")).toBe("640");
     } finally { f.controller.stop(); }
   });
 

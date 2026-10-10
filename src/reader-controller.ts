@@ -233,6 +233,7 @@ export function createReaderController({
   const windowRef = documentRef.defaultView ?? globalThis.window;
   const svgViewer = createSvgPreviewViewer({
     document: documentRef,
+    styleText,
     isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
     beforeOpen: () => adapter.closeActiveFastEditor?.() ?? true
   });

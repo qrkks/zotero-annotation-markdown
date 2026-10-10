@@ -1,18 +1,22 @@
 /** Static SVG image boundary. User markup never enters the Reader's live DOM. */
 import createDOMPurify, { type WindowLike } from "dompurify";
+import { normalizeSvgMarkupWhitespace } from "./svg-markup.js";
+import { validateSvgPath } from "./svg-path.js";
+import { createSvgFontStyles } from "./svg-fonts.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 export const SVG_LIMITS = { sourceChars: 32000, elements: 512, depth: 32, dimension: 4096 } as const;
 const TAGS = new Set([
   "svg", "g", "rect", "circle", "ellipse", "line", "polyline", "polygon", "path",
-  "text", "tspan", "title", "desc", "defs", "marker", "linearGradient", "radialGradient", "stop"
+  "text", "tspan", "title", "desc", "defs", "marker", "linearGradient", "radialGradient", "stop", "style"
 ]);
+const EMPTY_EXPORT_TAGS = new Set(["metadata", "style", "mask"]);
 const ATTRS = new Set([
   "xmlns", "viewBox", "width", "height", "x", "y", "dx", "dy", "x1", "y1", "x2", "y2",
   "cx", "cy", "r", "rx", "ry", "d", "points", "id", "transform", "fill", "stroke",
   "fill-opacity", "stroke-opacity", "opacity", "stroke-width", "stroke-linecap", "stroke-linejoin",
   "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset", "fill-rule", "clip-rule",
-  "font-size", "font-family", "font-weight", "font-style", "text-anchor", "dominant-baseline",
+  "font-size", "font-family", "font-weight", "font-style", "text-anchor", "dominant-baseline", "style", "direction",
   "alignment-baseline", "letter-spacing", "preserveAspectRatio", "marker-start", "marker-mid",
   "marker-end", "markerWidth", "markerHeight", "refX", "refY", "orient", "markerUnits",
   "gradientUnits", "gradientTransform", "spreadMethod", "fx", "fy", "fr", "offset",
@@ -22,6 +26,7 @@ const ID = /^[A-Za-z_][\w.-]{0,63}$/;
 const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
 const LENGTH = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(?:px|pt|em|%)?$/i;
 const ENUMS: Record<string, RegExp> = {
+  direction: /^(ltr|rtl)$/,
   "stroke-linecap": /^(butt|round|square)$/,
   "stroke-linejoin": /^(miter|round|bevel)$/,
   "fill-rule": /^(nonzero|evenodd)$/,
@@ -49,7 +54,7 @@ export function createSvgRenderer(windowRef: Window | null) {
       if (!windowRef || !purifier?.isSupported) throw new Error("SVG rendering is unavailable.");
       if (source.length > SVG_LIMITS.sourceChars) throw new Error("SVG source exceeds 32,000 characters.");
       if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(source)) throw new Error("SVG document declarations are unsupported.");
-      const xml: Document = new windowRef.DOMParser().parseFromString(source, "application/xml");
+      const xml: Document = new windowRef.DOMParser().parseFromString(normalizeSvgMarkupWhitespace(source), "application/xml");
       const root = xml.documentElement;
       if (xml.querySelector("parsererror") || root.localName !== "svg" || root.namespaceURI !== SVG_NS) {
         if (inferFromSource) return codeFallback;
@@ -60,23 +65,37 @@ export function createSvgRenderer(windowRef: Window | null) {
       if (nodes.length > SVG_LIMITS.elements) throw new Error("SVG exceeds 512 elements.");
       const ids = new Map<string, Element>();
       const references: Array<{ id: string; marker: boolean }> = [];
+      const normalizeFontStyles = createSvgFontStyles(windowRef.atob.bind(windowRef));
+      const referencedIds = new Set(nodes.flatMap(node => Array.from(node.attributes)
+        .map(attr => attr.value.trim().match(/^url\(#([A-Za-z_][\w.-]{0,63})\)$/)?.[1])
+        .filter((id): id is string => Boolean(id))));
       for (const node of nodes) {
-        if (node.namespaceURI !== SVG_NS || !TAGS.has(node.localName) || node.prefix || (node !== root && node.localName === "svg")) {
+        if (node.namespaceURI !== SVG_NS || (!TAGS.has(node.localName) && !EMPTY_EXPORT_TAGS.has(node.localName)) || node.prefix || (node !== root && node.localName === "svg")) {
           throw new Error(`Unsupported SVG element: ${node.localName}.`);
         }
         let depth = 0;
         for (let parent: Element | null = node; parent; parent = parent.parentElement) depth++;
         if (depth > SVG_LIMITS.depth) throw new Error("SVG nesting exceeds 32 levels.");
         if (Array.from(node.childNodes).some(child => ![1, 3, 8].includes(child.nodeType))) throw new Error("Unsupported SVG content.");
+        if (EMPTY_EXPORT_TAGS.has(node.localName)) {
+          prepareExportExtra(node, ids, referencedIds, normalizeFontStyles);
+          continue;
+        }
         for (const attr of Array.from(node.attributes)) {
           const name = attr.name;
           const value = attr.value.trim();
+          if (node === root && !attr.namespaceURI && (name === "version" || (name === "style" && /^max-width\s*:\s*100%\s*;?$/i.test(value)))) {
+            node.removeAttribute(name);
+            continue;
+          }
           if (!ATTRS.has(name) || (attr.namespaceURI && name !== "xmlns")) throw new Error(`Unsupported SVG attribute: ${name}.`);
-          if (name === "xmlns") {
+          if (name === "style") {
+            if (!["text", "tspan"].includes(node.localName) || !/^white-space\s*:\s*pre\s*;?$/i.test(value)) throw new Error("Unsupported SVG text style.");
+            node.setAttribute("style", "white-space: pre;");
+          } else if (name === "xmlns") {
             if (value !== SVG_NS) throw new Error("Unsupported SVG namespace.");
           } else if (name === "id") {
-            if (!ID.test(value) || ids.has(value)) throw new Error("SVG IDs must be unique and simple.");
-            ids.set(value, node);
+            recordId(value, node, ids);
           } else if (["fill", "stroke", "stop-color"].includes(name) || name.startsWith("marker-")) {
             const ref = value.match(/^url\(#([A-Za-z_][\w.-]{0,63})\)$/);
             if (ref) {
@@ -98,8 +117,7 @@ export function createSvgRenderer(windowRef: Window | null) {
             if (!parts.length || value.replace(/(matrix|translate|scale|rotate|skewX|skewY)\s*\([^()]*\)/g, "").trim()) throw new Error("Unsupported SVG transform.");
             for (const part of parts) validateNumbers(part[2]);
           } else if (name === "d") {
-            if (!/^[MmLlHhVvCcSsQqTtAaZz\deE+.,\s-]*$/.test(value)) throw new Error("Unsupported SVG path.");
-            validateNumbers(value.replace(/[MmLlHhVvCcSsQqTtAaZz]/g, " "));
+            validateSvgPath(value);
           } else if (["viewBox", "points", "stroke-dasharray"].includes(name)) {
             if (name !== "stroke-dasharray" || value !== "none") validateNumbers(value);
           } else {
@@ -125,7 +143,10 @@ export function createSvgRenderer(windowRef: Window | null) {
       const serialized = new windowRef.XMLSerializer().serializeToString(root);
       const clean = purifier.sanitize(serialized, {
         NAMESPACE: SVG_NS, ALLOWED_TAGS: [...TAGS, "#text"], ALLOWED_ATTR: [...ATTRS],
-        ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false, KEEP_CONTENT: false
+        ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false, KEEP_CONTENT: false,
+        // Preserve local paint IDs such as "body". This separately validated SVG
+        // is used only as an isolated image, never as nodes in the Reader DOM.
+        SANITIZE_DOM: false
       });
       if (!clean || !clean.includes("<svg")) throw new Error("SVG could not be sanitized.");
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clean)}`;
@@ -136,6 +157,36 @@ export function createSvgRenderer(windowRef: Window | null) {
       return `<p class="annotation-markdown-svg-error">${escapeHtml(message)}</p>${codeFallback}`;
     }
   };
+}
+
+function recordId(value: string, node: Element, ids: Map<string, Element>): void {
+  if (!ID.test(value) || ids.has(value)) throw new Error("SVG IDs must be unique and simple.");
+  ids.set(value, node);
+}
+function prepareExportExtra(node: Element, ids: Map<string, Element>, referencedIds: Set<string>, normalizeFontStyles: (css: string) => string): void {
+  if (node.children.length || (node.localName !== "style" && node.textContent?.trim())) {
+    throw new Error(`Unsupported SVG element: ${node.localName}.`);
+  }
+  for (const attr of Array.from(node.attributes)) {
+    const value = attr.value.trim();
+    if (attr.name === "xmlns" && value === SVG_NS) continue;
+    if (attr.namespaceURI) throw new Error(`Unsupported SVG attribute: ${attr.name}.`);
+    if (attr.name === "id") {
+      recordId(value, node, ids);
+      if (referencedIds.has(value)) throw new Error(`Referenced SVG ${node.localName} is unsupported.`);
+    } else if (node.localName === "style" && (attr.name === "class" || (attr.name === "type" && value === "text/css"))) {
+      // These export attributes do not control the restricted stylesheet.
+    } else {
+      throw new Error(`Unsupported SVG attribute: ${attr.name}.`);
+    }
+  }
+  if (node.localName === "style" && node.textContent?.trim()) {
+    const css = normalizeFontStyles(node.textContent);
+    for (const attr of Array.from(node.attributes)) node.removeAttributeNode(attr);
+    node.textContent = css;
+  } else {
+    node.remove();
+  }
 }
 
 function boundedNumber(value: string): boolean { return NUMBER.test(value) && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= 100000; }

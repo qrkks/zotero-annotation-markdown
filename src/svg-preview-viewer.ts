@@ -9,8 +9,8 @@ export function isSvgViewerTarget(target: EventTarget | null | undefined): boole
   return Boolean(element(target)?.closest(`[${VIEWER}]`));
 }
 
-export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = () => true }: {
-  document: Document; isEnabled: () => boolean; beforeOpen?: () => boolean;
+export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = () => true, styleText = "" }: {
+  document: Document; isEnabled: () => boolean; beforeOpen?: () => boolean; styleText?: string;
 }) {
   const win = doc.defaultView;
   let mounted = false;
@@ -18,8 +18,11 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
   let opener: HTMLButtonElement | null = null;
   let closeButton: HTMLButtonElement | null = null;
   let region: HTMLElement | null = null;
+  let viewerWindow: Window | null = null;
   function close(restoreFocus = true): void {
     const previous = opener;
+    for (const type of EVENTS) viewerWindow?.removeEventListener(type, handle, true);
+    viewerWindow = null;
     overlay?.remove(); overlay = null; opener = null; closeButton = null; region = null;
     if (restoreFocus && previous?.isConnected) previous.focus({ preventScroll: true });
   }
@@ -31,19 +34,42 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
     overlay = doc.createElement("div"); overlay.className = "annotation-markdown-svg-viewer";
     overlay.setAttribute(VIEWER, "true"); overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-label", image.alt || "SVG diagram");
-    const panel = doc.createElement("div"); panel.className = "annotation-markdown-svg-viewer-panel";
-    const toolbar = doc.createElement("div"); toolbar.className = "annotation-markdown-svg-viewer-toolbar";
-    const title = doc.createElement("span"); title.textContent = image.alt || "SVG diagram";
-    closeButton = doc.createElement("button"); closeButton.type = "button"; closeButton.textContent = "Close";
-    closeButton.setAttribute("aria-label", "Close SVG diagram");
-    region = doc.createElement("div"); region.className = "annotation-markdown-svg-viewer-region";
-    region.tabIndex = 0; region.setAttribute("role", "region"); region.setAttribute("aria-label", "Diagram (scroll to view)");
-    const large = doc.createElement("img"); large.src = src; large.alt = image.alt;
-    // HTMLImageElement.width reflects the fitted sidebar layout, not the SVG's
-    // intrinsic size. The renderer's numeric attributes retain that size.
-    large.width = Number(image.getAttribute("width")); large.height = Number(image.getAttribute("height")); large.draggable = false;
-    toolbar.append(title, closeButton); region.append(large); panel.append(toolbar, region); overlay.append(panel);
-    doc.body.append(overlay); closeButton.focus({ preventScroll: true });
+    // Zotero registers capturing keyboard shortcuts on the Reader window before
+    // the plugin. A child browsing context keeps modal keys out of that window,
+    // including Escape (deselect) and Delete (erase the selected annotation).
+    const frame = doc.createElement("iframe"); frame.className = "annotation-markdown-svg-viewer-frame";
+    frame.title = image.alt || "SVG diagram";
+    frame.style.width = `${Math.max(320, Number(image.getAttribute("width")))}px`;
+    frame.style.height = `${Math.max(100, Number(image.getAttribute("height"))) + 44}px`;
+    const populate = () => {
+      if (!frame.isConnected || !overlay?.contains(frame)) return;
+      const content = frame.contentDocument;
+      if (closeButton?.isConnected && closeButton.ownerDocument === content) return;
+      for (const type of EVENTS) viewerWindow?.removeEventListener(type, handle, true);
+      viewerWindow = frame.contentWindow;
+      if (!content?.body || !viewerWindow) { close(); return; }
+      content.body.className = "annotation-markdown-svg-viewer-content";
+      const style = content.createElement("style"); style.textContent = styleText; content.head.append(style);
+      const panel = content.createElement("div"); panel.className = "annotation-markdown-svg-viewer-panel";
+      const toolbar = content.createElement("div"); toolbar.className = "annotation-markdown-svg-viewer-toolbar";
+      const title = content.createElement("span"); title.textContent = image.alt || "SVG diagram";
+      closeButton = content.createElement("button"); closeButton.type = "button"; closeButton.textContent = "Close";
+      closeButton.setAttribute("aria-label", "Close SVG diagram");
+      region = content.createElement("div"); region.className = "annotation-markdown-svg-viewer-region";
+      region.tabIndex = 0; region.setAttribute("role", "region"); region.setAttribute("aria-label", "Diagram (scroll to view)");
+      const large = content.createElement("img"); large.src = src; large.alt = image.alt;
+      // Numeric attributes retain intrinsic size, unlike a fitted sidebar image.
+      large.width = Number(image.getAttribute("width")); large.height = Number(image.getAttribute("height")); large.draggable = false;
+      toolbar.append(title, closeButton); region.append(large); panel.append(toolbar, region); content.body.append(panel);
+      // Fit the toolbar's actual font metrics without introducing scrollbars
+      // when the intrinsic image already fits in the Reader viewport.
+      frame.style.height = `${Math.max(100, large.height) + Math.ceil(toolbar.getBoundingClientRect().height) + 2}px`;
+      for (const type of EVENTS) viewerWindow.addEventListener(type, handle, true);
+      closeButton.focus({ preventScroll: true });
+    };
+    // Gecko can replace the initial about:blank document on its first load.
+    frame.addEventListener("load", populate);
+    overlay.append(frame); doc.body.append(overlay); populate();
   }
   function handle(event: Event): void {
     const target = element(event.target);
@@ -57,13 +83,13 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
       return;
     }
     if (overlay || isSvgViewerTarget(target)) {
-      if (event.type === "focusin" && overlay && !overlay.contains(target)) closeButton?.focus({ preventScroll: true });
+      if (event.type === "focusin" && overlay && !overlay.contains(target) && target?.ownerDocument !== closeButton?.ownerDocument) closeButton?.focus({ preventScroll: true });
       event.stopImmediatePropagation();
       if (event.type === "keydown") {
         const key = (event as KeyboardEvent).key;
         if (key === "Escape") { event.preventDefault(); close(); }
         else if (key === "Tab") {
-          event.preventDefault(); (doc.activeElement === closeButton ? region : closeButton)?.focus({ preventScroll: true });
+          event.preventDefault(); (closeButton?.ownerDocument.activeElement === closeButton ? region : closeButton)?.focus({ preventScroll: true });
         }
       } else if (event.type === "click" && (target === overlay || target === closeButton)) {
         event.preventDefault(); close();
