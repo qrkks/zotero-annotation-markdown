@@ -64,7 +64,9 @@
 
 ## 设置
 
-打开 Zotero 设置并选择 **Annotation Markdown** 面板。面板跟随 Zotero 的界面语言，目前支持英文和简体中文。当前设置包括：
+打开 Zotero 设置并选择 **Annotation Markdown** 面板。面板跟随 Zotero 的界面语言，目前支持英文和简体中文。如希望新增语言或改进文案，参见[翻译贡献指南](localization.md)。
+
+当前设置包括：
 
 - 是否渲染侧边栏标注评论中的 Markdown；
 - 是否在页内标注弹窗中渲染 Markdown；默认关闭；

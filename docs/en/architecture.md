@@ -186,6 +186,7 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/manifest.json` | Add-on identity, version, Zotero compatibility, icons, and update URL. |
 | `addon/prefs.js` | Default preference values loaded by Zotero. |
 | `addon/preferences.xhtml` | Preference-pane markup. |
+| `addon/locale/<locale>/annotation-markdown-preferences.ftl` | Native Fluent settings translations; see the [translation contribution guide](localization.md). |
 | `addon/preferences.js` | Preference-pane event handling and writes to `Zotero.Prefs`. |
 | `addon/preferences.css` | Preference-pane layout styles. |
 | `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including selected-row scroll margins and preference-gated Weavero link-color variables. |
@@ -224,7 +225,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |
 | `tests/settings.test.js` | Preference defaults and normalization. |
 | `tests/bootstrap.test.js` | Zotero bootstrap integration and diagnostics. |
-| `tests/preferences-pane.test.js` | Preference-pane bindings. |
+| `tests/preferences-pane.test.js` | Preference-pane bindings and Fluent message/attribute coverage for the included locale test matrix. |
 | `tests/rendered-content-style.test.js` | Preview folding, editing, and performance-related CSS. |
 | `tests/native-annotation-row-lazy.test.js` | Version and host-shape gates, exact-height shells, selected-row fallback, retry behavior, and hot-reload cleanup compatibility. |
 | `tests/katex-assets.test.js` | KaTeX font inlining. |

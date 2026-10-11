@@ -64,7 +64,9 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 
 ## Settings
 
-Open Zotero Settings and select the **Annotation Markdown** pane. The pane follows Zotero's interface language, with English and Simplified Chinese translations. The available settings control:
+Open Zotero Settings and select the **Annotation Markdown** pane. The pane follows Zotero's interface language, with English and Simplified Chinese translations. To add another language or improve wording, see the [translation contribution guide](localization.md).
+
+The available settings control:
 
 - Markdown rendering for sidebar annotation comments;
 - Markdown rendering for page annotation popups, disabled by default;

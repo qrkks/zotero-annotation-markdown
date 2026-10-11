@@ -73,6 +73,7 @@ SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG co
 - [使用指南](docs/zh-CN/user-guide.md)
 - [架构与文件职责](docs/zh-CN/architecture.md)
 - [开发与发布](docs/zh-CN/development.md)
+- [本地化与翻译贡献](docs/zh-CN/localization.md)
 - [性能诊断](docs/zh-CN/performance-diagnostics.md)
 - [文档索引与翻译规则](docs/README.md)
 

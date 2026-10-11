@@ -24,6 +24,8 @@ dist/zotero-annotation-markdown.xpi
 
 ## 验证
 
+Fluent 资源布局、新增语言的方法及翻译专项检查，参见[本地化与翻译贡献](localization.md)。
+
 发布前运行完整的本地验证流程：
 
 ```powershell

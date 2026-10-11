@@ -186,6 +186,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/manifest.json` | 插件标识、版本、Zotero 兼容范围、图标和更新地址。 |
 | `addon/prefs.js` | Zotero 加载的默认偏好设置值。 |
 | `addon/preferences.xhtml` | 偏好设置面板结构。 |
+| `addon/locale/<locale>/annotation-markdown-preferences.ftl` | 设置页的原生 Fluent 翻译，参见[翻译贡献指南](localization.md)。 |
 | `addon/preferences.js` | 偏好设置面板事件处理，并写入 `Zotero.Prefs`。 |
 | `addon/preferences.css` | 偏好设置面板布局样式。 |
 | `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括选中标注的滚动边距及受偏好开关控制的 Weavero 链接颜色变量。 |
@@ -224,7 +225,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
 | `tests/settings.test.js` | 偏好默认值和规范化。 |
 | `tests/bootstrap.test.js` | Zotero 启动集成和诊断。 |
-| `tests/preferences-pane.test.js` | 偏好设置面板绑定。 |
+| `tests/preferences-pane.test.js` | 偏好设置面板绑定，以及测试矩阵中各语言的 Fluent 消息和属性覆盖。 |
 | `tests/rendered-content-style.test.js` | 预览折叠、编辑状态和性能相关 CSS。 |
 | `tests/native-annotation-row-lazy.test.js` | 版本与宿主结构门禁、精确高度空壳、选中行回退、重试行为和热重载清理兼容性。 |
 | `tests/katex-assets.test.js` | KaTeX 字体内联。 |

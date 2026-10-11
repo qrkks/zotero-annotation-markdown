@@ -73,6 +73,7 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 - [User guide](docs/en/user-guide.md)
 - [Architecture and file map](docs/en/architecture.md)
 - [Development and release](docs/en/development.md)
+- [Localization and translation contributions](docs/en/localization.md)
 - [Performance diagnostics](docs/en/performance-diagnostics.md)
 - [Documentation index and translation policy](docs/README.md)
 

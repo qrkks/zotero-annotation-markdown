@@ -24,6 +24,8 @@ Install it through Zotero's plugin manager for real-reader validation.
 
 ## Verification
 
+For the Fluent resource layout, adding a language, and translation-specific checks, see [Localization and translation contributions](localization.md).
+
 Run the complete local verification pipeline before a release:
 
 ```powershell
