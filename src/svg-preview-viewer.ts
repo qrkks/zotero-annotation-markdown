@@ -44,6 +44,8 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
     if (!isEnabled() || !image || !src?.startsWith("data:image/svg+xml;charset=utf-8,") || image.hidden || !beforeOpen()) return;
     close(false); opener = button;
     overlay = doc.createElement("div"); overlay.className = "annotation-markdown-svg-viewer";
+    // Keep layout and keyboard focus active while the initial frame is replaced.
+    overlay.style.opacity = "0";
     overlay.setAttribute(VIEWER, "true"); overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-label", image.alt || "SVG diagram");
     // Zotero registers capturing keyboard shortcuts on the Reader window before
@@ -92,8 +94,32 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
       viewerWindow.addEventListener("resize", resize);
       closeButton.focus({ preventScroll: true });
     };
+    const revealWhenReady = () => {
+      const current = overlay, content = frame.contentDocument;
+      const large = content?.querySelector("img");
+      if (!current?.contains(frame) || !large) return;
+      const active = () => current === overlay && frame.isConnected && frame.contentDocument === content && large.isConnected;
+      const reveal = () => { if (active()) current.style.removeProperty("opacity"); };
+      const failed = () => {
+        if (!active()) return;
+        if (large.complete && large.naturalWidth > 0) reveal(); else close();
+      };
+      if (typeof large.decode === "function") {
+        void large.decode().then(reveal, failed);
+      } else if (large.complete) {
+        if (large.naturalWidth > 0) reveal(); else failed();
+      } else {
+        large.addEventListener("load", reveal, { once: true });
+        large.addEventListener("error", failed, { once: true });
+      }
+    };
     // Gecko can replace the initial about:blank document on its first load.
-    frame.addEventListener("load", populate);
+    // Reveal the completed final document, never the provisional image or blank.
+    frame.addEventListener("load", () => {
+      if (!frame.isConnected || !overlay?.contains(frame)) return;
+      overlay.style.opacity = "0";
+      populate(); revealWhenReady();
+    });
     overlay.append(frame); doc.body.append(overlay);
     // Keep the Reader's normal asynchronous wheel scrolling outside the modal.
     win?.addEventListener("wheel", handle, { capture: true, passive: false });

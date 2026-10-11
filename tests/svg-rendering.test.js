@@ -332,6 +332,90 @@ describe("SVG preview lifecycle", () => {
     } finally { f.controller.stop(); }
   });
 
+  function deferViewerDecode(frame) {
+    const pending = [];
+    frame.contentWindow.HTMLImageElement.prototype.decode = function () {
+      return new Promise((resolve, reject) => pending.push({ image: this, resolve, reject }));
+    };
+    return pending;
+  }
+
+  test.each([false, true])("shows the viewer only after the final frame image is decoded (popup=%s)", async popup => {
+    const f = await fixture({ popup });
+    try {
+      document.querySelector(".annotation-markdown-svg-open").click();
+      const dialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
+      const frame = dialog.querySelector("iframe");
+      const pending = deferViewerDecode(frame);
+      expect(dialog.style.opacity).toBe("0");
+      frame.dispatchEvent(new Event("load"));
+      const content = frame.contentDocument;
+      content.open(); content.write("<!doctype html><html><head></head><body></body></html>"); content.close();
+      frame.dispatchEvent(new Event("load"));
+      expect(pending).toHaveLength(2);
+      pending[0].resolve(); await Promise.resolve();
+      expect(dialog.style.opacity).toBe("0");
+      pending[1].resolve(); await Promise.resolve();
+      expect(dialog.style.opacity).toBe("");
+      expect(frame.contentDocument.querySelector("img").getAttribute("src")).toBe(document.querySelector(".annotation-markdown-svg-image").getAttribute("src"));
+      expect(frame.contentDocument.activeElement.getAttribute("aria-label")).toBe("Close SVG diagram");
+      expect(document.querySelector("textarea")).toBeNull();
+    } finally { f.controller.stop(); }
+  });
+
+  test("a closed viewer's pending image cannot reveal or close a reopened viewer", async () => {
+    const f = await fixture();
+    try {
+      const button = document.querySelector(".annotation-markdown-svg-open");
+      button.click();
+      const oldDialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
+      const oldFrame = oldDialog.querySelector("iframe");
+      const oldDecode = deferViewerDecode(oldFrame);
+      oldFrame.dispatchEvent(new Event("load"));
+      oldFrame.contentDocument.querySelector("[aria-label='Close SVG diagram']").click();
+      button.click();
+      const dialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
+      const frame = dialog.querySelector("iframe");
+      const pending = deferViewerDecode(frame);
+      frame.dispatchEvent(new Event("load"));
+      oldDecode[0].reject(new Error("The old image was detached")); await Promise.resolve();
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBe(dialog);
+      expect(dialog.style.opacity).toBe("0");
+      pending[0].resolve(); await Promise.resolve();
+      expect(dialog.style.opacity).toBe("");
+      expect(document.querySelector(".content").textContent).toBe(f.source);
+    } finally { f.controller.stop(); }
+  });
+
+  test("a failed viewer image closes the pending dialog and restores its opener", async () => {
+    const f = await fixture();
+    try {
+      const button = document.querySelector(".annotation-markdown-svg-open");
+      button.click();
+      const frame = document.querySelector("[data-annotation-markdown-svg-viewer] iframe");
+      const pending = deferViewerDecode(frame);
+      frame.dispatchEvent(new Event("load"));
+      pending[0].reject(new Error("Image decode failed")); await Promise.resolve();
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
+      expect(document.activeElement).toBe(button);
+      expect(document.querySelector(".content").textContent).toBe(f.source);
+    } finally { f.controller.stop(); }
+  });
+
+  test("waits for image loading when decode is unavailable", async () => {
+    const f = await fixture();
+    try {
+      document.querySelector(".annotation-markdown-svg-open").click();
+      const dialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
+      const frame = dialog.querySelector("iframe");
+      frame.contentWindow.HTMLImageElement.prototype.decode = undefined;
+      frame.dispatchEvent(new Event("load"));
+      expect(dialog.style.opacity).toBe("0");
+      frame.contentDocument.querySelector("img").dispatchEvent(new Event("load"));
+      expect(dialog.style.opacity).toBe("");
+    } finally { f.controller.stop(); }
+  });
+
   test("focus returned to a preview control does not postpone preference refresh", async () => {
     const f = await fixture();
     try {
