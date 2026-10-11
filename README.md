@@ -33,12 +33,12 @@ The Markdown, outline, and popup screenshots above use demonstration text in Zot
 
 **SVG diagrams:** edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
 
-SVG rendering is experimental and off by default. Enable **Render SVG code blocks (Experimental)** in Settings to try the [six copyable SVG samples](docs/examples/svg-samples.md). These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6 with Annotation Markdown v0.13.0.
+SVG rendering is experimental and off by default. Enable **Render SVG code blocks (Experimental)** in Settings to try the [six copyable SVG samples](docs/examples/svg-samples.md). These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6. The source and sidebar previews were captured with Annotation Markdown v0.13.0; the larger-image viewer below uses v0.13.1.
 
 <details>
 <summary>See the SVG larger-image viewer</summary>
 
-![The English SVG demonstration in the annotation sidebar on the left and its larger-image viewer on the right](docs/images/svg-preview-and-viewer.webp)
+![The English SVG demonstration in the annotation sidebar on the left and the v0.13.1 larger-image viewer with zoom controls, a percentage indicator, and Fit on the right](docs/images/svg-preview-and-viewer.webp)
 
 Choose **View larger** to inspect the diagram. In v0.13.1, use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
 

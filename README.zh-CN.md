@@ -33,12 +33,12 @@
 
 **SVG 示意图**：编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
 
-SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG code blocks (Experimental)**，即可尝试[六个可复制的 SVG 样例](docs/examples/svg-samples.md)。这两张 SVG 截图使用样例 5 的图形和英文演示文字，取自 Zotero 10.0.6 与 Annotation Markdown v0.13.0。
+SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG code blocks (Experimental)**，即可尝试[六个可复制的 SVG 样例](docs/examples/svg-samples.md)。这些 SVG 截图使用样例 5 的图形和英文演示文字，取自 Zotero 10.0.6。源码和侧栏预览截图使用 Annotation Markdown v0.13.0；下方的大图查看器截图使用 v0.13.1。
 
 <details>
 <summary>查看 SVG 大图查看器</summary>
 
-![左侧为采用英文演示文字的 SVG 标注预览，右侧为对应的大图查看器](docs/images/svg-preview-and-viewer.webp)
+![左侧为采用英文演示文字的 SVG 标注预览，右侧为带缩放按钮、比例显示和 Fit 按钮的 v0.13.1 大图查看器](docs/images/svg-preview-and-viewer.webp)
 
 点击 **View larger** 查看图形细节。v0.13.1 支持用 **− / +** 或滚轮同时缩放图片和浮层，点击 **Fit** 恢复完整视图；图片超出 Reader 可用空间后可拖动平移。按 **Esc** 或点击 **Close** 返回标注。
 
