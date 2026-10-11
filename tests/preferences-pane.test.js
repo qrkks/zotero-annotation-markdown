@@ -3,6 +3,8 @@ import path from "node:path";
 import vm from "node:vm";
 
 import { describe, expect, test, vi } from "vitest";
+import { FluentBundle, FluentResource } from "@fluent/bundle";
+import { JSDOM } from "jsdom";
 
 describe("preferences pane", () => {
   test("SVG is opt-in, follows rendering scopes, and writes the full pref key", async () => {
@@ -19,7 +21,7 @@ describe("preferences pane", () => {
     expect(f.set).toHaveBeenCalledWith("extensions.annotationMarkdown.svgEnabled", true, true);
     const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
     expect(source).toContain('preference="extensions.annotationMarkdown.svgEnabled"');
-    expect(source).toContain('label="Render SVG code blocks (Experimental)"');
+    expect(source).toContain('data-l10n-id="annotation-markdown-prefs-svg-enabled"');
   });
   test.each([
     [false, false, false], [false, false, true],
@@ -74,105 +76,86 @@ describe("preferences pane", () => {
 
   test("presents sidebar and popup rendering as peer options", async () => {
     const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
-    expect(source).toContain('label="Render sidebar annotation comments as Markdown"');
+    expect(source).toContain('data-l10n-id="annotation-markdown-prefs-enabled"');
     expect(source).toContain('<vbox id="annotation-markdown-popup-option">');
   });
 
-  test("uses a XUL menulist for the font size picker", async () => {
-    const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
+  test("preserves XUL controls, setting keys, values, and group order", async () => {
+    const doc = await loadPreferenceDocument();
+    expect(doc.documentElement.getAttribute("onload")).toBe("Zotero.AnnotationMarkdownPreferences.init(document)");
+    expect(doc.querySelector("select")).toBeNull();
+    const keys = {
+      enabled: "enabled", "popup-enabled": "popupEnabled", "math-enabled": "mathEnabled",
+      "math-output": "mathOutput", "svg-enabled": "svgEnabled", "font-scale": "fontScalePercent",
+      "paste-as-plain-text": "pasteAsPlainText", "fast-editor": "fastEditor",
+      "outline-enabled": "outlineEnabled", "outline-font-scale": "outlineFontScalePercent",
+      "auto-todo-tag": "autoTodoTag", "auto-todo-cleanup": "autoTodoCleanup",
+      "render-strategy": "renderStrategy", "native-row-lazy": "nativeRowLazy"
+    };
+    expect(doc.querySelectorAll("[preference]")).toHaveLength(Object.keys(keys).length);
+    for (const [id, key] of Object.entries(keys)) {
+      const control = doc.getElementById(`annotation-markdown-${id}`);
+      expect(control.getAttribute("preference")).toBe(`extensions.annotationMarkdown.${key}`);
+      expect(control.localName).toBe(["math-output", "font-scale", "outline-font-scale", "render-strategy"].includes(id) ? "menulist" : "checkbox");
+    }
+    for (const id of ["font-scale", "outline-font-scale"]) {
+      const items = [...doc.getElementById(`annotation-markdown-${id}`).querySelectorAll("menuitem")];
+      expect(items.map(item => item.getAttribute("value"))).toEqual(Array.from({ length: 13 }, (_, i) => String(80 + i * 10)));
+      expect(items.map(item => item.getAttribute("label"))).toEqual(items.map(item => `${item.getAttribute("value")}%`));
+    }
+    expect([...doc.getElementById("annotation-markdown-math-output").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["htmlAndMathml", "mathml"]);
+    expect([...doc.getElementById("annotation-markdown-render-strategy").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["auto", "eager", "lazy"]);
+    const groups = [...doc.querySelectorAll("groupbox")];
+    expect(groups.map(group => group.firstElementChild.firstElementChild.getAttribute("data-l10n-id"))).toEqual([
+      "annotation-markdown-prefs-reader", "annotation-markdown-prefs-outline",
+      "annotation-markdown-prefs-tags", "annotation-markdown-prefs-performance"
+    ]);
+    expect([...groups[0].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
+      "annotation-markdown-enabled", "annotation-markdown-popup-enabled", "annotation-markdown-math-enabled",
+      "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-font-scale",
+      "annotation-markdown-paste-as-plain-text", "annotation-markdown-fast-editor"
+    ]);
+    expect(groups[1].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();
+    expect(groups[2].querySelector("#annotation-markdown-auto-todo-cleanup")).not.toBeNull();
+  });
 
-    expect(source).toContain('onload="Zotero.AnnotationMarkdownPreferences.init(document)"');
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.enabled\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.popupEnabled\"");
-    expect(source).toContain(
-      "label=\"Render page annotation popups as Markdown\""
-    );
-    expect(source).toContain(
-      "Show formatted Markdown previews in page annotation popups independently of sidebar rendering. Off by default."
-    );
-    expect(source).toContain(
-      "id=\"annotation-markdown-popup-option\""
-    );
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.fontScalePercent\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.pasteAsPlainText\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.fastEditor\"");
-    expect(source).toContain(
-      "label=\"Use the fast annotation comment editor\""
-    );
-    expect(source).toContain(
-      "Helps reduce typing lag in documents with many annotations."
-    );
-    expect(source).toContain("label=\"Paste clipboard content into annotation comments as plain text\"");
-    expect(source).toContain(
-      "Recommended when pasting responses from AI tools. Keeps Markdown editable and avoids importing rich-text formatting or hidden HTML."
-    );
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.mathEnabled\"");
-    expect(source).toContain('preference="extensions.annotationMarkdown.mathOutput"');
-    expect(source).toContain('<menuitem label="KaTeX HTML + MathML (default)" value="htmlAndMathml"/>');
-    expect(source).toContain('<menuitem label="Native MathML only (Experimental)" value="mathml"/>');
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineEnabled\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.outlineFontScalePercent\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoTag\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.autoTodoCleanup\"");
-    expect(source).toContain("Add a todo tag for TODO: or T: lines");
-    const readerGroupEnd = source.indexOf("</groupbox>");
-    const outlineGroupStart = source.indexOf("<html:h2>Floating Outline</html:h2>");
-    const outlineGroupEnd = source.indexOf("</groupbox>", outlineGroupStart);
-    const readerGroup = source.slice(0, readerGroupEnd);
-    const outlineGroup = source.slice(outlineGroupStart, outlineGroupEnd);
-    const tagsGroupStart = source.indexOf("<html:h2>Annotation Tags</html:h2>");
-    const tagsGroupEnd = source.indexOf("</groupbox>", tagsGroupStart);
-    expect(readerGroupEnd).toBeLessThan(outlineGroupStart);
-    expect(readerGroup).toContain("id=\"annotation-markdown-font-scale\"");
-    expect(source).not.toContain("<html:h2>Preview Font Size</html:h2>");
-    expect(outlineGroupStart).toBeLessThan(source.indexOf("id=\"annotation-markdown-outline-enabled\""));
-    expect(source.indexOf("id=\"annotation-markdown-outline-font-scale\"")).toBeLessThan(outlineGroupEnd);
-    expect(outlineGroupEnd).toBeLessThan(tagsGroupStart);
-    expect(tagsGroupStart).toBeLessThan(source.indexOf("id=\"annotation-markdown-auto-todo-tag\""));
-    expect(source.indexOf("id=\"annotation-markdown-auto-todo-cleanup\"")).toBeLessThan(tagsGroupEnd);
-    expect(tagsGroupEnd).toBeLessThan(source.indexOf("<html:h2>Rendering Performance</html:h2>"));
-    expect(source).toContain(
-      "label=\"Show a floating outline for annotations with multiple headings\""
-    );
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.renderStrategy\"");
-    expect(source).toContain("preference=\"extensions.annotationMarkdown.nativeRowLazy\"");
-    expect(source).toContain(
-      "Accelerate clearing tag filters in very large annotation lists (Experimental)"
-    );
-    expect(source).toContain(
-      "Reduces pauses when deselecting tags restores many annotations. Enable before applying tag filters to a fully loaded list. Off by default; currently supports Zotero 10.0.3. Does not speed up first opening; falls back to Zotero's native list when unavailable."
-    );
-    expect(source.indexOf("id=\"annotation-markdown-enabled\"")).toBeLessThan(
-      source.indexOf("id=\"annotation-markdown-popup-enabled\"")
-    );
-    expect(source.indexOf("id=\"annotation-markdown-popup-enabled\"")).toBeLessThan(
-      source.indexOf("id=\"annotation-markdown-math-enabled\"")
-    );
-    expect(source.indexOf("id=\"annotation-markdown-math-enabled\"")).toBeLessThan(
-      source.indexOf("id=\"annotation-markdown-font-scale\"")
-    );
-    expect(source.indexOf("id=\"annotation-markdown-font-scale\"")).toBeLessThan(
-      source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")
-    );
-    expect(source.indexOf("id=\"annotation-markdown-paste-as-plain-text\"")).toBeLessThan(
-      source.indexOf("id=\"annotation-markdown-fast-editor\"")
-    );
-    expect(source).not.toContain("preference=\"extensions.annotationMarkdown.lightweightMode\"");
-    expect(source).not.toContain("preference=\"extensions.annotationMarkdown.performanceDiagnostics\"");
-    expect(source).toContain("<menulist id=\"annotation-markdown-font-scale\"");
-    expect(source).toContain("<menuitem label=\"80%\" value=\"80\"/>");
-    expect(source).toContain("<menuitem label=\"100%\" value=\"100\"/>");
-    expect(source).toContain("<menuitem label=\"150%\" value=\"150\"/>");
-    expect(readerGroup).toContain("<menuitem label=\"200%\" value=\"200\"/>");
-    expect(outlineGroup).toContain("<menuitem label=\"80%\" value=\"80\"/>");
-    expect(outlineGroup).toContain("<menuitem label=\"200%\" value=\"200\"/>");
-    expect(source).toContain("<menulist id=\"annotation-markdown-outline-font-scale\"");
-    expect(source).toContain("<menuitem label=\"90%\" value=\"90\"/>");
-    expect(source).toContain("<menulist id=\"annotation-markdown-render-strategy\"");
-    expect(source).toContain("<menuitem label=\"Automatic (recommended)\" value=\"auto\"/>");
-    expect(source).toContain("<menuitem label=\"Render all annotations\" value=\"eager\"/>");
-    expect(source).toContain("<menuitem label=\"Render near the viewport\" value=\"lazy\"/>");
-    expect(source).not.toContain("<html:select");
+  test.each(["en-US", "zh-CN"])("localizes all pane text and caption attributes in %s", async locale => {
+    const doc = await loadPreferenceDocument();
+    const link = doc.querySelector("linkset > *");
+    expect(link.namespaceURI).toBe("http://www.w3.org/1999/xhtml");
+    expect(link.getAttribute("rel")).toBe("localization");
+    expect(link.getAttribute("href")).toBe("annotation-markdown-preferences.ftl");
+    const source = await readFile(path.join(process.cwd(), "addon", "locale", locale, link.getAttribute("href")), "utf8");
+    const resource = new FluentResource(source);
+    const bundle = new FluentBundle(locale);
+    expect(bundle.addResource(resource)).toEqual([]);
+    const targets = [...doc.querySelectorAll("[data-l10n-id]")];
+    const ids = targets.map(element => element.getAttribute("data-l10n-id"));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(resource.body.map(message => message.id).sort()).toEqual([...ids].sort());
+    for (const element of targets) {
+      const id = element.getAttribute("data-l10n-id");
+      expect(id).toMatch(/^annotation-markdown-prefs-/);
+      const message = bundle.getMessage(id);
+      expect(message, id).toBeDefined();
+      const attribute = ["checkbox", "menuitem"].includes(element.localName) ? "label" : element.localName === "label" ? "value" : null;
+      expect(Object.keys(message.attributes)).toEqual(attribute ? [attribute] : []);
+      const text = bundle.formatPattern(attribute ? message.attributes[attribute] : message.value);
+      expect(text.trim(), id).not.toBe("");
+      if (locale === "zh-CN") expect(text, id).toMatch(/[\u4e00-\u9fff]/);
+      if (attribute) element.setAttribute(attribute, text);
+      else element.textContent = text;
+    }
+    // Every user-facing string must use Fluent, except the language-neutral percentages.
+    for (const element of doc.querySelectorAll("checkbox, menuitem, description, label, h2")) {
+      if (element.localName === "label" && element.children.length) continue;
+      if (element.localName === "menuitem" && /^\d+%$/.test(element.getAttribute("label") ?? "")) continue;
+      expect(element.hasAttribute("data-l10n-id"), element.outerHTML).toBe(true);
+    }
+    expect(doc.getElementById("annotation-markdown-enabled").getAttribute("label")).toBe(locale === "zh-CN" ? "将侧栏批注评论渲染为 Markdown" : "Render sidebar annotation comments as Markdown");
+    expect(doc.querySelector('[data-l10n-id="annotation-markdown-prefs-math-output"]').getAttribute("value")).toBe(locale === "zh-CN" ? "公式渲染方式" : "Math rendering");
+    expect(doc.getElementById("annotation-markdown-math-output").getAttribute("preference")).toBe("extensions.annotationMarkdown.mathOutput");
+    expect([...doc.getElementById("annotation-markdown-math-output").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["htmlAndMathml", "mathml"]);
   });
 
   test("shows default enabled and 100 percent values when prefs are missing", async () => {
@@ -442,4 +425,9 @@ function createInput() {
       listeners.get(eventName)?.();
     }
   };
+}
+
+async function loadPreferenceDocument() {
+  const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
+  return new JSDOM(source, { contentType: "application/xhtml+xml" }).window.document;
 }

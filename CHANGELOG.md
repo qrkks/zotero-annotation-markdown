@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.0 - 2026-10-11
+
+### Added
+
+- Add English and Simplified Chinese translations for the settings pane. Group headings, option captions, dropdown choices, and help text follow Zotero's interface language through native Fluent localization.
+- Use English fallback when a translation is unavailable. Existing preferences and saved choices are preserved.
+
+### 新增
+
+- 设置页支持英文和简体中文。分组标题、选项标签、下拉菜单及说明通过 Zotero 原生 Fluent 本地化系统，跟随 Zotero 的界面语言显示。
+- 没有对应翻译时回退到英文，保留现有设置及已保存的选择。
+
+See the [settings guide](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.14.0/docs/en/user-guide.md#settings).
+
 ## 0.13.1 - 2026-10-11
 
 ### Added

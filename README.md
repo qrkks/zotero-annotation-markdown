@@ -57,6 +57,7 @@ Choose **View larger** to inspect the diagram. In v0.13.1, use **− / +** or th
 - [Fast source editing](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster) that remains responsive in books with many annotation tags.
 - Independent sidebar and page-popup rendering switches; enable either surface on its own, with shared font size and math settings.
 - Adjustable preview font size and rendering strategy.
+- Settings follow Zotero's interface language, with English and Simplified Chinese translations.
 - An off-by-default Zotero 10.0.3 experiment that lazily restores native rows when a tag filter is cleared in very large annotation lists.
 - Sanitized output with a plain-text fallback on rendering failure.
 - Supports Zotero Desktop 9.0 and 10.0.x. Current release validation prioritizes Zotero 10; Zotero 9 retains an automatic native-editor fallback.
