@@ -175,9 +175,9 @@ describe("opt-in SVG fences", () => {
 });
 
 describe("SVG preview lifecycle", () => {
-  async function fixture({ popup = false, fast = true, strategy = "eager", tinyCache = false } = {}) {
+  async function fixture({ popup = false, fast = true, strategy = "eager", tinyCache = false, markdown = fence(simple) } = {}) {
     document.body.innerHTML = `${popup ? '<div class="annotation-popup">' : ''}<div data-sidebar-annotation-id="a1" class="annotation selected"><div class="comment"><div class="expandable-editor"><div class="content" contenteditable="true"></div></div></div></div>${popup ? '</div>' : ''}`;
-    const source = fence(simple); document.querySelector(".content").textContent = source;
+    const source = markdown; document.querySelector(".content").textContent = source;
     const settings = createSettings(); settings.setSvgEnabled(true); settings.setPopupEnabled(popup); settings.setRenderStrategy(strategy);
     const adapter = createAnnotationSidebarAdapter({ document, isFastEditorEnabled: () => fast, commitComment: () => true });
     const controller = createReaderController({
@@ -203,13 +203,14 @@ describe("SVG preview lifecycle", () => {
     } finally { f.controller.stop(); }
   });
 
-  test.each([[false,true], [true,true], [false,false], [true,false]])("opens and closes a large image without editing (popup=%s fast=%s)", async (popup,fast) => {
+  test.each([false, true].flatMap(popup => [false, true].flatMap(fast => ["button", "image"].map(entry => [popup, fast, entry]))))("opens and closes a large image without editing (popup=%s fast=%s entry=%s)", async (popup,fast,entry) => {
     const f = await fixture({ popup, fast });
     try {
       const button = document.querySelector(".annotation-markdown-svg-open");
+      const target = entry === "image" ? document.querySelector(".annotation-markdown-svg-image") : button;
       const preview = document.querySelector(".annotation-markdown-rendered");
       const src = document.querySelector(".annotation-markdown-svg-image").getAttribute("src");
-      for (const type of ["pointerdown","mousedown","click"]) button.dispatchEvent(new MouseEvent(type,{ bubbles:true, button:0, cancelable:true }));
+      for (const type of ["pointerdown","mousedown","click"]) target.dispatchEvent(new MouseEvent(type,{ bubbles:true, button:0, cancelable:true }));
       const dialog = document.querySelector("[data-annotation-markdown-svg-viewer]");
       expect(dialog).not.toBeNull();
       const viewerDocument = dialog.querySelector("iframe").contentDocument;
@@ -230,11 +231,64 @@ describe("SVG preview lifecycle", () => {
     } finally { f.controller.stop(); }
   });
 
-  test("ordinary image clicks still enter source editing", async () => {
+  test.each([false, true].flatMap(popup => ["p", ".annotation-markdown-svg"].map(target => [popup, target])))("keeps text and image margins available for source editing (popup=%s target=%s)", async (popup, target) => {
+    const f = await fixture({ popup, markdown: `Diagram instructions.\n\n${fence(simple)}` });
+    try {
+      document.querySelector(`.annotation-markdown-rendered ${target}`).dispatchEvent(new MouseEvent("mousedown", { bubbles:true, button:0 }));
+      expect(document.querySelector("textarea").value).toBe(f.source);
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
+    } finally { f.controller.stop(); }
+  });
+
+  test("opens an unselected SVG without changing its preview or entering editing", async () => {
     const f = await fixture();
     try {
-      document.querySelector(".annotation-markdown-svg-image").dispatchEvent(new MouseEvent("mousedown", { bubbles:true, button:0 }));
+      const row = document.querySelector(".annotation"); row.classList.remove("selected");
+      const preview = document.querySelector(".annotation-markdown-rendered");
+      document.querySelector(".annotation-markdown-svg-image").click();
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).not.toBeNull();
+      expect(document.querySelector(".annotation-markdown-rendered")).toBe(preview);
+      expect(document.querySelector("textarea")).toBeNull();
+      expect(row.classList.contains("selected")).toBe(false);
+      expect(f.adapter.getSourceText(document.querySelector(".comment"))).toBe(f.source);
+    } finally { f.controller.stop(); }
+  });
+
+  test("keeps source editing accessible for an SVG-only comment", async () => {
+    const f = await fixture();
+    try {
+      document.querySelector(".annotation-markdown-svg").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
       expect(document.querySelector("textarea").value).toBe(f.source);
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
+    } finally { f.controller.stop(); }
+  });
+
+  test.each([1, 2])("leaves non-primary SVG image clicks and the context menu to the host (button=%s)", async button => {
+    const f = await fixture();
+    const events = [];
+    const observe = event => events.push(event.type);
+    const types = ["pointerdown", "mousedown", "click", "contextmenu"];
+    for (const type of types) document.addEventListener(type, observe);
+    try {
+      const image = document.querySelector(".annotation-markdown-svg-image");
+      for (const type of types) {
+        const event = new MouseEvent(type, { bubbles: true, button, cancelable: true });
+        image.dispatchEvent(event); expect(event.defaultPrevented).toBe(false);
+      }
+      expect(events).toEqual(types);
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer], textarea")).toBeNull();
+    } finally {
+      for (const type of types) document.removeEventListener(type, observe);
+      f.controller.stop();
+    }
+  });
+
+  test("ordinary Markdown image clicks still enter source editing", async () => {
+    const f = await fixture({ markdown: "![Ordinary image](https://example.org/diagram.png)" });
+    try {
+      document.querySelector(".annotation-markdown-rendered img").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      expect(document.querySelector("textarea").value).toBe(f.source);
+      expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
     } finally { f.controller.stop(); }
   });
 

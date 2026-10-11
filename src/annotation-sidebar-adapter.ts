@@ -1361,7 +1361,10 @@ function createPreviewNode(
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
   preview.addEventListener("pointerdown", (event) => {
-    if (isSvgPreviewControl(event.target)) { event.stopPropagation(); return; }
+    if (isSvgPreviewControl(event.target)) {
+      if (event.button === 0) event.stopPropagation();
+      return;
+    }
     if (getPreviewScrollbar(event)) {
       event.stopPropagation();
       return;
@@ -1378,7 +1381,10 @@ function createPreviewNode(
     }
   }, { capture: true });
   preview.addEventListener("mousedown", (event) => {
-    if (isSvgPreviewControl(event.target)) { event.stopPropagation(); return; }
+    if (isSvgPreviewControl(event.target)) {
+      if (event.button === 0) event.stopPropagation();
+      return;
+    }
     if (getPreviewScrollbar(event)) {
       event.stopPropagation();
       return;

@@ -235,6 +235,7 @@
     height: auto;
     background: #fff;
     border-radius: 4px;
+    cursor: zoom-in;
 }
 
 .annotation-markdown-svg-open,

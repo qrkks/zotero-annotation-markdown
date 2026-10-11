@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.1 - 2026-10-11
+
+### Added
+
+- Click an SVG image to open its larger-image viewer in the annotation sidebar or a page popup, with a zoom-in cursor. Keep **View larger** as a visible button and keyboard entry point; closing the viewer returns focus to that button ([#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3)).
+- Edit the source by clicking text or blank preview space outside the SVG image. Right-clicking an SVG image keeps the native context menu available; other Markdown images retain their source-editing behavior.
+
+### 新增
+
+- 在标注侧栏和页内弹窗中，单击 SVG 图片即可打开大图查看器，鼠标显示放大镜光标。保留 **View larger** 按钮供发现功能和键盘操作，关闭查看器后焦点回到该按钮（[#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3)）。
+- 点击 SVG 图片外的文字或预览空白区域仍可编辑源码；右键图片可继续使用原生菜单，其他 Markdown 图片保持原有的源码编辑行为。
+
+Try the [six SVG samples and manual checklist](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.14.1/docs/examples/svg-samples.md).
+
 ## 0.14.0 - 2026-10-11
 
 ### Added

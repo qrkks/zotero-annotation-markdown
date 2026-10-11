@@ -40,7 +40,7 @@ SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG co
 
 ![左侧为采用英文演示文字的 SVG 标注预览，右侧为带缩放按钮、比例显示和 Fit 按钮的 v0.13.1 大图查看器](docs/images/svg-preview-and-viewer-v0.13.1.webp)
 
-点击 **View larger** 查看图形细节。v0.13.1 支持用 **− / +** 或滚轮同时缩放图片和浮层，点击 **Fit** 恢复完整视图；图片超出 Reader 可用空间后可拖动平移。按 **Esc** 或点击 **Close** 返回标注。
+点击 SVG 图片或 **View larger** 查看图形细节。v0.13.1 支持用 **− / +** 或滚轮同时缩放图片和浮层，点击 **Fit** 恢复完整视图；图片超出 Reader 可用空间后可拖动平移。按 **Esc** 或点击 **Close** 返回标注。
 
 </details>
 

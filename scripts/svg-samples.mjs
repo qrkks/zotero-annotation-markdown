@@ -34,9 +34,9 @@ Open any PDF and create a note annotation. Copy **one complete Markdown block be
 
 打开任意 PDF，创建一条便签批注。使用下面某个代码块的复制按钮，复制**完整 Markdown 内容**，以纯文本粘贴到批注评论中，失焦或按 Escape 保存。每个复制块都包含 SVG 的内层代码围栏；只复制 SVG 源码会漏掉围栏。样例 4 和 6 特意不指定语言。外层四个反引号用于本页展示，不属于复制后的批注内容。
 
-Check the expected image, **View larger**, Escape returning to the selected annotation, source editing and saving, Reader reopening, and Zotero restarting. Turning SVG off should reveal the original code without changing stored source. Report your Zotero/plugin versions, sample number, sidebar or popup, and reproduction steps if something fails.
+Check the expected image, opening the viewer by clicking the SVG image or **View larger**, Escape returning to the selected annotation, source editing and saving from text or blank preview space outside the image, Reader reopening, and Zotero restarting. Direct image clicks require v0.14.1 or newer; older versions use **View larger**. Turning SVG off should reveal the original code without changing stored source. Report your Zotero/plugin versions, sample number, sidebar or popup, and reproduction steps if something fails.
 
-检查预期图片、**View larger**、Escape 关闭后保留批注选择、编辑保存、Reader 重开和 Zotero 重启。关闭 SVG 后应显示原始代码，保存的源码不应变化。反馈问题时请提供 Zotero/插件版本、样例编号、侧栏或弹窗，以及复现步骤。
+检查预期图片、点击 SVG 图片或 **View larger** 打开查看器、Escape 关闭后保留批注选择、从图片外的文字或预览空白区域编辑保存、Reader 重开和 Zotero 重启。直接点击图片需要 v0.14.1 或更新版本；旧版本请使用 **View larger**。关闭 SVG 后应显示原始代码，保存的源码不应变化。反馈问题时请提供 Zotero/插件版本、样例编号、侧栏或弹窗，以及复现步骤。
 
 v0.13.1 adds zoom and pan controls; v0.13.0 has the original scrollable viewer. In v0.13.1 or later, also check **− / +**, the current percentage, the single **Fit** reset button, wheel zoom, and drag panning beyond the Reader bounds. Fit should restore the original size when it fits, or shrink an oversized diagram to show it completely; there is no separate 100% button. The frame and image should grow or shrink together, while the controls retain their size. The frame should stop growing at the Reader edges, the underlying PDF should not scroll, and Tab/Shift+Tab should remain inside the viewer. Repeat in the sidebar and a page popup.
 

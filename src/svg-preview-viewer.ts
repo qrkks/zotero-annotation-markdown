@@ -6,7 +6,7 @@ const EVENTS = ["pointerdown", "mousedown", "click", "keydown", "keyup", "keypre
 const VIEWER_EVENTS = [...EVENTS, "wheel", "pointermove", "pointerup", "pointercancel", "lostpointercapture"] as const;
 
 export function isSvgPreviewControl(target: EventTarget | null | undefined): boolean {
-  return Boolean(element(target)?.closest("button.annotation-markdown-svg-open")?.closest("[data-annotation-markdown-preview='true'].annotation-markdown-rendered"));
+  return Boolean(element(target)?.closest("button.annotation-markdown-svg-open, img.annotation-markdown-svg-image:not([hidden])")?.closest(".annotation-markdown-svg")?.closest("[data-annotation-markdown-preview='true'].annotation-markdown-rendered"));
 }
 export function isSvgViewerTarget(target: EventTarget | null | undefined): boolean {
   return Boolean(element(target)?.closest(`[${VIEWER}]`));
@@ -133,8 +133,11 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
       return;
     }
     if (!isSvgPreviewControl(target) || !isEnabled()) return;
+    if (target?.matches("img.annotation-markdown-svg-image") &&
+        ["pointerdown", "mousedown", "click"].includes(event.type) && (event as MouseEvent).button !== 0) return;
     event.stopImmediatePropagation();
-    const button = target?.closest<HTMLButtonElement>("button.annotation-markdown-svg-open");
+    const button = target?.closest<HTMLButtonElement>("button.annotation-markdown-svg-open") ??
+      target?.closest(".annotation-markdown-svg")?.querySelector<HTMLButtonElement>("button.annotation-markdown-svg-open");
     if (event.type === "pointerdown" || event.type === "mousedown") event.preventDefault();
     if (event.type === "click" && (event as MouseEvent).button === 0) {
       event.preventDefault(); if (button) open(button);
