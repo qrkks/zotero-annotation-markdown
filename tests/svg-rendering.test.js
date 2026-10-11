@@ -203,6 +203,24 @@ describe("SVG preview lifecycle", () => {
     } finally { f.controller.stop(); }
   });
 
+  test.each([false, true].flatMap(popup => ["\n", "\n\n"].map(separator => [popup, separator])))("keeps raw SVG source intact through viewer, preference and editor changes (popup=%s separator=%j)", async (popup, separator) => {
+    const f = await fixture({ popup, markdown: `Diagram instructions.${separator}${simple}${separator}After the diagram.` });
+    try {
+      document.querySelector(".annotation-markdown-svg-image").click();
+      const frame = document.querySelector("[data-annotation-markdown-svg-viewer] iframe");
+      frame.contentDocument.querySelector("[aria-label='Close SVG diagram']").click();
+      expect(f.adapter.getSourceText(document.querySelector(".comment"))).toBe(f.source);
+      f.settings.setSvgEnabled(false); f.controller.refresh();
+      expect(document.querySelector(".annotation-markdown-svg-image")).toBeNull();
+      expect(document.querySelector("code").textContent).toBe(`${simple}\n`);
+      f.settings.setSvgEnabled(true); f.controller.refresh();
+      document.querySelector(".annotation-markdown-rendered p").dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      expect(document.querySelector("textarea").value).toBe(f.source);
+      expect(document.querySelector("textarea").value).not.toContain("```svg");
+    } finally { f.controller.stop(); }
+    expect(document.querySelector(".content").textContent).toBe(f.source);
+  });
+
   test.each([false, true].flatMap(popup => [false, true].flatMap(fast => ["button", "image"].map(entry => [popup, fast, entry]))))("opens and closes a large image without editing (popup=%s fast=%s entry=%s)", async (popup,fast,entry) => {
     const f = await fixture({ popup, fast });
     try {

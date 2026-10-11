@@ -33,7 +33,7 @@ The Markdown, outline, and popup screenshots above use demonstration text in Zot
 
 **SVG diagrams:** edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
 
-SVG rendering is experimental and off by default. Enable **Render SVG code blocks (Experimental)** in Settings to try the [six copyable SVG samples](docs/examples/svg-samples.md). These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6. The source and sidebar previews were captured with Annotation Markdown v0.13.0; the larger-image viewer below uses v0.13.1.
+SVG rendering is experimental and off by default. Enable **Render SVG diagrams (Experimental)** in Settings to try the [six fenced SVG samples](docs/examples/svg-samples.md) or [six raw SVG samples](docs/examples/svg-raw-samples.md). Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators. These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6. The source and sidebar previews were captured with Annotation Markdown v0.13.0; the larger-image viewer below uses v0.13.1.
 
 <details>
 <summary>See the SVG larger-image viewer</summary>
@@ -48,7 +48,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
 - Optional native MathML rendering, marked experimental and off by default. Select **Native MathML only (Experimental)** under **Math rendering** in Settings to reduce formula rendering cost; spacing and appearance may differ.
-- Optional static SVG diagrams from fenced `svg` code blocks or complete SVG documents in unlabeled code blocks, with source editing and a larger-image viewer. Experimental and off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
+- Optional static SVG diagrams from fenced `svg` code blocks, complete SVG documents in unlabeled code blocks, or complete raw SVGs on their own lines, with source editing and a larger-image viewer. Experimental and off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 - Optional, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
 - Highlight syntax from the markdown-it ecosystem: `==Highlighted text==` via [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark), with optional color suffixes such as `==Highlighted text=={.red}` following the [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) convention and limited to safe preset colors.
 - Automatic links for bare URLs in rendered previews.

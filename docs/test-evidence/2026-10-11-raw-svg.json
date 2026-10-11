@@ -1,0 +1,247 @@
+{
+  "environment": {
+    "zotero": "10.0.6",
+    "platform": "Firefox 140",
+    "profile": "Zotero-Dev",
+    "date": "2026-10-11",
+    "packageVersion": "0.14.2"
+  },
+  "pointerInput": "windowUtils native mouse down/up at visible element centers",
+  "focusPreparation": "Activate the main and Reader windows before focus checks; reset the renderer between isolated editor scenarios. Background-window blur intentionally preserves editing.",
+  "cases": [
+    {
+      "sample": 1,
+      "mode": "sidebar",
+      "image": {
+        "width": 103,
+        "height": 45
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 2,
+      "mode": "sidebar",
+      "image": {
+        "width": 360,
+        "height": 184
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 3,
+      "mode": "sidebar",
+      "image": {
+        "width": 700,
+        "height": 300
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 4,
+      "mode": "sidebar",
+      "image": {
+        "width": 660,
+        "height": 212
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 5,
+      "mode": "sidebar",
+      "image": {
+        "width": 800,
+        "height": 800
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 6,
+      "mode": "sidebar",
+      "image": {
+        "width": 640,
+        "height": 280
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 1,
+      "mode": "popup",
+      "image": {
+        "width": 103,
+        "height": 45
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 2,
+      "mode": "popup",
+      "image": {
+        "width": 360,
+        "height": 184
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 3,
+      "mode": "popup",
+      "image": {
+        "width": 700,
+        "height": 300
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 4,
+      "mode": "popup",
+      "image": {
+        "width": 660,
+        "height": 212
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 5,
+      "mode": "popup",
+      "image": {
+        "width": 800,
+        "height": 800
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "sample": 6,
+      "mode": "popup",
+      "image": {
+        "width": 640,
+        "height": 280
+      },
+      "mathCount": 2,
+      "noActiveSvg": true,
+      "viewerDecoded": true,
+      "viewerSharesImage": true,
+      "sourceUnchanged": true,
+      "passed": true
+    }
+  ],
+  "auxiliary": [
+    {
+      "name": "SVG preference off/on",
+      "disabledLiteral": true,
+      "passed": true
+    },
+    {
+      "name": "popup source editing and blur save",
+      "entryInput": "native mouse down/up",
+      "exitInput": "DOM blur in foreground window",
+      "focused": true,
+      "valueIntact": true,
+      "sourceUnchanged": true,
+      "passed": true
+    },
+    {
+      "name": "sidebar source editing and blur save",
+      "entryInput": "native mouse down/up",
+      "exitInput": "DOM blur in foreground window",
+      "focused": true,
+      "valueIntact": true,
+      "sourceUnchanged": true,
+      "passed": true
+    }
+  ],
+  "performance": {
+    "environment": "Zotero 10.0.6 / Firefox 140 on Windows; warmed renderer, median of seven runs",
+    "sample": "Jordan diagram with surrounding formulas",
+    "rawMedianMs": 13.5,
+    "fencedMedianMs": 12.74,
+    "ordinaryMarkdownMedianMs": 0.53
+  },
+  "restored": {
+    "originalAnnotationsUnchanged": true,
+    "originalAnnotationCount": 13,
+    "rawSamplesPersisted": [
+      {
+        "key": "9WFNAMQD",
+        "sourceUnchanged": true
+      },
+      {
+        "key": "MTFMU2YG",
+        "sourceUnchanged": true
+      },
+      {
+        "key": "TTZUAIAJ",
+        "sourceUnchanged": true
+      },
+      {
+        "key": "YH7VCCIY",
+        "sourceUnchanged": true
+      },
+      {
+        "key": "EQQQYVEF",
+        "sourceUnchanged": true
+      },
+      {
+        "key": "K2K9FRSL",
+        "sourceUnchanged": true
+      }
+    ],
+    "prefs": true,
+    "selection": true,
+    "sidebar": true
+  },
+  "passed": true
+}

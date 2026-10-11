@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.14.2 - 2026-10-11
+
+### Added
+
+- Preview complete raw SVGs on their own line or lines, including whole SVG comments and consecutive diagrams between Markdown paragraphs. Code fences and blank separators are optional. Use the existing **Render SVG diagrams (Experimental)** option, which remains off by default ([#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3)).
+- Keep the original SVG source editable and use the existing static-image validation, safety limits and larger-image viewer. Inline SVG, SVG in lists or blockquotes, and HTML-wrapped SVG remain outside this scope; explicit xml/html/text fences still display source.
+- Provide [six copyable raw SVG samples and a manual checklist](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.14.2/docs/examples/svg-raw-samples.md), alongside the existing fenced samples and persisted regression tests.
+
+### Fixed
+
+- Keep the SVG viewer hidden until its final document and image are ready, avoiding a flash on first opening.
+
+### Changed
+
+- Clarify that automatic todo tagging adds a tag to the entire annotation when its saved comment contains a line starting with TODO: or T:. The matching behavior and saved preferences are unchanged.
+
+### 新增
+
+- 支持独立占一行或多行的完整裸 SVG，包括整条评论只有 SVG，以及 Markdown 段落之间连续的多份图示。围栏和空行分隔均可省略；仍由默认关闭的 **渲染 SVG 图示（实验性）** 开关控制（[#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3)）。
+- 保留可编辑的原始 SVG 源码，沿用静态图片验证、复杂度限制和大图查看器。暂不支持行内、列表、引用或 HTML 容器中的 SVG；明确标为 xml/html/text 的围栏继续显示源码。
+- 提供[六个可复制的裸 SVG 样例和人工测试清单](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.14.2/docs/examples/svg-raw-samples.md)，并保留围栏样例及回归测试。
+
+### 修复
+
+- SVG 查看器等最终文档与图片准备就绪后再显示，消除首次打开时的闪烁。
+
+### 变更
+
+- 明确 todo 标签是自动添加到整条批注：保存的评论中只要有一行以 TODO: 或 T: 开头即可触发。匹配规则和已保存的设置保持不变。
+
 ## 0.14.1 - 2026-10-11
 
 ### Added

@@ -6,13 +6,17 @@ The first five samples come from [issue #3](https://github.com/qrkks/zotero-anno
 
 ## How to test / 如何测试
 
-Install [v0.13.0 or newer](https://github.com/qrkks/zotero-annotation-markdown/releases/tag/v0.13.0). Enable **Render SVG code blocks (Experimental)** and sidebar Markdown rendering. For page popups, also enable **Render page annotation popups as Markdown**. SVG is off by default; releases through 0.12.3 do not include this feature.
+Install [v0.13.0 or newer](https://github.com/qrkks/zotero-annotation-markdown/releases/tag/v0.13.0). Enable **Render SVG diagrams (Experimental)** and sidebar Markdown rendering. Before v0.14.2, the SVG option was named **Render SVG code blocks (Experimental)**. For page popups, also enable **Render page annotation popups as Markdown**. SVG is off by default; releases through 0.12.3 do not include this feature.
 
-安装 [v0.13.0 或更新版本](https://github.com/qrkks/zotero-annotation-markdown/releases/tag/v0.13.0)，开启 **Render SVG code blocks (Experimental)** 和侧栏 Markdown 渲染。测试页内弹窗时，再开启 **Render page annotation popups as Markdown**。SVG 默认关闭；0.12.3 及更早的版本不包含此功能。
+安装 [v0.13.0 或更新版本](https://github.com/qrkks/zotero-annotation-markdown/releases/tag/v0.13.0)，开启 **渲染 SVG 图示（实验性）** 和侧栏 Markdown 渲染。v0.14.2 之前，该 SVG 选项名为 **Render SVG code blocks (Experimental)** / **渲染 SVG 代码块（实验性）**。测试页内弹窗时，再开启 **将页面批注弹窗渲染为 Markdown**。SVG 默认关闭；0.12.3 及更早的版本不包含此功能。
 
 Open any PDF and create a note annotation. Copy **one complete Markdown block below** with its copy button, paste it into the annotation comment as plain text, then click elsewhere or press Escape to save. Each copy block includes the inner SVG fence; copying only the SVG source omits that fence. Samples 4 and 6 deliberately leave its language blank. The outer four-backtick fence belongs to this guide and is not part of the copied annotation.
 
 打开任意 PDF，创建一条便签批注。使用下面某个代码块的复制按钮，复制**完整 Markdown 内容**，以纯文本粘贴到批注评论中，失焦或按 Escape 保存。每个复制块都包含 SVG 的内层代码围栏；只复制 SVG 源码会漏掉围栏。样例 4 和 6 特意不指定语言。外层四个反引号用于本页展示，不属于复制后的批注内容。
+
+v0.14.2 also supports complete SVG on its own lines without code fences or blank separators. Use the [six raw SVG samples](svg-raw-samples.md) to test that input format; the fenced samples below remain supported.
+
+v0.14.2 也支持独立占一行或多行的完整裸 SVG，不必添加代码围栏或空行。可用[六个裸 SVG 样例](svg-raw-samples.md)测试这种输入方式；下方的围栏样例仍然受支持。
 
 Check the expected image, opening the viewer by clicking the SVG image or **View larger**, Escape returning to the selected annotation, source editing and saving from text or blank preview space outside the image, Reader reopening, and Zotero restarting. Direct image clicks require v0.14.1 or newer; older versions use **View larger**. Turning SVG off should reveal the original code without changing stored source. Report your Zotero/plugin versions, sample number, sidebar or popup, and reproduction steps if something fails.
 

@@ -33,7 +33,7 @@
 
 **SVG 示意图**：编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
 
-SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG code blocks (Experimental)**，即可尝试[六个可复制的 SVG 样例](docs/examples/svg-samples.md)。这些 SVG 截图使用样例 5 的图形和英文演示文字，取自 Zotero 10.0.6。源码和侧栏预览截图使用 Annotation Markdown v0.13.0；下方的大图查看器截图使用 v0.13.1。
+SVG 渲染是默认关闭的实验性功能。在设置中开启 **渲染 SVG 图示（实验性）**，即可尝试[六个围栏 SVG 样例](docs/examples/svg-samples.md)或[六个裸 SVG 样例](docs/examples/svg-raw-samples.md)。从 v0.14.2 起，完整 SVG 独立占一行或多行即可，不必添加围栏或空行。这些 SVG 截图使用样例 5 的图形和英文演示文字，取自 Zotero 10.0.6。源码和侧栏预览截图使用 Annotation Markdown v0.13.0；下方的大图查看器截图使用 v0.13.1。
 
 <details>
 <summary>查看 SVG 大图查看器</summary>
@@ -48,7 +48,7 @@ SVG 渲染是默认关闭的实验性功能。在设置中开启 **Render SVG co
 
 - 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
 - 可选择原生 MathML 渲染，作为默认关闭的实验选项。在设置的 **Math rendering** 中选择 **Native MathML only (Experimental)**，可降低公式渲染开销，但公式间距和外观可能有所不同。
-- 可选的 fenced `svg` 代码块静态图预览，也可识别无语言标记代码块中的完整 SVG 文档，保留源码编辑并提供大图查看。实验性功能，默认关闭；详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
+- 可选的静态 SVG 图预览，支持 fenced `svg` 代码块、无语言标记代码块中的完整 SVG，以及独立占一行或多行的完整裸 SVG，保留源码编辑并提供大图查看。实验性功能，默认关闭；详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
 - 可选择在页内标注弹窗中启用 Markdown 预览（默认关闭）；快速编辑由独立偏好控制，并可回退 Zotero 原生行为。
 - 沿用 markdown-it 生态的高亮语法：通过 [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark) 支持 `==高亮文字==`；`==高亮文字=={.red}` 等颜色后缀沿用 [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) 的属性写法，并限定为安全的预设颜色。
 - 在渲染预览中自动把裸 URL 转为可点击链接。

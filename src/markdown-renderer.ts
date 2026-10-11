@@ -12,6 +12,7 @@ import markdownItTexmath from "markdown-it-texmath";
 
 import markdownItMarkColors from "./markdown-it-mark-colors.js";
 import { createSvgRenderer } from "./svg-renderer.js";
+import { createRawSvgBlockProtector } from "./raw-svg-blocks.js";
 import type { MarkdownRenderer } from "./types.js";
 import type { MathOutput } from "./settings.js";
 
@@ -66,6 +67,7 @@ export function createMarkdownRenderer({
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
   const renderSvg = createSvgRenderer(windowRef);
+  const protectRawSvgBlocks = createRawSvgBlockProtector();
   const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg);
   // Separate default engines let math be disabled again after the plugin has
   // been loaded without leaving texmath rules attached to the plain renderer.
@@ -80,7 +82,7 @@ export function createMarkdownRenderer({
 
   return {
     render(source: unknown): string {
-      const text = normalizeMathDelimiters(String(source ?? ""));
+      const text = normalizeMathDelimiters(protectRawSvgBlocks(String(source ?? "")));
       const mathmlOnly = getMathOutput() === "mathml";
       katexOptions.output = mathmlOnly ? "mathml" : "htmlAndMathml";
 
