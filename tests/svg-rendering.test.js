@@ -271,7 +271,7 @@ describe("SVG preview lifecycle", () => {
       content.open(); content.write("<!doctype html><html><head></head><body></body></html>"); content.close();
       frame.dispatchEvent(new Event("load"));
       expect(frame.contentDocument.querySelector("img").getAttribute("src")).toBe(document.querySelector(".annotation-markdown-svg-image").getAttribute("src"));
-      const button = frame.contentDocument.querySelector("button");
+      const button = frame.contentDocument.querySelector("button[aria-label='Close SVG diagram']");
       expect(frame.contentDocument.activeElement).toBe(button);
       button.click();
       expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();

@@ -40,7 +40,7 @@ SVG rendering is experimental and off by default. Enable **Render SVG code block
 
 ![The English SVG demonstration in the annotation sidebar on the left and its larger-image viewer on the right](docs/images/svg-preview-and-viewer.webp)
 
-Choose **View larger** to inspect the diagram. Press **Escape** or choose **Close** to return to the annotation.
+Choose **View larger** to inspect the diagram. In v0.13.1, use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
 
 </details>
 

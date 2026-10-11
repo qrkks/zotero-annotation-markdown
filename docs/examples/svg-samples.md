@@ -18,6 +18,10 @@ Check the expected image, **View larger**, Escape returning to the selected anno
 
 检查预期图片、**View larger**、Escape 关闭后保留批注选择、编辑保存、Reader 重开和 Zotero 重启。关闭 SVG 后应显示原始代码，保存的源码不应变化。反馈问题时请提供 Zotero/插件版本、样例编号、侧栏或弹窗，以及复现步骤。
 
+v0.13.1 adds zoom and pan controls; v0.13.0 has the original scrollable viewer. In v0.13.1 or later, also check **− / +**, the current percentage, the single **Fit** reset button, wheel zoom, and drag panning beyond the Reader bounds. Fit should restore the original size when it fits, or shrink an oversized diagram to show it completely; there is no separate 100% button. The frame and image should grow or shrink together, while the controls retain their size. The frame should stop growing at the Reader edges, the underlying PDF should not scroll, and Tab/Shift+Tab should remain inside the viewer. Repeat in the sidebar and a page popup.
+
+v0.13.1 新增缩放和平移；v0.13.0 使用原来的可滚动查看器。v0.13.1 及之后版本中，再检查 **− / +**、当前百分比、唯一的 **Fit** 恢复按钮、滚轮缩放，以及超过 Reader 边界后的拖动平移。Fit 应在图像放得下时恢复原始大小，放不下时缩小到完整显示；没有单独的 100% 按钮。图片和浮层应一起放大或缩小，按钮和文字大小不变；浮层达到 Reader 边界后停止扩大，底层 PDF 不应滚动，Tab/Shift+Tab 应保持在查看器内；侧栏和页内弹窗都应测试。
+
 ## 1. Excalidraw paths / Excalidraw 路径
 
 Expected / 预期：Three hand-drawn circles. / 三个手绘圆形。
@@ -310,3 +314,5 @@ Expected / 预期：A square and transformed parallelogram with Chinese labels i
 ## Verification record / 验证记录
 
 See the [0.13.0 release validation](../test-evidence/2026-10-10-svg-release.md) and [initial compatibility results](../test-evidence/2026-10-10-svg-mvp.md) for the environment, results and package digests. / 环境、结果及安装包摘要见 [0.13.0 发版验证](../test-evidence/2026-10-10-svg-release.md)和[最初的兼容性验证](../test-evidence/2026-10-10-svg-mvp.md)。
+
+See the [viewer zoom validation](../test-evidence/2026-10-11-svg-viewer-zoom.md) for the development build's automated and native-host checks. / 开发版的自动测试与真实宿主验证见[查看器缩放验证](../test-evidence/2026-10-11-svg-viewer-zoom.md)。

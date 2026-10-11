@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.1 - 2026-10-11
+
+### Added
+
+- Add **− / +**, a current zoom percentage, and a single **Fit** reset button to the SVG larger-image viewer, in both the annotation sidebar and page popups ([#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3)). Fit restores the original size when it fits, or shrinks an oversized diagram to show it completely.
+- Zoom with the mouse wheel. The image and viewer grow or shrink together, while controls retain their size. The viewer stops growing at the Reader edges; larger images can be explored by dragging or using scrollbars.
+
+### 新增
+
+- 在侧栏和页内弹窗的 SVG 大图查看器中新增 **− / +**、当前缩放百分比和唯一的 **Fit** 恢复按钮（[#3](https://github.com/qrkks/zotero-annotation-markdown/issues/3)）。图像放得下时恢复原始大小，放不下时缩小到完整显示。
+- 支持鼠标滚轮缩放，图片和浮层一起放大或缩小，按钮和文字大小不变。浮层达到 Reader 边界后停止扩大，更大的图片可拖动平移或使用滚动条查看。
+
+Try the [six SVG samples and manual checklist](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.13.1/docs/examples/svg-samples.md). Test results and limitations / 测试结果与适用范围：[SVG viewer validation](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.13.1/docs/test-evidence/2026-10-11-svg-viewer-zoom.md).
+
 ## 0.13.0 - 2026-10-10
 
 ### Added

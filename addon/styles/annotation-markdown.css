@@ -322,27 +322,69 @@
     flex: none;
     justify-content: space-between;
     align-items: center;
-    gap: 1em;
+    flex-wrap: wrap;
+    gap: 0.5em;
     padding: 0.7em;
     border-bottom: 1px solid #d7dfe8;
 }
 
-.annotation-markdown-svg-viewer-toolbar span {
+.annotation-markdown-svg-viewer-title {
+    flex: 1;
+    min-width: 3em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.annotation-markdown-svg-viewer-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.annotation-markdown-svg-viewer-controls output {
+    min-width: 3.5em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.annotation-markdown-svg-viewer-content button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
 .annotation-markdown-svg-viewer-region {
+    flex: 1;
+    min-width: 0;
     min-height: 0;
     overflow: auto;
     overscroll-behavior: contain;
+    touch-action: none;
+}
+
+.annotation-markdown-svg-viewer-stage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.annotation-markdown-svg-pannable {
+    cursor: grab;
+}
+
+.annotation-markdown-svg-dragging {
+    cursor: grabbing;
 }
 
 .annotation-markdown-svg-viewer-region img {
     display: block;
+    flex: none;
     max-width: none;
     height: auto;
+    user-select: none;
 }
 
 .annotation-markdown-rendered p {

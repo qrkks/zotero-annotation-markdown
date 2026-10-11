@@ -1,0 +1,582 @@
+{
+  "date": "2026-10-11",
+  "environment": {
+    "zotero": "10.0.6",
+    "gecko": 140,
+    "os": "Windows",
+    "build": "local development build after 0.13.0",
+    "baseCommit": "9f8f04a0650ed6056b150e81228cb32638be5951",
+    "profile": "isolated Zotero development profile"
+  },
+  "behavior": "image and frame grow or shrink together; frame capped at Reader bounds; controls unscaled; a single Fit reset button",
+  "automation": {
+    "wheelAndDrag": "Gecko windowUtils trusted input",
+    "keyboard": "untrusted DOM KeyboardEvent with native focus state",
+    "readerResize": "plugin-owned layout changes plus parent resize event",
+    "physicalInput": false
+  },
+  "samples": [
+    {
+      "id": "ES3QCKV6",
+      "initial": "100%",
+      "intrinsic": [
+        103,
+        45
+      ],
+      "frame100": [
+        480,
+        151
+      ],
+      "frame125": [
+        480,
+        151
+      ],
+      "max": [
+        412,
+        180,
+        "400%"
+      ],
+      "nativeWheel": "122%",
+      "wheelFrame": [
+        480,
+        151
+      ],
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "singleFit": true,
+      "pass": true
+    },
+    {
+      "id": "WDVWYC6V",
+      "initial": "100%",
+      "intrinsic": [
+        360,
+        184
+      ],
+      "frame100": [
+        480,
+        235
+      ],
+      "frame125": [
+        480,
+        281
+      ],
+      "max": [
+        1440,
+        736,
+        "400%"
+      ],
+      "nativeWheel": "122%",
+      "wheelFrame": [
+        480,
+        276
+      ],
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "singleFit": true,
+      "pass": true
+    },
+    {
+      "id": "4J6PQP9W",
+      "initial": "100%",
+      "intrinsic": [
+        700,
+        300
+      ],
+      "frame100": [
+        700,
+        351
+      ],
+      "frame125": [
+        875,
+        426
+      ],
+      "max": [
+        2800,
+        1200,
+        "400%"
+      ],
+      "nativeWheel": "122%",
+      "wheelFrame": [
+        855,
+        417
+      ],
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "singleFit": true,
+      "pass": true
+    },
+    {
+      "id": "ML2S2ZWQ",
+      "initial": "100%",
+      "intrinsic": [
+        660,
+        212
+      ],
+      "frame100": [
+        660,
+        263
+      ],
+      "frame125": [
+        825,
+        316
+      ],
+      "max": [
+        2640,
+        848,
+        "400%"
+      ],
+      "nativeWheel": "122%",
+      "wheelFrame": [
+        806,
+        310
+      ],
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "singleFit": true,
+      "pass": true
+    },
+    {
+      "id": "S9ZZTTNW",
+      "initial": "100%",
+      "intrinsic": [
+        800,
+        800
+      ],
+      "frame100": [
+        800,
+        851
+      ],
+      "frame125": [
+        1000,
+        925
+      ],
+      "max": [
+        3200,
+        3200,
+        "400%"
+      ],
+      "nativeWheel": "122%",
+      "wheelFrame": [
+        977,
+        925
+      ],
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "singleFit": true,
+      "pass": true
+    },
+    {
+      "id": "DVI2C7FE",
+      "initial": "100%",
+      "intrinsic": [
+        640,
+        280
+      ],
+      "frame100": [
+        640,
+        331
+      ],
+      "frame125": [
+        800,
+        401
+      ],
+      "max": [
+        2560,
+        1120,
+        "400%"
+      ],
+      "nativeWheel": "122%",
+      "wheelFrame": [
+        782,
+        393
+      ],
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "singleFit": true,
+      "pass": true
+    }
+  ],
+  "popup": {
+    "pass": true,
+    "nativeWheelAndPan": true,
+    "singleFit": true,
+    "buttonLabels": [
+      "Zoom out",
+      "Zoom in",
+      "Fit diagram",
+      "Close SVG diagram"
+    ],
+    "original": [
+      640,
+      331
+    ],
+    "expanded": [
+      977,
+      478
+    ],
+    "capped": [
+      1878,
+      925
+    ],
+    "toolbarUnscaled": true,
+    "pointerAnchorError": [
+      0.0625,
+      0.5062500000000085
+    ],
+    "simulatedReaderShrink": [
+      518,
+      227,
+      518,
+      278
+    ],
+    "manualZoomPreserved": true,
+    "escapeFocus": true,
+    "selectionPreserved": true,
+    "sourcePreserved": true
+  },
+  "preferenceToggle": {
+    "viewerClosed": true,
+    "sourceUnchanged": true
+  },
+  "final": {
+    "annotationCount": 13,
+    "sourceUnchanged": true,
+    "prefs": {
+      "svg": true,
+      "popup": false
+    },
+    "selected": [],
+    "pdfScroll": 4188
+  },
+  "selectionRestored": true,
+  "pdfScrollRestored": true,
+  "finalNativeRun": {
+    "status": "complete",
+    "started": 1791681249858,
+    "behavior": "coupled image and frame zoom",
+    "completed": 1791681251650,
+    "packageSha256": "0684b5ec89a5eb901dcee7dc5cbeba6c69bb8dcf6bf232f1ff7b4f772df6f599"
+  },
+  "package": {
+    "version": "0.13.0",
+    "developmentTrial": true,
+    "bytes": 1144709,
+    "sha256": "0684b5ec89a5eb901dcee7dc5cbeba6c69bb8dcf6bf232f1ff7b4f772df6f599",
+    "publishedUpdatesJsonPreserved": true
+  },
+  "verification": {
+    "testFiles": 31,
+    "tests": 587,
+    "newZoomRegressions": 16,
+    "typecheck": true,
+    "docsCheck": true,
+    "build": true,
+    "package": true,
+    "command": "pnpm run verify"
+  },
+  "releaseCandidate": {
+    "version": "0.13.1",
+    "bytes": 1144708,
+    "sha256": "4473029190e5d85c100247bcbc4e3d6112afa0a11481d1044a0d88d587820cb1",
+    "deterministic": true,
+    "checks": {
+      "command": "pnpm run verify",
+      "testFiles": 31,
+      "tests": 587,
+      "typecheck": true,
+      "docsCheck": true,
+      "auditProd": "No known vulnerabilities found",
+      "releaseVerify": "pnpm run release:verify v0.13.1"
+    },
+    "samples": [
+      {
+        "id": "ES3QCKV6",
+        "initial": "100%",
+        "intrinsic": [
+          103,
+          45
+        ],
+        "frame100": [
+          480,
+          151
+        ],
+        "frame125": [
+          480,
+          151
+        ],
+        "max": [
+          412,
+          180,
+          "400%"
+        ],
+        "nativeWheel": "122%",
+        "wheelFrame": [
+          480,
+          151
+        ],
+        "buttonLabels": [
+          "Zoom out",
+          "Zoom in",
+          "Fit diagram",
+          "Close SVG diagram"
+        ],
+        "singleFit": true,
+        "pass": true
+      },
+      {
+        "id": "WDVWYC6V",
+        "initial": "100%",
+        "intrinsic": [
+          360,
+          184
+        ],
+        "frame100": [
+          480,
+          235
+        ],
+        "frame125": [
+          480,
+          281
+        ],
+        "max": [
+          1440,
+          736,
+          "400%"
+        ],
+        "nativeWheel": "122%",
+        "wheelFrame": [
+          480,
+          276
+        ],
+        "buttonLabels": [
+          "Zoom out",
+          "Zoom in",
+          "Fit diagram",
+          "Close SVG diagram"
+        ],
+        "singleFit": true,
+        "pass": true
+      },
+      {
+        "id": "4J6PQP9W",
+        "initial": "100%",
+        "intrinsic": [
+          700,
+          300
+        ],
+        "frame100": [
+          700,
+          351
+        ],
+        "frame125": [
+          875,
+          426
+        ],
+        "max": [
+          2800,
+          1200,
+          "400%"
+        ],
+        "nativeWheel": "122%",
+        "wheelFrame": [
+          855,
+          417
+        ],
+        "buttonLabels": [
+          "Zoom out",
+          "Zoom in",
+          "Fit diagram",
+          "Close SVG diagram"
+        ],
+        "singleFit": true,
+        "pass": true
+      },
+      {
+        "id": "ML2S2ZWQ",
+        "initial": "100%",
+        "intrinsic": [
+          660,
+          212
+        ],
+        "frame100": [
+          660,
+          263
+        ],
+        "frame125": [
+          825,
+          316
+        ],
+        "max": [
+          2640,
+          848,
+          "400%"
+        ],
+        "nativeWheel": "122%",
+        "wheelFrame": [
+          806,
+          310
+        ],
+        "buttonLabels": [
+          "Zoom out",
+          "Zoom in",
+          "Fit diagram",
+          "Close SVG diagram"
+        ],
+        "singleFit": true,
+        "pass": true
+      },
+      {
+        "id": "S9ZZTTNW",
+        "initial": "100%",
+        "intrinsic": [
+          800,
+          800
+        ],
+        "frame100": [
+          800,
+          851
+        ],
+        "frame125": [
+          1000,
+          925
+        ],
+        "max": [
+          3200,
+          3200,
+          "400%"
+        ],
+        "nativeWheel": "122%",
+        "wheelFrame": [
+          977,
+          925
+        ],
+        "buttonLabels": [
+          "Zoom out",
+          "Zoom in",
+          "Fit diagram",
+          "Close SVG diagram"
+        ],
+        "singleFit": true,
+        "pass": true
+      },
+      {
+        "id": "DVI2C7FE",
+        "initial": "100%",
+        "intrinsic": [
+          640,
+          280
+        ],
+        "frame100": [
+          640,
+          331
+        ],
+        "frame125": [
+          800,
+          401
+        ],
+        "max": [
+          2560,
+          1120,
+          "400%"
+        ],
+        "nativeWheel": "122%",
+        "wheelFrame": [
+          782,
+          393
+        ],
+        "buttonLabels": [
+          "Zoom out",
+          "Zoom in",
+          "Fit diagram",
+          "Close SVG diagram"
+        ],
+        "singleFit": true,
+        "pass": true
+      }
+    ],
+    "popup": {
+      "pass": true,
+      "nativeWheelAndPan": true,
+      "singleFit": true,
+      "buttonLabels": [
+        "Zoom out",
+        "Zoom in",
+        "Fit diagram",
+        "Close SVG diagram"
+      ],
+      "original": [
+        640,
+        331
+      ],
+      "expanded": [
+        977,
+        478
+      ],
+      "capped": [
+        1878,
+        925
+      ],
+      "toolbarUnscaled": true,
+      "pointerAnchorError": [
+        0.0625,
+        0.5062500000000085
+      ],
+      "simulatedReaderShrink": [
+        518,
+        227,
+        518,
+        278
+      ],
+      "manualZoomPreserved": true,
+      "escapeFocus": true,
+      "selectionPreserved": true,
+      "sourcePreserved": true
+    },
+    "nativeRun": {
+      "status": "complete",
+      "started": 1791682812915,
+      "behavior": "coupled image and frame zoom",
+      "completed": 1791682819405,
+      "packageSha256": "4473029190e5d85c100247bcbc4e3d6112afa0a11481d1044a0d88d587820cb1"
+    },
+    "final": {
+      "annotationCount": 13,
+      "sourceUnchanged": true,
+      "prefs": {
+        "svg": true,
+        "popup": false
+      },
+      "selected": [
+        "4J6PQP9W"
+      ],
+      "pdfScroll": 4322
+    },
+    "selectionRestored": true,
+    "pdfScrollRestored": true
+  }
+}
