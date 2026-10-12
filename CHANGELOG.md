@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.3 - 2026-10-12
+
+### Fixed
+
+- Render SVG diagrams styled with simple `.class` rules and comma groups, which previously fell back to source code. Support fonts, colors, strokes and local arrow markers in fenced and standalone SVG. Apply stylesheet order and normal inheritance in a preview copy while preserving the original comment; existing SVG and embedded-font limits still apply.
+
+### 修复
+
+- 修复使用简单 `.class` 规则和逗号分组的 SVG 图示回退为源码的问题。围栏和独立裸 SVG 均支持通过这些规则设置字体、颜色、描边及局部箭头；在预览副本中遵循样式表顺序和正常继承，保留原始评论，并沿用 SVG 及内嵌字体限制。
+
+Supported styles and limits / 支持范围与限制：[SVG user guide](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.14.3/docs/en/user-guide.md#svg-diagrams-experimental).
+
 ## 0.14.2 - 2026-10-11
 
 ### Added
