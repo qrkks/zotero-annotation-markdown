@@ -26,7 +26,8 @@ function load(bundle) {
   return module.exports;
 }
 const windowRef = new JSDOM("").window;
-const strict = load(baselineBundle).createSvgRenderer(windowRef);
+const renderStrict = load(baselineBundle).createSvgRenderer(windowRef);
+const strict = (source, code) => renderStrict(source, code, { allowDegradation: false });
 const prototype = load(prototypeBundle).createSvgDegradationPrototype(windowRef);
 const escape = value => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 const fallback = source => `<pre><code>${escape(source)}</code></pre>`;
@@ -140,7 +141,7 @@ function measure(fn) {
   times.sort((a,b)=>a-b);
   return {samples: times.length, medianMs: times[Math.floor(times.length/2)], p95Ms: times[Math.floor(times.length*0.95)]};
 }
-const report = {date: "2026-10-13", cssTreeVersion, scope: "isolated prototype; production unchanged", cases: rows.length, counts, sizes,
+const report = {date: "2026-10-13", cssTreeVersion, scope: "isolated prototype comparison against the current renderer", cases: rows.length, counts, sizes,
   jsdomTiming: {baseline: measure(strict), prototype: measure(prototype)}, results: rows};
 await writeFile(path.join(out, "report.json"), JSON.stringify(report, null, 2)+"\n");
 console.log(JSON.stringify({...report, results: undefined}, null, 2));

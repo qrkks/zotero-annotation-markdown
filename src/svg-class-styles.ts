@@ -1,5 +1,8 @@
 /** Restricted class rules are flattened into an isolated SVG preview copy. */
 import { parseSvgFontShorthand } from "./svg-font-shorthand.js";
+import parse from "css-tree/parser";
+import walk from "css-tree/walker";
+import { SvgPolicyError, type SvgDiagnostics } from "./svg-diagnostics.js";
 
 export const SVG_CLASS_STYLE_LIMITS = { rules: 256, declarations: 1024, selectorsPerRule: 16, classesPerElement: 16 } as const;
 const CLASS_NAME = /^[A-Za-z_][\w-]{0,63}$/;
@@ -23,44 +26,79 @@ export function parseSvgClassNames(value: string): string[] {
 
 export function createSvgClassStyles(
   normalizeFontStyles: (css: string) => string,
-  validateDeclaration: (name: string, value: string, node?: Element) => void
+  validateDeclaration: (name: string, value: string, node?: Element) => void,
+  diagnostics: SvgDiagnostics
 ): { normalize: (css: string) => string; apply: (nodes: Element[]) => void } {
   const rules: ClassRule[] = [];
   let declarationCount = 0;
   return {
     normalize(css) {
       css = removeComments(css);
+      // The parser recovers some CSS at EOF. Keep the bounded flat-rule grammar
+      // explicit, so incomplete/nested rules cannot become valid by recovery.
       const pattern = /\s*([^{}]+)\{([^{}]*)\}/gy;
       let index = 0;
-      let fonts = "";
       while (css.slice(index).trim()) {
         pattern.lastIndex = index;
         const rule = pattern.exec(css);
-        if (!rule) throw new Error("Malformed SVG stylesheet.");
+        if (!rule) throw new SvgPolicyError("structure", "Malformed SVG stylesheet.");
         index = pattern.lastIndex;
-        const selector = rule[1].trim();
-        if (/^@font-face$/i.test(selector)) {
-          fonts += normalizeFontStyles(rule[0]);
+      }
+      const ast = parse(css, { positions: true,
+        onParseError() { throw new SvgPolicyError("structure", "Malformed SVG stylesheet."); }
+      });
+      // Inspect the entire original CSS before any omission, including unused
+      // rules and overridden values. Syntax validity alone is not a safety rule.
+      walk(ast, part => {
+        if (part.type === "Raw") throw new SvgPolicyError("structure", "Unparsed SVG CSS is unsupported.");
+        if (part.type === "Url" && !/^#[A-Za-z_][\w.-]{0,63}$/.test(part.value) && !/^data:font\/woff2;base64,[A-Za-z0-9+/=]+$/i.test(part.value)) {
+          throw new SvgPolicyError("security", "SVG external resources are unsupported.");
+        }
+        if ((part.type === "Function" && /^expression$/i.test(part.name)) || (part.type === "Atrule" && /^import$/i.test(part.name))) {
+          throw new SvgPolicyError("security", "Executable or imported SVG CSS is unsupported.");
+        }
+      });
+      if (ast.type !== "StyleSheet") throw new SvgPolicyError("structure", "Malformed SVG stylesheet.");
+      let fonts = "";
+      for (const rule of ast.children) {
+        if (rule.type === "Atrule" && /^font-face$/i.test(rule.name)) {
+          fonts += normalizeFontStyles(css.slice(rule.loc!.start.offset, rule.loc!.end.offset));
           continue;
         }
-        const selectors = selector.split(",").map(value => value.trim());
-        if (selectors.length > SVG_CLASS_STYLE_LIMITS.selectorsPerRule ||
-            selectors.some(value => !value.startsWith(".") || !CLASS_NAME.test(value.slice(1)))) {
+        if (rule.type !== "Rule" || rule.prelude?.type !== "SelectorList") {
           throw new Error("SVG stylesheets support only simple .class selectors and comma groups.");
         }
-        if (rules.length >= SVG_CLASS_STYLE_LIMITS.rules) throw new Error("SVG exceeds 256 class rules.");
+        const classes: string[] = [];
+        for (const selector of rule.prelude.children) {
+          if (selector.type !== "Selector") throw new Error("Unsupported SVG class selector.");
+          const parts = [...selector.children];
+          if (parts.length !== 1 || parts[0].type !== "ClassSelector" || !CLASS_NAME.test(parts[0].name)) {
+            throw new Error("SVG stylesheets support only simple .class selectors and comma groups.");
+          }
+          classes.push(parts[0].name);
+        }
+        if (classes.length > SVG_CLASS_STYLE_LIMITS.selectorsPerRule) throw new SvgPolicyError("limits", "SVG exceeds 16 selectors per class rule.");
+        if (rules.length >= SVG_CLASS_STYLE_LIMITS.rules) throw new SvgPolicyError("limits", "SVG exceeds 256 class rules.");
         const declarations: Declaration[] = [];
-        for (const [name, value] of parseDeclarations(rule[2])) {
+        for (const declaration of rule.block.children) {
+          if (declaration.type !== "Declaration" || declaration.important) throw new Error("Unsupported SVG class declaration.");
+          const name = declaration.property.toLowerCase();
+          const value = css.slice(declaration.value.loc!.start.offset, declaration.value.loc!.end.offset).trim();
+          if (!/^[a-z-]+$/.test(name) || !value || value.includes("!")) throw new Error("Unsupported SVG class declaration.");
           const expanded: Declaration[] = name === "font" ? parseSvgFontShorthand(value) : [[name, value]];
+          // Count all original declarations, including omitted hints and four
+          // expanded font longhands, before accepting any reduced preview.
+          declarationCount += expanded.length;
+          if (declarationCount > SVG_CLASS_STYLE_LIMITS.declarations) throw new SvgPolicyError("limits", "SVG exceeds 1,024 class declarations.");
+          if (diagnostics.omitDisplayHint(name, value, "stylesheet")) continue;
           for (const [property, content] of expanded) {
-            if (++declarationCount > SVG_CLASS_STYLE_LIMITS.declarations) throw new Error("SVG exceeds 1,024 class declarations.");
             if (!PROPERTIES.has(property)) throw new Error(`Unsupported SVG class property: ${property}.`);
             // Validate even unused or later overridden declarations.
             validateDeclaration(property, content);
             declarations.push([property, content]);
           }
         }
-        rules.push({ classes: selectors.map(value => value.slice(1)), declarations });
+        rules.push({ classes, declarations });
       }
       return fonts;
     },
@@ -90,53 +128,31 @@ export function createSvgClassStyles(
 function removeComments(css: string): string {
   let clean = "";
   let quote = "";
+  let lastSyntax = "";
   for (let index = 0; index < css.length; index++) {
     const char = css[index];
     if (char === "\\") throw new Error("SVG CSS escapes are unsupported.");
     if (quote) {
       clean += char;
-      if (char === quote) quote = "";
+      if (char === quote) { quote = ""; lastSyntax = char; }
     } else if (char === '"' || char === "'") {
       quote = char;
       clean += char;
+      lastSyntax = char;
     } else if (char === "/" && css[index + 1] === "*") {
       const end = css.indexOf("*/", index + 2);
       if (end < 0) throw new Error("Unclosed SVG CSS comment.");
       clean += " ";
       index = end + 1;
     } else {
+      // Empty declaration separators were accepted by the previous bounded
+      // parser. Remove only these lexical no-ops before AST parsing, where
+      // css-tree otherwise recovers them as Raw. Strings stay literal.
+      if (char === ";" && (lastSyntax === "{" || lastSyntax === ";")) continue;
       clean += char;
+      if (!/\s/.test(char)) lastSyntax = char;
     }
   }
   if (quote) throw new Error("Unclosed SVG CSS string.");
   return clean;
-}
-
-function parseDeclarations(body: string): Declaration[] {
-  const declarations: Declaration[] = [];
-  let start = 0;
-  let quote = "";
-  let parentheses = 0;
-  for (let index = 0; index <= body.length; index++) {
-    const char = body[index];
-    if (quote) {
-      if (char === quote) quote = "";
-    } else if (char === '"' || char === "'") {
-      quote = char;
-    } else if (char === "(") {
-      if (++parentheses > 1) throw new Error("Unsupported SVG class value.");
-    } else if (char === ")") {
-      if (--parentheses < 0) throw new Error("Malformed SVG class value.");
-    }
-    if ((char === ";" && !quote && !parentheses) || index === body.length) {
-      if (quote || parentheses) throw new Error("Malformed SVG class declaration.");
-      const declaration = body.slice(start, index).trim();
-      start = index + 1;
-      if (!declaration) continue;
-      const match = declaration.match(/^([a-z-]+)\s*:\s*(.+)$/is);
-      if (!match || match[2].includes("!")) throw new Error("Unsupported SVG class declaration.");
-      declarations.push([match[1].toLowerCase(), match[2].trim()]);
-    }
-  }
-  return declarations;
 }

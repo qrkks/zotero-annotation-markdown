@@ -5,18 +5,20 @@
 ### Fixed
 
 - Preview static SVG diagrams using restricted `font` shorthand in simple class rules. Expand font style, weight, size and family only in the preview copy, preserve declaration order and normal resets, and keep the original comment and existing validation limits.
+- Render supported SVG completely, omit explicitly permitted keyword display hints with a persistent compatibility warning, and keep unsafe or meaningful unsupported content on source fallback. Retain the warning in the larger-image viewer and preserve the original source and complexity limits.
 
 ### Development
 
-- Add an isolated SVG graded-degradation prototype and reproducible assessment, with native image comparisons and dependency-selection decisions. Production integration of graded degradation remains pending.
+- Integrate css-tree parser/walker with typed SVG diagnostics and one XML parse. Retain the isolated prototype, assessment and dependency decisions as pre-integration evidence, and add production rendering and lifecycle regressions.
 
 ### 修复
 
 - 支持简单类规则中使用受限 `font` 简写的静态 SVG 图示预览。仅在预览副本中展开字形、字重、字号和字体族，保留声明顺序与默认值重置，沿用原始评论及现有校验限制。
+- 支持完整 SVG 预览；明确允许的简单关键字显示提示可被省略，并持续显示兼容提示。不安全或影响图意的不支持内容仍回退到源码。大图查看器保留相同提示，原始源码和复杂度限制保持不变。
 
 ### 开发
 
-- 增加独立的 SVG 分级降级原型、可复现评估、原生图片对比及依赖选型决策。分级降级尚待接入正式渲染器。
+- 接入 css-tree parser/walker、有类型的 SVG 诊断和单次 XML 解析。独立原型、评估与选型决策保留为接入前证据，并增加正式渲染与生命周期回归测试。
 
 ## 0.14.3 - 2026-10-12
 

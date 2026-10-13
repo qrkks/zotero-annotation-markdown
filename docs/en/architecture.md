@@ -26,6 +26,8 @@ Reader discovery listens to both `renderToolbar` and `renderSidebarAnnotationHea
 
 The controller discovers annotation comments and decides when to render them. The adapter owns source, preview, and editor DOM operations. Scoped Reader helpers manage selection-target CSS, visibility recovery after Escape, and the selected preview's removable outline without replacing the host's annotation structure or native DOM methods. The renderer accepts text and returns sanitized HTML; it does not know about Reader nodes or preferences.
 
+SVG rendering in `src/svg-renderer.ts` returns typed complete/degraded/fallback outcomes through `renderDetailed()` while preserving the existing HTML fence API. `src/svg-class-styles.ts` uses css-tree's parser/walker submodules to inspect every original CSS value before collecting the bounded omissions in `src/svg-diagnostics.ts`. Only keyword display hints qualify; geometry, fonts, references and original resource limits still pass the strict validator. XML is parsed once, final DOMPurify sanitization stays in the SVG image context, and the stored annotation source is preserved. `src/svg-preview-viewer.ts` copies the warning as text into the larger-image viewer and includes its unscaled height in fitting; image failures reveal source fallback. The Reader's existing editor and HTML-cache lifecycle carries the warning with its preview.
+
 ## Fast editor flow
 
 The fast editor replaces Zotero's native annotation comment editor only when the preference is enabled and the current Reader exposes a callable annotation update manager:

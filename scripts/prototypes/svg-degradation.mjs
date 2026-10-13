@@ -19,7 +19,7 @@ class PolicyError extends Error {
 export function createSvgDegradationPrototype(windowRef) {
   const strictRender = createSvgRenderer(windowRef);
   return (source, codeFallback) => {
-    const initialHtml = strictRender(source, codeFallback);
+    const initialHtml = strictRender(source, codeFallback, { allowDegradation: false });
     // This assessment uses the strict renderer's known wrapper. Production
     // integration should expose a structured result instead of inspecting HTML.
     const hasImage = html => html.startsWith('<figure class="annotation-markdown-svg">');
@@ -110,7 +110,8 @@ export function createSvgDegradationPrototype(windowRef) {
             if (values.length !== 1 || values[0].type !== "Identifier" || !KEYWORD.test(values[0].name)) {
               throw new PolicyError("meaning", "Only keyword display hints may be omitted.");
             }
-            cuts.push([declaration.loc.start.offset, declaration.loc.end.offset]);
+            const end = declaration.loc.end.offset;
+            cuts.push([declaration.loc.start.offset, end + (css[end] === ";" ? 1 : 0)]);
             omitted(property, "stylesheet");
           }
         }
@@ -130,7 +131,7 @@ export function createSvgDegradationPrototype(windowRef) {
       // All geometry, namespaces, active content, fonts and remaining CSS still
       // pass the complete production validator and SVG-context DOMPurify pass.
       const filteredSource = new windowRef.XMLSerializer().serializeToString(root);
-      const html = omittedCount ? strictRender(filteredSource, codeFallback) : initialHtml;
+      const html = omittedCount ? strictRender(filteredSource, codeFallback, { allowDegradation: false }) : initialHtml;
       const container = windowRef.document.createElement("div");
       container.innerHTML = html;
       if (!container.querySelector(".annotation-markdown-svg-image")) {

@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "scope": "production integration; dedicated development profile only",
+  "dependencies": {
+    "runtime": {
+      "css-tree": "3.2.1"
+    },
+    "development": {
+      "@types/css-tree": "3.2.0"
+    }
+  },
+  "verification": {
+    "tests": 859,
+    "typecheck": true,
+    "buildAndPackage": true,
+    "bilingualDocumentationPairs": 5,
+    "files": 35
+  },
+  "assessment": {
+    "bundleSizes": {
+      "baseline": {
+        "minifiedBytes": 115202,
+        "gzipBytes": 37411
+      },
+      "parserAndPolicy": {
+        "minifiedBytes": 120558,
+        "gzipBytes": 38084
+      },
+      "fullLexerProbe": {
+        "minifiedBytes": 200751,
+        "gzipBytes": 56327
+      }
+    },
+    "counts": {
+      "complete": 8,
+      "degraded": 19,
+      "fallback": 49
+    },
+    "cases": 76
+  },
+  "native": [
+    {
+      "date": "2026-10-13",
+      "engine": "Zotero 10.0.6 / Gecko",
+      "readerURL": "resource://zotero/reader/reader.html",
+      "fixture": "jordan",
+      "checks": [
+        {
+          "name": "saved-degraded-preview",
+          "passed": true,
+          "originalSourcePreserved": true,
+          "warningCount": 1
+        },
+        {
+          "name": "native-pixel-comparison",
+          "passed": true,
+          "width": 640,
+          "height": 280,
+          "changedPixels": 0
+        },
+        {
+          "name": "viewer-warning-escape-focus",
+          "passed": true
+        },
+        {
+          "name": "preference-cache-refresh",
+          "passed": true
+        },
+        {
+          "name": "image-load-source-fallback",
+          "passed": true
+        },
+        {
+          "name": "saved-edit-clears-warning",
+          "passed": true,
+          "storedSourceMatches": true
+        },
+        {
+          "name": "saved-unsafe-edit-falls-back",
+          "passed": true,
+          "noImage": true,
+          "storedSourceMatches": true
+        },
+        {
+          "name": "disabled-rendering-cleanup",
+          "passed": true
+        },
+        {
+          "name": "re-enabled-rendering",
+          "passed": true
+        }
+      ],
+      "restored": true
+    },
+    {
+      "date": "2026-10-13",
+      "engine": "Zotero 10.0.6 / Gecko",
+      "readerURL": "resource://zotero/reader/reader.html",
+      "fixture": "efa-font-shorthand",
+      "checks": [
+        {
+          "name": "saved-degraded-preview",
+          "passed": true,
+          "originalSourcePreserved": true,
+          "warningCount": 1
+        },
+        {
+          "name": "native-pixel-comparison",
+          "passed": true,
+          "width": 1200,
+          "height": 880,
+          "changedPixels": 0
+        },
+        {
+          "name": "viewer-warning-escape-focus",
+          "passed": true
+        },
+        {
+          "name": "preference-cache-refresh",
+          "passed": true
+        },
+        {
+          "name": "image-load-source-fallback",
+          "passed": true
+        },
+        {
+          "name": "saved-edit-clears-warning",
+          "passed": true,
+          "storedSourceMatches": true
+        },
+        {
+          "name": "saved-unsafe-edit-falls-back",
+          "passed": true,
+          "noImage": true,
+          "storedSourceMatches": true
+        },
+        {
+          "name": "disabled-rendering-cleanup",
+          "passed": true
+        },
+        {
+          "name": "re-enabled-rendering",
+          "passed": true
+        }
+      ],
+      "restored": true
+    }
+  ],
+  "localPackage": {
+    "dailyProfileInstalled": false,
+    "version": "0.14.3",
+    "sha256": "435bc95992fac22508f91ec8aad5ccaadaa2cbc7e55155ee963c762920dae627",
+    "published": false
+  }
+}

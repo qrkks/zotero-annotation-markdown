@@ -461,4 +461,53 @@ describe("SVG preview lifecycle", () => {
       expect(document.querySelector(".annotation-markdown-svg-open").hidden).toBe(true);
     } finally { f.controller.stop(); }
   });
+
+  test.each([false, true].flatMap(popup => [false, true].map(tinyCache => [popup, tinyCache])))("keeps degradation warnings with the image across viewer, settings, editing and cleanup (popup=%s tinyCache=%s)", async (popup, tinyCache) => {
+    const source = simple.replace('<svg ', '<svg shape-rendering="crispEdges" ');
+    const f = await fixture({ popup, tinyCache, markdown: fence(source) });
+    try {
+      const warning = document.querySelector(".annotation-markdown-svg-warning").textContent;
+      f.controller.renderNow();
+      expect(document.querySelectorAll(".annotation-markdown-svg-warning")).toHaveLength(1);
+      document.querySelector(".annotation-markdown-svg-image").click();
+      const frame = document.querySelector("[data-annotation-markdown-svg-viewer] iframe");
+      expect(frame.contentDocument.querySelector(".annotation-markdown-svg-warning").textContent).toBe(warning);
+      frame.contentDocument.open(); frame.contentDocument.write("<!doctype html><html><head></head><body></body></html>"); frame.contentDocument.close();
+      frame.dispatchEvent(new Event("load"));
+      expect(frame.contentDocument.querySelectorAll(".annotation-markdown-svg-warning")).toHaveLength(1);
+      frame.contentDocument.querySelector("[aria-label='Close SVG diagram']").click();
+      f.settings.setSvgEnabled(false); f.controller.refresh();
+      expect(document.querySelector(".annotation-markdown-svg-warning, .annotation-markdown-svg-image")).toBeNull();
+      f.settings.setSvgEnabled(true); f.controller.refresh();
+      expect(document.querySelectorAll(".annotation-markdown-svg-warning")).toHaveLength(1);
+      document.querySelector(".annotation-markdown-svg-warning").dispatchEvent(new MouseEvent("mousedown", { bubbles:true, button:0 }));
+      expect(document.querySelector("textarea").value).toBe(f.source);
+      expect(document.querySelector(".annotation-markdown-rendered").hidden).toBe(true);
+      document.querySelector("textarea").value = fence(simple);
+      expect(f.adapter.closeActiveFastEditor()).toBe(true);
+      // Zotero updates its owned source DOM after a successful annotation save.
+      document.querySelector(".content").textContent = fence(simple);
+      f.controller.renderNow();
+      expect(document.querySelector(".annotation-markdown-svg-warning")).toBeNull();
+      expect(document.querySelector(".annotation-markdown-svg-image")).not.toBeNull();
+      expect(f.adapter.getSourceText(document.querySelector(".comment"))).toBe(fence(simple));
+    } finally { f.controller.stop(); }
+    expect(document.querySelector(".annotation-markdown-rendered, [data-annotation-markdown-svg-viewer], .annotation-markdown-svg-warning")).toBeNull();
+    expect(document.querySelector(".content").textContent).toBe(fence(simple));
+  });
+
+  test("replaces a degraded preview with source fallback when its image fails", async () => {
+    const source = simple.replace('<svg ', '<svg cursor="default" ');
+    const f = await fixture({ markdown: fence(source) });
+    try {
+      document.querySelector(".annotation-markdown-svg-image").dispatchEvent(new Event("error"));
+      expect(document.querySelector(".annotation-markdown-svg-warning").hidden).toBe(true);
+      expect(document.querySelector(".annotation-markdown-svg-fallback").hidden).toBe(false);
+      expect(document.querySelector(".annotation-markdown-svg-fallback code").textContent.trimEnd()).toBe(source);
+      expect(document.querySelector(".annotation-markdown-svg-open").hidden).toBe(true);
+      f.settings.setSvgEnabled(false); f.controller.refresh();
+      f.settings.setSvgEnabled(true); f.controller.refresh();
+      expect(document.querySelector(".annotation-markdown-svg-warning").hidden).toBe(false);
+    } finally { f.controller.stop(); }
+  });
 });

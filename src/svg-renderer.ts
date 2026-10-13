@@ -4,6 +4,10 @@ import { normalizeSvgMarkupWhitespace } from "./svg-markup.js";
 import { validateSvgPath } from "./svg-path.js";
 import { createSvgFontStyles } from "./svg-fonts.js";
 import { createSvgClassStyles, parseSvgClassNames } from "./svg-class-styles.js";
+import { createSvgDiagnostics, SvgPolicyError, type SvgRenderResult, type SvgDiagnostics } from "./svg-diagnostics.js";
+
+export type { SvgRenderResult, SvgDiagnostic } from "./svg-diagnostics.js";
+export interface SvgRenderOptions { inferFromSource?: boolean; allowDegradation?: boolean; }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 export const SVG_LIMITS = { sourceChars: 32000, elements: 512, depth: 32, dimension: 4096 } as const;
@@ -45,32 +49,34 @@ const ENUMS: Record<string, RegExp> = {
 
 export function createSvgRenderer(windowRef: Window | null) {
   const purifier = windowRef?.document ? createDOMPurify(windowRef as unknown as WindowLike) : null;
-  return (source: string, codeFallback: string, { inferFromSource = false }: { inferFromSource?: boolean } = {}): string => {
+  const renderDetailed = (source: string, codeFallback: string, { inferFromSource = false, allowDegradation = true }: SvgRenderOptions = {}): SvgRenderResult => {
+    const diagnostics = createSvgDiagnostics(allowDegradation);
+    const unchangedFallback = (): SvgRenderResult => ({ status:"fallback", html:codeFallback, originalSource:source, omittedCount:0, diagnostics:[], reason:null });
     // This is only a cheap candidate check. XML parsing below must confirm that
     // the entire unlabeled block is one SVG document before applying SVG policy.
     if (inferFromSource && !/^\s*(?:<\?xml\b[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?=[\s/>])/.test(source.slice(0, SVG_LIMITS.sourceChars))) {
-      return codeFallback;
+      return unchangedFallback();
     }
     try {
-      if (!windowRef || !purifier?.isSupported) throw new Error("SVG rendering is unavailable.");
-      if (source.length > SVG_LIMITS.sourceChars) throw new Error("SVG source exceeds 32,000 characters.");
-      if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(source)) throw new Error("SVG document declarations are unsupported.");
+      if (!windowRef || !purifier?.isSupported) throw new SvgPolicyError("unavailable", "SVG rendering is unavailable.");
+      if (source.length > SVG_LIMITS.sourceChars) throw new SvgPolicyError("limits", "SVG source exceeds 32,000 characters.");
+      if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(source)) throw new SvgPolicyError("security", "SVG document declarations are unsupported.");
       const xml: Document = new windowRef.DOMParser().parseFromString(normalizeSvgMarkupWhitespace(source), "application/xml");
       const root = xml.documentElement;
       if (xml.querySelector("parsererror") || root.localName !== "svg" || root.namespaceURI !== SVG_NS) {
-        if (inferFromSource) return codeFallback;
-        throw new Error("SVG must be a well-formed SVG document.");
+        if (inferFromSource) return unchangedFallback();
+        throw new SvgPolicyError("structure", "SVG must be a well-formed SVG document.");
       }
-      if (Array.from(xml.childNodes).some(node => node.nodeType === 7)) throw new Error("SVG processing instructions are unsupported.");
+      if (Array.from(xml.childNodes).some(node => node.nodeType === 7)) throw new SvgPolicyError("security", "SVG processing instructions are unsupported.");
       const nodes = [root, ...Array.from(root.querySelectorAll("*"))];
-      if (nodes.length > SVG_LIMITS.elements) throw new Error("SVG exceeds 512 elements.");
+      if (nodes.length > SVG_LIMITS.elements) throw new SvgPolicyError("limits", "SVG exceeds 512 elements.");
       const ids = new Map<string, Element>();
       const references: Array<{ id: string; marker: boolean }> = [];
       const normalizeFontStyles = createSvgFontStyles(windowRef.atob.bind(windowRef));
       const classStyles = createSvgClassStyles(normalizeFontStyles, (name, value, node) => {
         const ref = validateDrawingAttribute(name, value, node);
         if (ref) references.push(ref);
-      });
+      }, diagnostics);
       const referencedIds = new Set(nodes.flatMap(node => Array.from(node.attributes)
         .map(attr => attr.value.trim().match(/^url\(#([A-Za-z_][\w.-]{0,63})\)$/)?.[1])
         .filter((id): id is string => Boolean(id))));
@@ -80,10 +86,10 @@ export function createSvgRenderer(windowRef: Window | null) {
         }
         let depth = 0;
         for (let parent: Element | null = node; parent; parent = parent.parentElement) depth++;
-        if (depth > SVG_LIMITS.depth) throw new Error("SVG nesting exceeds 32 levels.");
-        if (Array.from(node.childNodes).some(child => ![1, 3, 8].includes(child.nodeType))) throw new Error("Unsupported SVG content.");
+        if (depth > SVG_LIMITS.depth) throw new SvgPolicyError("limits", "SVG nesting exceeds 32 levels.");
+        if (Array.from(node.childNodes).some(child => ![1, 3, 8].includes(child.nodeType))) throw new SvgPolicyError("structure", "Unsupported SVG content.");
         if (EMPTY_EXPORT_TAGS.has(node.localName)) {
-          prepareExportExtra(node, ids, referencedIds, classStyles.normalize);
+          prepareExportExtra(node, ids, referencedIds, classStyles.normalize, diagnostics);
           continue;
         }
         for (const attr of Array.from(node.attributes)) {
@@ -95,6 +101,10 @@ export function createSvgRenderer(windowRef: Window | null) {
           }
           if (name === "class" && !attr.namespaceURI) {
             parseSvgClassNames(attr.value);
+            continue;
+          }
+          if (!attr.namespaceURI && diagnostics.omitDisplayHint(name, value, "attribute")) {
+            node.removeAttributeNode(attr);
             continue;
           }
           if (!ATTRS.has(name) || (attr.namespaceURI && name !== "xmlns")) throw new Error(`Unsupported SVG attribute: ${name}.`);
@@ -122,11 +132,11 @@ export function createSvgRenderer(windowRef: Window | null) {
       }
       const viewBox = root.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
       if (viewBox && (viewBox.length !== 4 || !viewBox.every(Number.isFinite) || !validDimension(viewBox[2]) || !validDimension(viewBox[3]))) {
-        throw new Error("SVG needs a valid viewBox up to 4096 × 4096.");
+        throw new SvgPolicyError("limits", "SVG needs a valid viewBox up to 4096 × 4096.");
       }
       const width = dimension(root.getAttribute("width"), viewBox?.[2]);
       const height = dimension(root.getAttribute("height"), viewBox?.[3]);
-      if (!validDimension(width) || !validDimension(height)) throw new Error("SVG needs a viewBox or dimensions up to 4096 × 4096.");
+      if (!validDimension(width) || !validDimension(height)) throw new SvgPolicyError("limits", "SVG needs a viewBox or dimensions up to 4096 × 4096.");
       root.setAttribute("width", String(width)); root.setAttribute("height", String(height));
       const serialized = new windowRef.XMLSerializer().serializeToString(root);
       const clean = purifier.sanitize(serialized, {
@@ -136,22 +146,31 @@ export function createSvgRenderer(windowRef: Window | null) {
         // is used only as an isolated image, never as nodes in the Reader DOM.
         SANITIZE_DOM: false
       });
-      if (!clean || !clean.includes("<svg")) throw new Error("SVG could not be sanitized.");
+      if (!clean || !clean.includes("<svg")) throw new SvgPolicyError("security", "SVG could not be sanitized.");
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clean)}`;
       const title = root.querySelector("title")?.textContent?.trim().slice(0, 160) || "SVG diagram";
-      return `<figure class="annotation-markdown-svg"><img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(title)}" width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
+      const warning = diagnostics.omittedCount ? `<p class="annotation-markdown-svg-warning" role="note">${escapeHtml(diagnostics.warningText())}</p>` : "";
+      const html = `<figure class="annotation-markdown-svg">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(title)}" width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
+      return { status:diagnostics.omittedCount ? "degraded" : "complete", html, originalSource:source,
+        omittedCount:diagnostics.omittedCount, diagnostics:diagnostics.diagnostics, reason:null };
     } catch (error) {
       const message = error instanceof Error ? error.message : "SVG could not be rendered.";
-      return `<p class="annotation-markdown-svg-error">${escapeHtml(message)}</p>${codeFallback}`;
+      return { status:"fallback", html:`<p class="annotation-markdown-svg-error">${escapeHtml(message)}</p>${codeFallback}`,
+        originalSource:source, omittedCount:diagnostics.omittedCount, reason:message,
+        diagnostics:[...diagnostics.diagnostics.slice(0, 7), { code:"svg-rejected", kind:error instanceof SvgPolicyError ? error.kind : "unsupported", message }] };
     }
   };
+  // Preserve the existing Markdown fence API; consumers needing policy outcomes
+  // can read typed diagnostics directly without inspecting HTML or error text.
+  return Object.assign((source: string, codeFallback: string, options?: SvgRenderOptions): string => renderDetailed(source, codeFallback, options).html,
+    { renderDetailed });
 }
 
 function recordId(value: string, node: Element, ids: Map<string, Element>): void {
   if (!ID.test(value) || ids.has(value)) throw new Error("SVG IDs must be unique and simple.");
   ids.set(value, node);
 }
-function prepareExportExtra(node: Element, ids: Map<string, Element>, referencedIds: Set<string>, normalizeStyles: (css: string) => string): void {
+function prepareExportExtra(node: Element, ids: Map<string, Element>, referencedIds: Set<string>, normalizeStyles: (css: string) => string, diagnostics: SvgDiagnostics): void {
   if (node.children.length || (node.localName !== "style" && node.textContent?.trim())) {
     throw new Error(`Unsupported SVG element: ${node.localName}.`);
   }
@@ -159,6 +178,10 @@ function prepareExportExtra(node: Element, ids: Map<string, Element>, referenced
     const value = attr.value.trim();
     if (attr.name === "xmlns" && value === SVG_NS) continue;
     if (attr.namespaceURI) throw new Error(`Unsupported SVG attribute: ${attr.name}.`);
+    if (diagnostics.omitDisplayHint(attr.name, value, "attribute")) {
+      node.removeAttributeNode(attr);
+      continue;
+    }
     if (attr.name === "id") {
       recordId(value, node, ids);
       if (referencedIds.has(value)) throw new Error(`Referenced SVG ${node.localName} is unsupported.`);

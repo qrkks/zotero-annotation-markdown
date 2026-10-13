@@ -2,6 +2,10 @@
 
 Date / 日期: 2026-10-13
 
+Historical assessment at commit `90b1a93`, before production integration. Its measurements and prototype decisions describe that snapshot; see the [production integration record](2026-10-13-svg-degradation-integration.md) for current behavior.
+
+本文记录提交 `90b1a93` 的接入前评估；测量及原型决策对应当时快照，当前行为请参见[正式接入记录](2026-10-13-svg-degradation-integration.md)。
+
 ## Decision
 
 Use three explicit rendering outcomes: **complete**, **degraded with a warning**, and **source fallback with a reason**. A parser library supports this policy; it does not decide what is safe to omit. The isolated prototype uses the [css-tree parser and walker](https://github.com/csstree/csstree), the existing strict SVG validator, and the existing DOMPurify/image boundary. It is not connected to the shipped plugin.

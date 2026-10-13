@@ -26,6 +26,8 @@ Reader 发现机制在收集已打开的 Reader 之前，同时监听 `renderToo
 
 控制器负责发现标注评论并决定何时渲染。适配器负责源码、预览与编辑器 DOM 操作。作用范围受限的 Reader 辅助模块分别管理选中目标 CSS、Esc 退出后的可见性恢复，以及选中预览中可清理的浮动大纲，不替换宿主标注结构或原生 DOM 方法。渲染器只接收文本并返回经过清理的 HTML，不感知 Reader 节点或偏好设置。
 
+`src/svg-renderer.ts` 通过 `renderDetailed()` 返回有类型的完整/降级/源码回退结果，并保留现有围栏 HTML 接口。`src/svg-class-styles.ts` 使用 css-tree 的 parser/walker 子模块检查所有原始 CSS 值，再由 `src/svg-diagnostics.ts` 收集数量受限的省略诊断。只有简单关键字形式的显示提示可被省略；几何、字体、引用和原始资源上限仍须通过严格校验。XML 只解析一次，最终 DOMPurify 净化仍在 SVG 图片上下文执行，保存的批注源码保持原样。`src/svg-preview-viewer.ts` 把提示作为文字复制到大图查看器，适配时计入提示的未缩放高度；图片加载失败时显示源码回退。Reader 现有的编辑器和 HTML 缓存生命周期让提示随预览一起更新。
+
 ## 快速编辑器流程
 
 只有偏好设置已开启，并且当前 Reader 暴露了可调用的标注更新管理器时，快速编辑器才会替代 Zotero 原生标注评论编辑器：

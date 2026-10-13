@@ -39,7 +39,9 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
     if (restoreFocus && previous?.isConnected) previous.focus({ preventScroll: true });
   }
   function open(button: HTMLButtonElement): void {
-    const image = button.closest(".annotation-markdown-svg")?.querySelector<HTMLImageElement>("img.annotation-markdown-svg-image");
+    const figure = button.closest(".annotation-markdown-svg");
+    const image = figure?.querySelector<HTMLImageElement>("img.annotation-markdown-svg-image");
+    const warningText = figure?.querySelector(".annotation-markdown-svg-warning:not([hidden])")?.textContent;
     const src = image?.getAttribute("src");
     if (!isEnabled() || !image || !src?.startsWith("data:image/svg+xml;charset=utf-8,") || image.hidden || !beforeOpen()) return;
     close(false); opener = button;
@@ -67,6 +69,9 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
       const panel = content.createElement("div"); panel.className = "annotation-markdown-svg-viewer-panel";
       const toolbar = content.createElement("div"); toolbar.className = "annotation-markdown-svg-viewer-toolbar";
       const title = content.createElement("span"); title.className = "annotation-markdown-svg-viewer-title"; title.textContent = image.alt || "SVG diagram";
+      const warning = warningText ? content.createElement("p") : null;
+      if (warning) { warning.className = "annotation-markdown-svg-warning"; warning.setAttribute("role", "note"); warning.textContent = warningText!; }
+      const controlHeight = () => Math.ceil(toolbar.getBoundingClientRect().height) + Math.ceil(warning?.getBoundingClientRect().height ?? 0);
       closeButton = content.createElement("button"); closeButton.type = "button"; closeButton.textContent = "Close";
       closeButton.setAttribute("aria-label", "Close SVG diagram");
       region = content.createElement("div"); region.className = "annotation-markdown-svg-viewer-region";
@@ -79,16 +84,18 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
         // Leave room for the unscaled controls; CSS caps the frame at the Reader
         // edges. Only images beyond those bounds need scrolling or panning.
         frame.style.width = `${Math.max(480, width)}px`;
-        frame.style.height = `${Math.max(100, height) + Math.ceil(toolbar.getBoundingClientRect().height) + 2}px`;
+        frame.style.height = `${Math.max(100, height) + controlHeight() + 2}px`;
       };
       const fitBounds = () => {
         const padding = win?.getComputedStyle(overlay!);
         const width = overlay!.clientWidth - (parseFloat(padding?.paddingLeft ?? "") || 0) - (parseFloat(padding?.paddingRight ?? "") || 0);
-        const height = overlay!.clientHeight - (parseFloat(padding?.paddingTop ?? "") || 0) - (parseFloat(padding?.paddingBottom ?? "") || 0) - Math.ceil(toolbar.getBoundingClientRect().height) - 2;
+        const height = overlay!.clientHeight - (parseFloat(padding?.paddingTop ?? "") || 0) - (parseFloat(padding?.paddingBottom ?? "") || 0) - controlHeight() - 2;
         return width > 0 && height > 0 ? { width, height } : region!.getBoundingClientRect();
       };
       zoom = createSvgViewerZoom(large, region, { sizeFrame, fitBounds });
-      toolbar.append(title, zoom.controls, closeButton); stage.append(large); region.append(stage); panel.append(toolbar, region); content.body.append(panel);
+      toolbar.append(title, zoom.controls, closeButton); stage.append(large); region.append(stage); panel.append(toolbar);
+      if (warning) panel.append(warning);
+      panel.append(region); content.body.append(panel);
       zoom.fit();
       for (const type of VIEWER_EVENTS) viewerWindow.addEventListener(type, handle, { capture: true, passive: false });
       viewerWindow.addEventListener("resize", resize);
@@ -133,6 +140,7 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
         const figure = target.closest(".annotation-markdown-svg");
         target.setAttribute("hidden", "");
         figure?.querySelector(".annotation-markdown-svg-open")?.setAttribute("hidden", "");
+        figure?.querySelector(".annotation-markdown-svg-warning")?.setAttribute("hidden", "");
         figure?.querySelector(".annotation-markdown-svg-fallback")?.removeAttribute("hidden");
       }
       return;

@@ -267,6 +267,20 @@
     color: inherit;
 }
 
+.annotation-markdown-svg-warning {
+    font-size: 0.9em;
+    padding: 0.5em 0.65em;
+    border-inline-start: 3px solid #b7791f;
+    background: #fff8e6;
+    color: #684b10;
+    overflow-wrap: anywhere;
+}
+
+.annotation-markdown-svg-viewer-content .annotation-markdown-svg-warning {
+    flex: none;
+    margin: 0;
+}
+
 .annotation-markdown-svg [hidden] {
     display: none !important;
 }
