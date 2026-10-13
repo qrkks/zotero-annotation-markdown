@@ -1,5 +1,5 @@
 /**
- * Version-gated experiment that avoids mounting hundreds of complete Zotero
+ * Capability-gated experiment that avoids mounting hundreds of complete Zotero
  * annotation rows when an existing tag filter is relaxed.
  *
  * The React replacement and all of its state are created inside the Reader
@@ -34,7 +34,6 @@ export interface NativeAnnotationRowLazyController {
   stop(): void;
 }
 
-const VERIFIED_ZOTERO_VERSIONS = new Set(["10.0.3"]);
 const TRANSIENT_RETRY_DELAY_MS = 250;
 const MAX_TRANSIENT_RETRIES = 20;
 
@@ -46,7 +45,6 @@ export function createNativeAnnotationRowLazyController({
 }: CreateNativeAnnotationRowLazyControllerOptions): NativeAnnotationRowLazyController {
   let runtime: PageRuntime | undefined;
   let runtimeWindow: ReaderPageWindow | undefined;
-  let loggedUnsupportedVersion = false;
   let loggedFailureReason = "";
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let retryAttempts = 0;
@@ -90,19 +88,6 @@ export function createNativeAnnotationRowLazyController({
         return;
       }
 
-      if (!hostVersion || !VERIFIED_ZOTERO_VERSIONS.has(hostVersion)) {
-        clearRetry();
-        retryAttempts = 0;
-        stopRuntime();
-        if (!loggedUnsupportedVersion) {
-          logger?.log?.(
-            `[annotation-markdown] native row lazy rendering unavailable for Zotero ${hostVersion ?? "unknown"}`
-          );
-          loggedUnsupportedVersion = true;
-        }
-        return;
-      }
-
       const candidate = getPageWindow() as ReaderPageWindow | null | undefined;
       const pageWindow = candidate?.wrappedJSObject ?? candidate;
       if (!pageWindow?.eval) {
@@ -118,18 +103,22 @@ export function createNativeAnnotationRowLazyController({
         const installed = pageWindow.eval(
           NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE
         ) as PageRuntime | undefined;
-        if (!installed?.start || !installed?.stop) {
+        if (typeof installed?.start !== "function" || typeof installed?.stop !== "function") {
           return;
         }
+        // Own the runtime before initialization so any partial hook can be
+        // restored if startup throws after touching the native component.
+        runtime = installed;
+        runtimeWindow = pageWindow;
         const result = installed.start();
         if (result?.active !== true) {
           if (result?.reason && result.reason !== loggedFailureReason) {
             logger?.log?.(
-              `[annotation-markdown] native row lazy rendering not armed: ${result.reason}`
+              `[annotation-markdown] native row lazy rendering not armed: ${result.reason} (Zotero ${hostVersion ?? "unknown"})`
             );
             loggedFailureReason = result.reason;
           }
-          installed.stop();
+          stopRuntime();
           if (result?.reason === "annotation-row") {
             scheduleRetry();
           }
@@ -138,9 +127,8 @@ export function createNativeAnnotationRowLazyController({
         clearRetry();
         retryAttempts = 0;
         loggedFailureReason = "";
-        runtime = installed;
-        runtimeWindow = pageWindow;
       } catch (error) {
+        stopRuntime();
         logger?.warn?.(
           "[annotation-markdown] native row lazy rendering fell back to Zotero",
           error

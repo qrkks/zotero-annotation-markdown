@@ -219,6 +219,11 @@ describe("preferences pane", () => {
     expect(doc.querySelector('[data-l10n-id="annotation-markdown-prefs-math-output"]').getAttribute("value")).toBe(locale === "zh-CN" ? "公式渲染方式" : "Math rendering");
     expect(doc.getElementById("annotation-markdown-math-output").getAttribute("preference")).toBe("extensions.annotationMarkdown.mathOutput");
     expect([...doc.getElementById("annotation-markdown-math-output").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["htmlAndMathml", "mathml"]);
+    expect(doc.querySelector('[data-l10n-id="annotation-markdown-prefs-math-native"]').getAttribute("label"))
+      .toBe(locale === "zh-CN" ? "仅使用原生 MathML" : "Native MathML only");
+    for (const id of ["annotation-markdown-svg-enabled", "annotation-markdown-native-row-lazy"]) {
+      expect(doc.getElementById(id).getAttribute("label")).toContain(locale === "zh-CN" ? "实验性" : "Experimental");
+    }
   });
 
   test("shows default enabled and 100 percent values when prefs are missing", async () => {

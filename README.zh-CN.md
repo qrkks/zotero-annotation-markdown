@@ -16,6 +16,8 @@
 
 用 Markdown 标题、列表、彩色高亮和 LaTeX 公式，让 Zotero 标注评论更清晰易读。渲染时保留 Zotero 保存的标注原文，源码仍可继续编辑。
 
+> 项目持续改进中。遇到渲染异常、兼容问题，或有功能建议，欢迎[提交 Issue](https://github.com/qrkks/zotero-annotation-markdown/issues)。报告问题时，请附上 Zotero 和插件版本、复现步骤；涉及渲染时，尽量提供可复现的 Markdown、LaTeX 或 SVG 最小示例。
+
 ## 功能预览
 
 ![同一条 Zotero 标注的 Markdown 源码与渲染预览，展示标题、彩色高亮和 LaTeX 公式](docs/images/source-and-preview.webp)
@@ -47,7 +49,7 @@ SVG 渲染是默认关闭的实验性功能。在设置中开启 **渲染 SVG �
 ## 主要功能
 
 - 在 PDF 和 EPUB 阅读器标注侧栏中预览 Markdown 与 LaTeX 数学公式。
-- 可选择原生 MathML 渲染，作为默认关闭的实验选项。在设置的 **Math rendering** 中选择 **Native MathML only (Experimental)**，可降低公式渲染开销，但公式间距和外观可能有所不同。
+- 可选择原生 MathML 渲染。在设置的 **公式渲染方式** 中选择 **仅使用原生 MathML**，可降低公式渲染开销，但公式间距和外观可能有所不同；默认仍使用标准 KaTeX 渲染。
 - 可选的静态 SVG 图预览，支持 fenced `svg` 代码块、无语言标记代码块中的完整 SVG，以及独立占一行或多行的完整裸 SVG，保留源码编辑并提供大图查看。实验性功能，默认关闭；详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
 - 可选择在页内标注弹窗中启用 Markdown 预览（默认关闭）；快速编辑由独立偏好控制，并可回退 Zotero 原生行为。
 - 沿用 markdown-it 生态的高亮语法：通过 [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark) 支持 `==高亮文字==`；`==高亮文字=={.red}` 等颜色后缀沿用 [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) 的属性写法，并限定为安全的预设颜色。
@@ -58,7 +60,7 @@ SVG 渲染是默认关闭的实验性功能。在设置中开启 **渲染 SVG �
 - 侧栏与页内弹窗的渲染开关彼此独立，可以只开启其中一项，共用字号和公式设置。
 - 可以调整预览字号和标注渲染策略。
 - 设置页跟随 Zotero 的界面语言，目前支持英文和简体中文。
-- 可在 Zotero 10.0.3 中实验性加速超大标注列表取消标签筛选后的恢复；默认关闭。
+- 可实验性加速超大标注列表取消标签筛选后的恢复；默认关闭，Reader 通过兼容性检查时生效，否则回退原生列表。
 - 渲染内容经过清理，渲染失败时保留纯文本。
 - 支持 Zotero Desktop 9.0 和 10.0.x。本版优先在 Zotero 10 上验证；Zotero 9 无法使用快速编辑能力时会自动回退原生编辑器。
 

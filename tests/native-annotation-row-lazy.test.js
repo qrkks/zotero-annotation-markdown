@@ -1,11 +1,13 @@
 import vm from "node:vm";
 
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE,
   createNativeAnnotationRowLazyController
 } from "../src/native-annotation-row-lazy.ts";
+
+afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ""; });
 
 describe("createNativeAnnotationRowLazyController", () => {
   test("stays inactive unless the experimental preference is enabled", () => {
@@ -21,22 +23,47 @@ describe("createNativeAnnotationRowLazyController", () => {
     expect(pageWindow.eval).not.toHaveBeenCalled();
   });
 
-  test("rejects unverified Zotero versions before touching the Reader page", () => {
-    const pageWindow = { eval: vi.fn() };
-    const log = vi.fn();
+  test.each(["10.0.3", "10.0.4", "10.0.6", "9.0.0", "10.1.0", undefined])("probes a compatible Reader independently of Zotero version (%s)", hostVersion => {
+    const start = vi.fn(() => ({ active: true }));
+    const stop = vi.fn();
+    const pageWindow = { eval: vi.fn(() => ({ start, stop })) };
     const controller = createNativeAnnotationRowLazyController({
       getPageWindow: () => pageWindow,
-      hostVersion: "10.0.4",
-      isEnabled: () => true,
-      logger: { log }
+      hostVersion,
+      isEnabled: () => true
     });
 
     controller.refresh();
 
-    expect(pageWindow.eval).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledWith(
-      "[annotation-markdown] native row lazy rendering unavailable for Zotero 10.0.4"
-    );
+    expect(pageWindow.eval).toHaveBeenCalledOnce();
+    expect(start).toHaveBeenCalledOnce();
+    controller.stop();
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
+  test("cleans up a partially started hook when a newer Reader throws during initialization", () => {
+    vi.useFakeTimers();
+    const f = compatiblePageFixture(120);
+    const originalHtml = document.body.innerHTML;
+    const log = vi.fn();
+    const warn = vi.fn();
+    f.pageWindow.getComputedStyle = () => { throw new Error("layout unavailable"); };
+    f.pageWindow.eval = code => vm.runInNewContext(code, f.pageWindow);
+    const controller = createNativeAnnotationRowLazyController({
+      getPageWindow: () => f.pageWindow,
+      hostVersion: "10.0.6",
+      isEnabled: () => true,
+      logger: { log, warn }
+    });
+
+    expect(() => controller.refresh()).not.toThrow();
+    expect(warn).toHaveBeenCalledOnce();
+    expect(f.memo.type).toBe(f.original);
+    vi.runOnlyPendingTimers();
+    expect(f.pageWindow.__annotationMarkdownNativeRowLazyV1).toBeUndefined();
+    expect(f.pageWindow.removeEventListener).toHaveBeenCalledWith("resize", expect.any(Function));
+    expect(document.body.innerHTML).toBe(originalHtml);
+    controller.stop();
   });
 
   test("starts, refreshes, and stops the page-owned runtime", () => {
@@ -112,7 +139,7 @@ describe("createNativeAnnotationRowLazyController", () => {
     expect(pageWindow.eval).toHaveBeenCalledTimes(2);
     expect(stop).toHaveBeenCalledOnce();
     expect(log).toHaveBeenCalledWith(
-      "[annotation-markdown] native row lazy rendering not armed: annotation-row"
+      "[annotation-markdown] native row lazy rendering not armed: annotation-row (Zotero 10.0.3)"
     );
     controller.stop();
     expect(stop).toHaveBeenCalledTimes(2);
@@ -121,6 +148,27 @@ describe("createNativeAnnotationRowLazyController", () => {
 });
 
 describe("native annotation row lazy page runtime", () => {
+  test.each([
+    ["React version", f => { f.pageWindow.React.version = "19.0.0"; }, "react-api"],
+    ["React hook", f => { delete f.pageWindow.React.useState; }, "react-api"],
+    ["ReactDOM API", f => { delete f.pageWindow.ReactDOM.flushSync; }, "react-api"],
+    ["observer API", f => { delete f.pageWindow.IntersectionObserver; }, "react-api"],
+    ["fiber shape", f => { f.rows[0].__reactFiber$test.tag = 0; }, "annotation-fiber"],
+    ["memo descriptor", f => { Object.defineProperty(f.memo, "type", { writable: false }); }, "annotation-fiber"],
+    ["sibling consistency", f => { f.rows[1].__reactFiber$test.return.elementType = { type: f.original }; }, "annotation-fiber-consistency"]
+  ])("rejects incompatible %s before patching the native component", (_name, change, reason) => {
+    const f = compatiblePageFixture();
+    const originalHtml = document.body.innerHTML;
+    change(f);
+    const runtime = vm.runInNewContext(NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE, f.pageWindow);
+    expect(runtime.start()).toEqual({ active: false, cachedRows: 0, reason });
+    expect(f.memo.type).toBe(f.original);
+    expect(f.pageWindow.addEventListener).not.toHaveBeenCalled();
+    expect(document.body.innerHTML).toBe(originalHtml);
+    runtime.stop();
+    expect(f.pageWindow.__annotationMarkdownNativeRowLazyV1).toBeUndefined();
+  });
+
   test("uses exact cached heights only while a checked tag filter is relaxed", () => {
     vi.useFakeTimers();
     document.body.innerHTML = `
@@ -298,3 +346,37 @@ describe("native annotation row lazy page runtime", () => {
     vi.useRealTimers();
   });
 });
+
+function compatiblePageFixture(count = 3) {
+  document.body.innerHTML = '<div id="annotations" class="annotations"></div>';
+  function SidebarPreview() {}
+  function original(props) { return { marker: "data-sidebar-annotation-id", SidebarPreview, props }; }
+  const memo = { $$typeof: Symbol.for("react.memo"), type: original };
+  const rows = Array.from({ length: count }, (_, index) => {
+    const row = document.createElement("div");
+    row.className = "annotation";
+    row.dataset.sidebarAnnotationId = `a${index}`;
+    row.getBoundingClientRect = () => ({ height: 80 });
+    Object.defineProperty(row, "__reactFiber$test", {
+      value: { tag: 5, return: { tag: 15, type: original, elementType: memo } }
+    });
+    document.querySelector("#annotations").append(row);
+    return row;
+  });
+  const pageWindow = {
+    document,
+    React: {
+      version: "18.3.1",
+      createElement: vi.fn(), useState: vi.fn(), useEffect: vi.fn(), useLayoutEffect: vi.fn(), useRef: vi.fn()
+    },
+    ReactDOM: { flushSync: vi.fn() },
+    IntersectionObserver: class {},
+    CSS: { escape: value => value },
+    performance: { now: () => 0 },
+    getComputedStyle: window.getComputedStyle.bind(window),
+    setTimeout, clearTimeout,
+    addEventListener: vi.fn(), removeEventListener: vi.fn()
+  };
+  pageWindow.window = pageWindow;
+  return { pageWindow, memo, original, rows };
+}

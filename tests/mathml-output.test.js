@@ -7,7 +7,7 @@ import { createSettings } from "../src/settings.ts";
 
 afterEach(() => { document.body.innerHTML = ""; });
 
-describe("experimental MathML output", () => {
+describe("native MathML output", () => {
   test("keeps native math semantics and TeX annotations through sanitization", () => {
     const renderer = createMarkdownRenderer({ windowRef: window, getMathOutput: () => "mathml" });
     document.body.innerHTML = renderer.render("area is $a^2$");
@@ -51,7 +51,7 @@ describe("experimental MathML output", () => {
     expect(document.querySelector("script, [onclick], [href]")).toBeNull();
   });
 
-  test("defaults to the normal output and normalizes stored experiment choices", () => {
+  test("defaults to the normal output and normalizes stored output choices", () => {
     const settings = createSettings();
     expect(settings.getMathOutput()).toBe("htmlAndMathml");
     settings.setMathOutput("mathml");

@@ -16,6 +16,8 @@ English | [简体中文](README.zh-CN.md)
 
 Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, and LaTeX math. Rendering preserves the original source stored by Zotero, so it stays editable.
 
+> This project is actively maintained. If you encounter rendering or compatibility problems, or have a feature suggestion, please [open an issue](https://github.com/qrkks/zotero-annotation-markdown/issues). For bug reports, include your Zotero and plugin versions, steps to reproduce, and a minimal Markdown, LaTeX, or SVG example when relevant.
+
 ## Preview
 
 ![The same Zotero annotation as editable Markdown source and a rendered preview with headings, color highlights, and LaTeX math](docs/images/source-and-preview.webp)
@@ -47,7 +49,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 ## Highlights
 
 - Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
-- Optional native MathML rendering, marked experimental and off by default. Select **Native MathML only (Experimental)** under **Math rendering** in Settings to reduce formula rendering cost; spacing and appearance may differ.
+- Optional native MathML rendering. Select **Native MathML only** under **Math rendering** in Settings to reduce formula rendering cost; spacing and appearance may differ. Standard KaTeX rendering remains the default.
 - Optional static SVG diagrams from fenced `svg` code blocks, complete SVG documents in unlabeled code blocks, or complete raw SVGs on their own lines, with source editing and a larger-image viewer. Experimental and off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 - Optional, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
 - Highlight syntax from the markdown-it ecosystem: `==Highlighted text==` via [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark), with optional color suffixes such as `==Highlighted text=={.red}` following the [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) convention and limited to safe preset colors.
@@ -58,7 +60,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 - Independent sidebar and page-popup rendering switches; enable either surface on its own, with shared font size and math settings.
 - Adjustable preview font size and rendering strategy.
 - Settings follow Zotero's interface language, with English and Simplified Chinese translations.
-- An off-by-default Zotero 10.0.3 experiment that lazily restores native rows when a tag filter is cleared in very large annotation lists.
+- Off-by-default experimental acceleration when clearing tag filters in very large annotation lists, enabled when the Reader passes compatibility checks, with native fallback otherwise.
 - Sanitized output with a plain-text fallback on rendering failure.
 - Supports Zotero Desktop 9.0 and 10.0.x. Current release validation prioritizes Zotero 10; Zotero 9 retains an automatic native-editor fallback.
 

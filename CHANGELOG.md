@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- Remove the experimental label from native MathML output, retaining standard KaTeX rendering as the default and the layout-difference notice. Keep SVG and native-row acceleration experimental. Replace the acceleration's exact Zotero 10.0.3 gate with Reader compatibility checks while retaining its React, component, cache, and native-fallback requirements; clean up partially started hooks on initialization failure.
 - Keep heading numbering depth consistent across each annotation, including leading subheadings before a shallower heading and skipped parents. Reserve missing-parent counters from one without adding outline entries or changing source headings.
 - Preview static SVG diagrams using restricted `font` shorthand in simple class rules. Expand font style, weight, size and family only in the preview copy, preserve declaration order and normal resets, and keep the original comment and existing validation limits.
 - Render supported SVG completely, omit explicitly permitted keyword display hints with a persistent compatibility warning, and keep unsafe or meaningful unsupported content on source fallback. Retain the warning in the larger-image viewer and preserve the original source and complexity limits.
@@ -25,6 +26,7 @@
 
 ### 修复
 
+- 移除原生 MathML 输出的实验性标签，保留默认 KaTeX 渲染及排版差异说明；SVG 和原生行加速仍标为实验性。加速功能改用 Reader 兼容性检查，不再限定 Zotero 10.0.3，保留 React、组件、缓存及原生回退要求，并在初始化失败时清理部分启动的挂钩。
 - 修正整条标注中标题编号深度不一致的问题，包括浅层标题前的子标题和缺少父级的跳级标题；缺失父级从一开始补位计数，不添加大纲条目或改写源码标题。
 - 支持简单类规则中使用受限 `font` 简写的静态 SVG 图示预览。仅在预览副本中展开字形、字重、字号和字体族，保留声明顺序与默认值重置，沿用原始评论及现有校验限制。
 - 支持完整 SVG 预览；明确允许的简单关键字显示提示可被省略，并持续显示兼容提示。不安全或影响图意的不支持内容仍回退到源码。大图查看器保留相同提示，原始源码和复杂度限制保持不变。
