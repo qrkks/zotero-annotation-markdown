@@ -34,6 +34,11 @@ annotation-markdown-prefs-outline-enabled =
     .label = Show a floating outline for annotations with multiple headings
 annotation-markdown-prefs-outline-font-size =
     .value = Outline font size
+annotation-markdown-prefs-outline-numbering =
+    .label = Show heading numbers
+annotation-markdown-prefs-outline-smart-numbering =
+    .label = Respect existing numbering
+annotation-markdown-prefs-outline-smart-numbering-description = When a heading already has a clear number, keep its sibling group and all descendants without extra numbers.
 
 annotation-markdown-prefs-tags = Annotation Tags
 annotation-markdown-prefs-auto-todo-tag =

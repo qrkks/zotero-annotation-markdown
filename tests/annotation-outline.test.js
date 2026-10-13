@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { trackAnnotationOutline } from "../src/annotation-outline.ts";
@@ -15,6 +17,8 @@ function setup({
   initialExpanded = false,
   enabled = true,
   fontScale = 1,
+  numbering = false,
+  smartNumbering = true,
   viewportWidth = 800,
   viewportHeight = 700,
   scrollerRect = { left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600 },
@@ -24,10 +28,10 @@ function setup({
   document.body.innerHTML = `<section id="annotation-tab-panel">
     <div id="annotations" style="overflow-y:auto">
       <div data-sidebar-annotation-id="a" class="annotation selected">
-        <div class="comment"><div class="content">source a</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>第一章</h1><p>内容</p><h2>细节</h2></div></div>
+        <div class="comment"><div class="content">source a</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>章节概述</h1><p>内容</p><h2>细节</h2></div></div>
       </div>
       <div data-sidebar-annotation-id="b" class="annotation">
-        <div class="comment"><div class="content">source b</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>第二章</h1><h2>结论</h2><h3>限制</h3></div></div>
+        <div class="comment"><div class="content">source b</div><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true"><h1>后续章节</h1><h2>结论</h2><h3>限制</h3></div></div>
       </div>
     </div>
   </section>`;
@@ -46,6 +50,8 @@ function setup({
     isEnabled: () => enabled,
     isExpanded: () => expanded,
     setExpanded,
+    isNumberingEnabled: () => numbering,
+    isSmartNumberingEnabled: () => smartNumbering,
     getFontScale: () => currentFontScale
   });
   return {
@@ -53,6 +59,9 @@ function setup({
     scroller,
     setExpanded,
     getExpanded: () => expanded,
+    setNumbering(value) { numbering = value; controller.sync(); },
+    setSmartNumbering(value) { smartNumbering = value; controller.sync(); },
+    setEnabled(value) { enabled = value; controller.sync(); },
     setFontScale(value) {
       currentFontScale = value;
       controller.sync();
@@ -127,6 +136,16 @@ async function flushMutations() {
   await Promise.resolve();
 }
 
+function replaceSelectedSubheading(source, output = "htmlAndMathml") {
+  const holder = document.createElement("div");
+  holder.innerHTML = createMarkdownRenderer({ windowRef: window, getMathOutput: () => output })
+    .render(`## ${source}`);
+  const heading = holder.querySelector("h2");
+  document.querySelector(".annotation.selected h2").replaceWith(heading);
+  controller.sync();
+  return heading;
+}
+
 test("creates a collapsed outline only for one selected preview with multiple headings", () => {
   setup();
   const outline = document.querySelector("[data-annotation-markdown-outline='true']");
@@ -136,7 +155,7 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(toggle.textContent).toBe("大纲 · 2");
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   expect(outline.querySelector(".annotation-markdown-outline-panel").hidden).toBe(true);
-  expect(items.map(item => item.textContent)).toEqual(["第一章", "细节"]);
+  expect(items.map(item => item.textContent)).toEqual(["章节概述", "细节"]);
   expect(items.map(item => item.dataset.level)).toEqual(["1", "2"]);
   expect(document.querySelectorAll("[data-annotation-markdown-outline='true']")).toHaveLength(1);
   expect(outline.parentElement).toBe(document.body);
@@ -145,6 +164,298 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(outline.style.top).toBe("68px");
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-panel-width")).toBe("224px");
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.85em");
+});
+
+test("toggles hierarchy numbers in place without changing headings, focus or expansion", () => {
+  const f = setup({ initialExpanded: true });
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  const items = [...outline.querySelectorAll(".annotation-markdown-outline-item")];
+  const headings = [...f.rows[0].querySelectorAll("h1,h2")];
+  const originals = headings.map(heading => heading.innerHTML);
+  items[1].focus();
+  f.setNumbering(true);
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect([...outline.querySelectorAll(".annotation-markdown-outline-item")]).toEqual(items);
+  expect(items.map(item => item.textContent)).toEqual(["1 章节概述", "1.1 细节"]);
+  expect(items[1].getAttribute("aria-label")).toBe("1.1 细节");
+  expect(items[1].title).toBe("1.1 细节");
+  expect(items[1].querySelector(".annotation-markdown-outline-number").getAttribute("aria-hidden")).toBe("true");
+  expect(document.activeElement).toBe(items[1]);
+  expect(f.getExpanded()).toBe(true);
+  expect(headings.map(heading => heading.innerHTML)).toEqual(originals);
+  f.setNumbering(false);
+  expect(items.map(item => item.textContent)).toEqual(["章节概述", "细节"]);
+  expect(items[1].title).toBe("细节");
+  expect(outline.querySelector(".annotation-markdown-outline-number")).toBeNull();
+  expect(document.activeElement).toBe(items[1]);
+});
+
+test("switches smart avoidance without rebuilding navigation or changing source and math", () => {
+  const f = setup({ numbering: true, initialExpanded: true });
+  document.querySelector(".annotation.selected h1").textContent = "五、结果";
+  replaceSelectedSubheading("$1.2$ 参数");
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  const items = [...outline.querySelectorAll(".annotation-markdown-outline-item")];
+  const preview = f.rows[0].querySelector("[data-annotation-markdown-preview]");
+  const originalPreview = preview.innerHTML;
+  const originalSource = f.rows[0].querySelector(".content").innerHTML;
+  const originalMath = items[1].querySelector(".katex");
+  const labels = items.map(item => item.textContent);
+  items[1].focus();
+
+  f.setSmartNumbering(false);
+  expect(items.map(item => item.textContent)).toEqual([`1 ${labels[0]}`, `1.1 ${labels[1]}`]);
+  expect(items[0].title).toBe("1 五、结果");
+  expect(items[1].getAttribute("aria-label")).toMatch(/^1\.1 /);
+  expect(items[1].querySelector(".katex")).toBe(originalMath);
+  f.setNumbering(false);
+  expect(items.map(item => item.textContent)).toEqual(labels);
+  f.setNumbering(true);
+  expect(items[0].textContent).toBe("1 五、结果");
+  f.setSmartNumbering(true);
+  expect(items.map(item => item.textContent)).toEqual(labels);
+  expect(items[0].title).toBe("五、结果");
+  expect(outline.querySelector(".annotation-markdown-outline-number")).toBeNull();
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect([...outline.querySelectorAll(".annotation-markdown-outline-item")]).toEqual(items);
+  expect(document.activeElement).toBe(items[1]);
+  expect(f.getExpanded()).toBe(true);
+  expect(preview.innerHTML).toBe(originalPreview);
+  expect(f.rows[0].querySelector(".content").innerHTML).toBe(originalSource);
+});
+
+test("numbers the reported authored and leading headings uniformly when smart avoidance is off", () => {
+  setup({ numbering: true, smartNumbering: false });
+  const source = readFileSync(path.join(process.cwd(), "tests", "fixtures", "outline-leading-subheadings.md"), "utf8");
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window }).render(source);
+  const originalHeadings = [...preview.querySelectorAll("h1,h2,h3")].map(heading => heading.innerHTML);
+  controller.sync();
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items.map(item => item.querySelector(".annotation-markdown-outline-number")?.textContent.trim()))
+    .toEqual(["1.1", "1.2", "1.2.1", "1.2.2", "1.3", "1.4", "2", "3", "3.1", "3.2", "4", "4.1", "4.2", "5", "6"]);
+  expect(items[0].textContent).toMatch(/^1\.1 1\. /);
+  expect([...preview.querySelectorAll("h1,h2,h3")].map(heading => heading.innerHTML)).toEqual(originalHeadings);
+});
+
+test("keeps the reported leading H2 headings below the later H1 level without changing titles", () => {
+  setup({ numbering: true });
+  const source = readFileSync(path.join(process.cwd(), "tests", "fixtures", "outline-leading-subheadings.md"), "utf8");
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window }).render(source);
+  const originalHeadings = [...preview.querySelectorAll("h1,h2,h3")].map(heading => heading.innerHTML);
+  controller.sync();
+
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items.map(item => item.querySelector(".annotation-markdown-outline-number")?.textContent.trim() ?? null))
+    .toEqual(Array(15).fill(null));
+  expect(items.map(item => item.dataset.level))
+    .toEqual(["2", "2", "3", "3", "2", "2", "1", "1", "2", "2", "1", "2", "2", "1", "1"]);
+  expect(items[0].textContent).toBe("1. 先拆解你的思路：你说的“可互相比”= 能做倍数比值（ratio）");
+  expect([...preview.querySelectorAll("h1,h2,h3")].map(heading => heading.innerHTML)).toEqual(originalHeadings);
+});
+
+test.each([
+  [[3, 2, 1], ["1.1.1", "1.2", "2"]],
+  [[1, 3, 2, 3, 1, 2, 3], ["1", "1.1.1", "1.2", "1.2.1", "2", "2.1", "2.1.1"]],
+  [[2, 4, 4, 2, 6], ["1", "1.1", "1.2", "2", "2.1.1"]],
+  [[4, 4], ["1", "2"]],
+  [[2, 2, 3, 3, 2, 2, 1, 1, 2, 2, 1, 2, 2, 1, 1], ["1.1", "1.2", "1.2.1", "1.2.2", "1.3", "1.4", "2", "3", "3.1", "3.2", "4", "4.1", "4.2", "5", "6"]]
+])("keeps numbering depth consistent for each present heading level (%j)", (levels, expected) => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = levels.map((level, index) => `<h${level}>Heading ${index}</h${level}>`).join("");
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-number")].map(label => label.textContent.trim()))
+    .toEqual(expected);
+  expect(preview.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(0);
+});
+
+test("numbers skipped levels consistently without duplicating explicit handwritten numbers", () => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h2>1. 手写标题</h2><h4>A</h4><h3>B</h3><h5>C</h5><h2>D</h2><h1>E</h1><h3>F</h3><h1>G</h1>';
+  controller.sync();
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items.map(item => item.textContent)).toEqual([
+    "1. 手写标题", "A", "B", "C", "D", "2 E", "2.1.1 F", "3 G"
+  ]);
+  expect(preview.querySelector("h2").textContent).toBe("1. 手写标题");
+});
+
+test.each([
+  "一、研究背景", "（一）测量方法", "(二) 方法", "第十二章 实验", "第2节 方法", "第一部分 理论",
+  "1. 研究背景", "2、测量方法", "(3) 数据分析", "（４）数据分析", "5) Discussion", "６． 结论",
+  "1.2. 小节", "1.2、子小节", "**一、** 研究背景", "[1.](https://example.com) 研究背景"
+])("does not add an automatic prefix to an explicit authored number (%s)", source => {
+  setup({ numbering: true });
+  const heading = replaceSelectedSubheading(source);
+  const original = heading.innerHTML;
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.querySelector(".annotation-markdown-outline-number")).toBeNull();
+  expect(item.textContent).toBe(heading.textContent);
+  expect(item.getAttribute("aria-label")).toBe(heading.textContent);
+  expect(item.title).toBe(heading.textContent);
+  controller.sync();
+  expect(heading.innerHTML).toBe(original);
+});
+
+test.each([
+  "2026 年的发展", "1.5 倍提升", "2026.10.13 发布说明", "1.2 参数", "1 标题",
+  "一元方差分析", "二项分布", "第一类错误", "第1次测量", "Model 1", "`1.` 是代码示例",
+  "A. Methods", "(a) Methods", "I. Methods", "(iv) Methods", "Chapter 5 Results"
+])("keeps automatic numbers for ordinary or ambiguous numeric content (%s)", source => {
+  setup({ numbering: true });
+  replaceSelectedSubheading(source);
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.querySelector(".annotation-markdown-outline-number").textContent).toBe("1.1 ");
+});
+
+test("keeps a top-level authored group and its descendants unnumbered during toggles", () => {
+  const f = setup({ numbering: true, initialExpanded: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>第三章 结果</h1><h2>（一）已有编号</h2><h2>未编号</h2>';
+  controller.sync();
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  const originals = [...preview.querySelectorAll("h1,h2")].map(heading => heading.innerHTML);
+  expect(items.map(item => item.textContent)).toEqual(["第三章 结果", "（一）已有编号", "未编号"]);
+  items[2].focus();
+  f.setNumbering(false);
+  expect(items.map(item => item.textContent)).toEqual(["第三章 结果", "（一）已有编号", "未编号"]);
+  f.setNumbering(true);
+  expect(items.map(item => item.textContent)).toEqual(["第三章 结果", "（一）已有编号", "未编号"]);
+  expect(document.activeElement).toBe(items[2]);
+  expect(f.getExpanded()).toBe(true);
+  expect(document.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(0);
+  expect([...preview.querySelectorAll("h1,h2")].map(heading => heading.innerHTML)).toEqual(originals);
+});
+
+test("suppresses earlier and later siblings with all their descendants while preserving another parent", () => {
+  const f = setup({ numbering: true, initialExpanded: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>结果</h1><h2>方法</h2><h3>细节</h3><h2>五、分析</h2><h3>统计</h3><h2>局限</h2><h3>风险</h3><h1>讨论</h1><h2>结论</h2>';
+  const originals = [...preview.querySelectorAll("h1,h2,h3")].map(heading => heading.innerHTML);
+  controller.sync();
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  const items = [...outline.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items.map(item => item.textContent)).toEqual([
+    "1 结果", "方法", "细节", "五、分析", "统计", "局限", "风险", "2 讨论", "2.1 结论"
+  ]);
+  expect(items[1].getAttribute("aria-label")).toBe("方法");
+  expect(items[1].title).toBe("方法");
+  items[8].focus();
+  f.setNumbering(false);
+  expect(items[8].textContent).toBe("结论");
+  f.setNumbering(true);
+  expect(items[8].textContent).toBe("2.1 结论");
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect(document.activeElement).toBe(items[8]);
+  expect(f.getExpanded()).toBe(true);
+  expect(items[8].querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(1);
+  expect([...preview.querySelectorAll("h1,h2,h3")].map(heading => heading.innerHTML)).toEqual(originals);
+});
+
+test("confines a lower-level authored group to its parent without suppressing parent headings", () => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>研究</h1><h2>方法</h2><h3>五、分析</h3><h4>统计</h4><h3>局限</h3><h4>风险</h4><h2>讨论</h2><h3>结论</h3>';
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["1 研究", "1.1 方法", "五、分析", "统计", "局限", "风险", "1.2 讨论", "1.2.1 结论"]);
+});
+
+test.each([1, 2])("suppresses highest-level peers and leading orphan descendants when the numbered root appears later (H%s)", rootLevel => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = `<h3>前置说明</h3><h4>细节</h4><h2>前置章节</h2><h${rootLevel}>五、结果</h${rootLevel}><h${rootLevel + 1}>方法</h${rootLevel + 1}><h${rootLevel}>讨论</h${rootLevel}><h${rootLevel + 1}>结论</h${rootLevel + 1}>`;
+  controller.sync();
+  expect(document.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(0);
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["前置说明", "细节", "前置章节", "五、结果", "方法", "讨论", "结论"]);
+});
+
+test("recomputes sibling-group suppression when an authored number is added or removed", () => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>研究</h1><h2>方法</h2><h2>讨论</h2>';
+  controller.sync();
+  const sibling = preview.querySelectorAll("h2")[1];
+  sibling.textContent = "五、讨论";
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["1 研究", "方法", "五、讨论"]);
+  sibling.textContent = "讨论";
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["1 研究", "1.1 方法", "1.2 讨论"]);
+});
+
+test.each(["root", "nested"])("keeps distinct similarly prefixed parent paths independent (%s)", scope => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  if (scope === "root") {
+    preview.innerHTML = Array.from({ length: 10 }, (_, index) =>
+      `<h1>章节 ${index + 1}</h1><h2>${index === 0 ? "五、分析" : "数据"}</h2>`).join("");
+  } else {
+    preview.innerHTML = '<h1>研究</h1>' + Array.from({ length: 10 }, (_, index) =>
+      `<h2>部分 ${index + 1}</h2><h3>${index === 0 ? "五、分析" : "数据"}</h3>`).join("");
+  }
+  controller.sync();
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items.at(-1).textContent).toBe(scope === "root" ? "10.1 数据" : "1.10.1 数据");
+  expect(items[scope === "root" ? 1 : 2].textContent).toBe("五、分析");
+});
+
+test.each(["htmlAndMathml", "mathml"])("treats leading math as content but preserves explicit numbering before it (%s)", output => {
+  setup({ numbering: true });
+  const heading = replaceSelectedSubheading("$1.$ 的意义", output);
+  const original = heading.innerHTML;
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.querySelector(".annotation-markdown-outline-number").textContent).toBe("1.1 ");
+  expect(item.title).toBe("1.1 $1.$ 的意义");
+  expect(heading.innerHTML).toBe(original);
+
+  const numberedHeading = replaceSelectedSubheading("**（一）** $A^{-1}XA=\\Lambda X$ 的性质", output);
+  const numberedOriginal = numberedHeading.innerHTML;
+  const numberedItem = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(numberedItem.querySelector(".annotation-markdown-outline-number")).toBeNull();
+  expect(numberedItem.title).toBe("（一） $A^{-1}XA=\\Lambda X$ 的性质");
+  expect(numberedItem.querySelector(output === "mathml" ? "math" : ".katex-html")).not.toBeNull();
+  expect(numberedHeading.innerHTML).toBe(numberedOriginal);
+});
+
+test("restarts numbering for each selected annotation and retains its choice while disabled", () => {
+  const f = setup({ numbering: true, initialExpanded: true });
+  f.rows[0].querySelector("h1").textContent = "五、章节概述";
+  controller.sync();
+  expect(document.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(0);
+  f.rows[0].classList.remove("selected");
+  f.rows[1].classList.add("selected");
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["1 后续章节", "1.1 结论", "1.1.1 限制"]);
+  f.setEnabled(false);
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+  f.setEnabled(true);
+  expect(document.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(3);
+  expect(f.getExpanded()).toBe(true);
+  controller.stop();
+  expect(document.querySelector(".annotation-markdown-outline-number, [data-annotation-markdown-outline-target]")).toBeNull();
+});
+
+test.each(["htmlAndMathml", "mathml"])("numbers formula titles without altering their math or source (%s)", output => {
+  setup({ numbering: true });
+  const holder = document.createElement("div");
+  holder.innerHTML = createMarkdownRenderer({ getMathOutput: () => output }).render("## 矩阵 $A^{-1}XA=\\Lambda X$ 的性质");
+  const heading = holder.querySelector("h2");
+  const original = heading.innerHTML;
+  document.querySelector(".annotation.selected h2").replaceWith(heading);
+  controller.sync();
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.textContent).toBe("1.1 矩阵 A−1XA=ΛX 的性质");
+  expect(item.title).toBe("1.1 矩阵 $A^{-1}XA=\\Lambda X$ 的性质");
+  expect(item.querySelector(output === "mathml" ? "math" : ".katex-html")).not.toBeNull();
+  expect(heading.innerHTML).toBe(original);
 });
 
 test("clones visible KaTeX DOM and preserves source TeX in tooltips", () => {
@@ -389,12 +700,16 @@ test("scrolls the popup preview and cleans the outline while positioning or edit
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
 });
 
-test("keeps popup outline controls mounted when the host replaces equivalent preview DOM", async () => {
-  setup({ initialExpanded: true });
+test.each([
+  [false, "弹窗细节", "弹窗细节", 0],
+  [true, "弹窗细节", "1.1 弹窗细节", 1],
+  [true, "（一）弹窗细节", "（一）弹窗细节", 0]
+])("keeps popup outline controls mounted when the host replaces equivalent preview DOM (numbering: %s, heading: %s)", async (numbering, heading, label, prefixCount) => {
+  setup({ initialExpanded: true, numbering });
   document.body.insertAdjacentHTML("beforeend", `<div class="annotation-popup" data-annotation-markdown-popup-ready="true">
     <div class="preview"><div class="comment">
       <div class="annotation-markdown-rendered" data-annotation-markdown-preview="true" style="overflow-y:auto">
-        <h1>弹窗第一章</h1><p>内容</p><h2>弹窗细节</h2>
+        <h1>弹窗第一章</h1><p>内容</p><h2>${heading}</h2>
       </div>
     </div></div>
   </div>`);
@@ -429,7 +744,9 @@ test("keeps popup outline controls mounted when the host replaces equivalent pre
 
   expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
   expect(document.querySelectorAll(".annotation-markdown-outline-item")[1]).toBe(item);
-  expect(item.title).toBe("弹窗细节");
+  expect(item.title).toBe(label);
+  expect(item.textContent).toBe(label);
+  expect(item.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(prefixCount);
   expect(item.isConnected).toBe(true);
 
   item.click();

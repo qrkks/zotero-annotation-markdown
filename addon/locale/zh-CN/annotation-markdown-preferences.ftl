@@ -34,6 +34,11 @@ annotation-markdown-prefs-outline-enabled =
     .label = 为包含多个标题的批注显示悬浮大纲
 annotation-markdown-prefs-outline-font-size =
     .value = 大纲字号
+annotation-markdown-prefs-outline-numbering =
+    .label = 显示标题序号
+annotation-markdown-prefs-outline-smart-numbering =
+    .label = 智能避让已有序号
+annotation-markdown-prefs-outline-smart-numbering-description = 标题已有明确序号时，其同级组及全部子孙标题不再补号。
 
 annotation-markdown-prefs-tags = 批注标签
 annotation-markdown-prefs-auto-todo-tag =

@@ -19,6 +19,8 @@ export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightwei
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
 export const NATIVE_ROW_LAZY_PREF_KEY = "extensions.annotationMarkdown.nativeRowLazy";
 export const OUTLINE_ENABLED_PREF_KEY = "extensions.annotationMarkdown.outlineEnabled";
+export const OUTLINE_NUMBERING_PREF_KEY = "extensions.annotationMarkdown.outlineNumbering";
+export const OUTLINE_SMART_NUMBERING_PREF_KEY = "extensions.annotationMarkdown.outlineSmartNumbering";
 export const OUTLINE_EXPANDED_PREF_KEY = "extensions.annotationMarkdown.outlineExpanded";
 export const OUTLINE_FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.outlineFontScalePercent";
 export const AUTO_TODO_TAG_PREF_KEY = "extensions.annotationMarkdown.autoTodoTag";
@@ -55,6 +57,10 @@ export interface Settings {
   setNativeRowLazyEnabled(enabled: boolean): void;
   isOutlineEnabled(): boolean;
   setOutlineEnabled(enabled: boolean): void;
+  isOutlineNumberingEnabled(): boolean;
+  setOutlineNumberingEnabled(enabled: boolean): void;
+  isOutlineSmartNumberingEnabled(): boolean;
+  setOutlineSmartNumberingEnabled(enabled: boolean): void;
   isOutlineExpanded(): boolean;
   setOutlineExpanded(expanded: boolean): void;
   getOutlineFontScale(): number;
@@ -80,6 +86,8 @@ interface CreateSettingsOptions {
   renderStrategyKey?: string;
   nativeRowLazyKey?: string;
   outlineEnabledKey?: string;
+  outlineNumberingKey?: string;
+  outlineSmartNumberingKey?: string;
   outlineExpandedKey?: string;
   outlineFontScalePercentKey?: string;
   autoTodoTagKey?: string;
@@ -110,6 +118,8 @@ export function createSettings({
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
   nativeRowLazyKey = NATIVE_ROW_LAZY_PREF_KEY,
   outlineEnabledKey = OUTLINE_ENABLED_PREF_KEY,
+  outlineNumberingKey = OUTLINE_NUMBERING_PREF_KEY,
+  outlineSmartNumberingKey = OUTLINE_SMART_NUMBERING_PREF_KEY,
   outlineExpandedKey = OUTLINE_EXPANDED_PREF_KEY,
   outlineFontScalePercentKey = OUTLINE_FONT_SCALE_PERCENT_PREF_KEY,
   autoTodoTagKey = AUTO_TODO_TAG_PREF_KEY,
@@ -128,6 +138,8 @@ export function createSettings({
   let memoryRenderStrategy: RenderStrategy = "auto";
   let memoryNativeRowLazy = false;
   let memoryOutlineEnabled = true;
+  let memoryOutlineNumbering = false;
+  let memoryOutlineSmartNumbering = true;
   let memoryOutlineExpanded = false;
   let memoryOutlineFontScale = DEFAULT_FONT_SCALE;
   let memoryAutoTodoTag = false;
@@ -349,6 +361,30 @@ export function createSettings({
       }
 
       memoryOutlineEnabled = value;
+    },
+
+    isOutlineNumberingEnabled() {
+      return prefs?.get ? prefs.get(outlineNumberingKey, false) === true : memoryOutlineNumbering;
+    },
+
+    setOutlineNumberingEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(outlineNumberingKey, value);
+      memoryOutlineNumbering = value;
+    },
+
+    isOutlineSmartNumberingEnabled() {
+      if (prefs?.get) {
+        const value = prefs.get(outlineSmartNumberingKey, true);
+        return typeof value === "boolean" ? value : true;
+      }
+      return memoryOutlineSmartNumbering;
+    },
+
+    setOutlineSmartNumberingEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(outlineSmartNumberingKey, value);
+      memoryOutlineSmartNumbering = value;
     },
 
     isOutlineExpanded() {

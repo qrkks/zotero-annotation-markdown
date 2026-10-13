@@ -654,6 +654,8 @@ export function createReaderController({
       MutationObserver: MutationObserverRef,
       ResizeObserver: windowRef?.ResizeObserver,
       isEnabled: () => isAnyRenderingEnabled() && (settings.isOutlineEnabled?.() ?? true),
+      isNumberingEnabled: () => settings.isOutlineNumberingEnabled?.() ?? false,
+      isSmartNumberingEnabled: () => settings.isOutlineSmartNumberingEnabled?.() ?? true,
       isExpanded: () => settings.isOutlineExpanded?.() ?? false,
       setExpanded: expanded => settings.setOutlineExpanded?.(expanded),
       getFontScale: () => settings.getOutlineFontScale?.() ?? 1

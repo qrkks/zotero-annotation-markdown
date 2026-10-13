@@ -2,22 +2,36 @@
 
 ## Unreleased
 
+### Added
+
+- Add a nested **Respect existing numbering** setting, on by default, to switch between smart sibling-group avoidance and uniform hierarchical numbering. Retain the saved smart choice when heading numbers or the outline are disabled, and update open Readers in place.
+- Add an optional **Show heading numbers** child setting under **Floating Outline**, off by default. Sidebar and popup outlines retain clear Chinese or Arabic ordinals and suppress automatic prefixes for their entire sibling group and all descendants, including earlier siblings, while other chapters remain eligible. Count headings without adopting authored values, update open Readers immediately, and preserve source headings, math and remembered expansion. Disabling the outline retains the numbering choice.
+
 ### Fixed
 
+- Keep heading numbering depth consistent across each annotation, including leading subheadings before a shallower heading and skipped parents. Reserve missing-parent counters from one without adding outline entries or changing source headings.
 - Preview static SVG diagrams using restricted `font` shorthand in simple class rules. Expand font style, weight, size and family only in the preview copy, preserve declaration order and normal resets, and keep the original comment and existing validation limits.
 - Render supported SVG completely, omit explicitly permitted keyword display hints with a persistent compatibility warning, and keep unsafe or meaningful unsupported content on source fallback. Retain the warning in the larger-image viewer and preserve the original source and complexity limits.
 
 ### Development
 
+- Update the locked transitive `source-map-js` dependency from 1.2.1 to 1.2.2 to resolve GHSA-68fv-2mgg-jv7q and restore the CI production-dependency audit.
 - Integrate css-tree parser/walker with typed SVG diagnostics and one XML parse. Retain the isolated prototype, assessment and dependency decisions as pre-integration evidence, and add production rendering and lifecycle regressions.
+
+### 新增
+
+- 新增默认开启的下一级子选项 **智能避让已有序号**，可切换整组避让与统一层级补号。关闭标题序号或大纲时保留智能选项的选择，并原位更新已打开的 Reader。
+- 在 **悬浮大纲** 分组中新增默认关闭的 **显示标题序号** 子选项。侧栏和弹窗大纲保留已有的明确中文或阿拉伯数字序号，并让其整个兄弟组及全部子孙停止自动补号，包括前面的兄弟标题；其他章节仍可补号。所有标题仍参与计数，不采用手写序号的数值重设计数。即时更新已打开的 Reader，并保留源码标题、公式及记住的展开状态；关闭大纲仍保留编号选择。
 
 ### 修复
 
+- 修正整条标注中标题编号深度不一致的问题，包括浅层标题前的子标题和缺少父级的跳级标题；缺失父级从一开始补位计数，不添加大纲条目或改写源码标题。
 - 支持简单类规则中使用受限 `font` 简写的静态 SVG 图示预览。仅在预览副本中展开字形、字重、字号和字体族，保留声明顺序与默认值重置，沿用原始评论及现有校验限制。
 - 支持完整 SVG 预览；明确允许的简单关键字显示提示可被省略，并持续显示兼容提示。不安全或影响图意的不支持内容仍回退到源码。大图查看器保留相同提示，原始源码和复杂度限制保持不变。
 
 ### 开发
 
+- 将锁定的间接依赖 `source-map-js` 从 1.2.1 更新至 1.2.2，修复 GHSA-68fv-2mgg-jv7q，并恢复 CI 的生产依赖安全审计。
 - 接入 css-tree parser/walker、有类型的 SVG 诊断和单次 XML 解析。独立原型、评估与选型决策保留为接入前证据，并增加正式渲染与生命周期回归测试。
 
 ## 0.14.3 - 2026-10-12

@@ -8,6 +8,8 @@ Zotero.AnnotationMarkdownPreferences = {
   mathOutputKey: "extensions.annotationMarkdown.mathOutput",
   svgEnabledKey: "extensions.annotationMarkdown.svgEnabled",
   outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
+  outlineNumberingKey: "extensions.annotationMarkdown.outlineNumbering",
+  outlineSmartNumberingKey: "extensions.annotationMarkdown.outlineSmartNumbering",
   outlineFontScalePercentKey: "extensions.annotationMarkdown.outlineFontScalePercent",
   autoTodoTagKey: "extensions.annotationMarkdown.autoTodoTag",
   autoTodoCleanupKey: "extensions.annotationMarkdown.autoTodoCleanup",
@@ -26,6 +28,10 @@ Zotero.AnnotationMarkdownPreferences = {
     const mathOutputSelect = documentRef.getElementById("annotation-markdown-math-output");
     const svgEnabledInput = documentRef.getElementById("annotation-markdown-svg-enabled");
     const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
+    const outlineNumberingOption = documentRef.getElementById("annotation-markdown-outline-numbering-option");
+    const outlineNumberingInput = documentRef.getElementById("annotation-markdown-outline-numbering");
+    const outlineSmartNumberingOption = documentRef.getElementById("annotation-markdown-outline-smart-numbering-option");
+    const outlineSmartNumberingInput = documentRef.getElementById("annotation-markdown-outline-smart-numbering");
     const outlineFontScaleSelect = documentRef.getElementById("annotation-markdown-outline-font-scale");
     const autoTodoTagInput = documentRef.getElementById("annotation-markdown-auto-todo-tag");
     const autoTodoCleanupInput = documentRef.getElementById("annotation-markdown-auto-todo-cleanup");
@@ -72,6 +78,18 @@ Zotero.AnnotationMarkdownPreferences = {
     };
     syncMathControlsEnabled();
     outlineEnabledInput.checked = this.getPref(this.outlineEnabledKey, true);
+    if (outlineNumberingInput) outlineNumberingInput.checked = this.getPref(this.outlineNumberingKey, false);
+    if (outlineSmartNumberingInput) outlineSmartNumberingInput.checked = this.getPref(this.outlineSmartNumberingKey, true);
+    const syncOutlineNumberingEnabled = () => {
+      if (outlineNumberingOption && outlineNumberingInput) {
+        this.setDependentOptionEnabled(outlineNumberingOption, outlineNumberingInput, outlineEnabledInput.checked);
+      }
+      if (outlineSmartNumberingOption && outlineSmartNumberingInput) {
+        this.setDependentOptionEnabled(outlineSmartNumberingOption, outlineSmartNumberingInput,
+          outlineEnabledInput.checked && Boolean(outlineNumberingInput?.checked));
+      }
+    };
+    syncOutlineNumberingEnabled();
     outlineFontScaleSelect.value = String(this.getPref(this.outlineFontScalePercentKey, 100));
     autoTodoTagInput.checked = this.getPref(this.autoTodoTagKey, false);
     autoTodoCleanupInput.checked = this.getPref(this.autoTodoCleanupKey, false);
@@ -121,6 +139,16 @@ Zotero.AnnotationMarkdownPreferences = {
 
     outlineEnabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.outlineEnabledKey, Boolean(outlineEnabledInput.checked), true);
+      syncOutlineNumberingEnabled();
+    });
+    outlineEnabledInput.addEventListener("syncfrompreference", syncOutlineNumberingEnabled);
+    outlineNumberingInput?.addEventListener("command", () => {
+      if (!outlineNumberingInput.disabled) Zotero.Prefs.set(this.outlineNumberingKey, Boolean(outlineNumberingInput.checked), true);
+      syncOutlineNumberingEnabled();
+    });
+    outlineNumberingInput?.addEventListener("syncfrompreference", syncOutlineNumberingEnabled);
+    outlineSmartNumberingInput?.addEventListener("command", () => {
+      if (!outlineSmartNumberingInput.disabled) Zotero.Prefs.set(this.outlineSmartNumberingKey, Boolean(outlineSmartNumberingInput.checked), true);
     });
 
     outlineFontScaleSelect.addEventListener("command", () => {

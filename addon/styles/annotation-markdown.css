@@ -120,6 +120,7 @@
 }
 
 .annotation-markdown-outline-item[data-level="2"] { padding-inline-start: 1.15em; }
+.annotation-markdown-outline-number { font-variant-numeric: tabular-nums; }
 .annotation-markdown-outline-item[data-level="3"] { padding-inline-start: 1.8em; }
 .annotation-markdown-outline-item[data-level="4"],
 .annotation-markdown-outline-item[data-level="5"],

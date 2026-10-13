@@ -52,7 +52,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 - Optional, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
 - Highlight syntax from the markdown-it ecosystem: `==Highlighted text==` via [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark), with optional color suffixes such as `==Highlighted text=={.red}` following the [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) convention and limited to safe preset colors.
 - Automatic links for bare URLs in rendered previews.
-- A persistent floating outline with adjustable text size for navigating long annotations with multiple headings.
+- A persistent floating outline with adjustable text size and optional hierarchical numbers; a separate smart setting respects authored numbering throughout sibling groups and their descendants.
 - Optional automatic `todo` tags from `todo:` or `t:` lines in saved annotation comments.
 - [Fast source editing](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster) that remains responsive in books with many annotation tags.
 - Independent sidebar and page-popup rendering switches; enable either surface on its own, with shared font size and math settings.

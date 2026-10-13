@@ -7,6 +7,68 @@ import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { JSDOM } from "jsdom";
 
 describe("preferences pane", () => {
+  test("defaults smart avoidance on and gates it by both parent choices without resetting it", async () => {
+    const f = await mathPreferenceFixture(true, false, true);
+    const outline = f.controls.get("annotation-markdown-outline-enabled");
+    const numbers = f.controls.get("annotation-markdown-outline-numbering");
+    const smart = f.controls.get("annotation-markdown-outline-smart-numbering");
+    const option = f.controls.get("annotation-markdown-outline-smart-numbering-option");
+    expect(smart.checked).toBe(true);
+    expect(smart.disabled).toBe(true);
+    smart.dispatch("command");
+    expect(f.set).not.toHaveBeenCalled();
+    numbers.checked = true;
+    numbers.dispatch("command");
+    expect(smart.disabled).toBe(false);
+    expect(option.getAttribute("data-disabled")).toBeNull();
+    smart.checked = false;
+    smart.dispatch("command");
+    expect(f.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineSmartNumbering", false, true);
+    f.set.mockClear();
+    outline.checked = false;
+    outline.dispatch("command");
+    expect(smart.disabled).toBe(true);
+    expect(smart.checked).toBe(false);
+    expect(option.getAttribute("data-disabled")).toBe("true");
+    smart.dispatch("command");
+    expect(f.set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.outlineSmartNumbering", expect.anything(), true);
+    outline.checked = true;
+    outline.dispatch("syncfrompreference");
+    expect(smart.disabled).toBe(false);
+    numbers.checked = false;
+    numbers.dispatch("syncfrompreference");
+    expect(smart.disabled).toBe(true);
+    expect(smart.checked).toBe(false);
+    numbers.checked = true;
+    numbers.dispatch("syncfrompreference");
+    expect(smart.disabled).toBe(false);
+    expect(smart.checked).toBe(false);
+  });
+  test("defaults heading numbers off and preserves the child choice when outline visibility changes", async () => {
+    const f = await mathPreferenceFixture(true, false, true);
+    const parent = f.controls.get("annotation-markdown-outline-enabled");
+    const child = f.controls.get("annotation-markdown-outline-numbering");
+    const option = f.controls.get("annotation-markdown-outline-numbering-option");
+    expect(child.checked).toBe(false);
+    expect(child.disabled).toBe(false);
+    child.checked = true;
+    child.dispatch("command");
+    expect(f.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineNumbering", true, true);
+    f.set.mockClear();
+    parent.checked = false;
+    parent.dispatch("command");
+    expect(child.disabled).toBe(true);
+    expect(child.checked).toBe(true);
+    expect(option.getAttribute("data-disabled")).toBe("true");
+    expect(f.set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.outlineNumbering", expect.anything(), true);
+    child.dispatch("command");
+    expect(f.set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.outlineNumbering", expect.anything(), true);
+    parent.checked = true;
+    parent.dispatch("syncfrompreference");
+    expect(child.disabled).toBe(false);
+    expect(child.checked).toBe(true);
+    expect(option.getAttribute("data-disabled")).toBeNull();
+  });
   test("SVG is opt-in, follows rendering scopes, and writes the full pref key", async () => {
     const f = await mathPreferenceFixture(false, false, true);
     const svg = f.controls.get("annotation-markdown-svg-enabled");
@@ -88,7 +150,8 @@ describe("preferences pane", () => {
       enabled: "enabled", "popup-enabled": "popupEnabled", "math-enabled": "mathEnabled",
       "math-output": "mathOutput", "svg-enabled": "svgEnabled", "font-scale": "fontScalePercent",
       "paste-as-plain-text": "pasteAsPlainText", "fast-editor": "fastEditor",
-      "outline-enabled": "outlineEnabled", "outline-font-scale": "outlineFontScalePercent",
+      "outline-enabled": "outlineEnabled", "outline-numbering": "outlineNumbering", "outline-font-scale": "outlineFontScalePercent",
+      "outline-smart-numbering": "outlineSmartNumbering",
       "auto-todo-tag": "autoTodoTag", "auto-todo-cleanup": "autoTodoCleanup",
       "render-strategy": "renderStrategy", "native-row-lazy": "nativeRowLazy"
     };

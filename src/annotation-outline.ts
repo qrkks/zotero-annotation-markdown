@@ -18,6 +18,13 @@ const HOST_SCOPE = "data-annotation-markdown-outline-host-scope";
 const TARGET = "data-annotation-markdown-outline-target";
 const ACTIVE = "aria-current";
 const HEADING_SELECTOR = "h1,h2,h3,h4,h5,h6";
+const CHINESE_NUMBER = "[零〇一二三四五六七八九十百千万亿两壹贰叁肆伍陆柒捌玖拾佰仟萬億貳參陸]+";
+const ORDINAL_NUMBER = `(?:[0-9]+|${CHINESE_NUMBER})`;
+const AUTHORED_HEADING_NUMBER = new RegExp(
+  `^(?:第${ORDINAL_NUMBER}(?:章|节|節|篇|部分|卷|编|編)|` +
+  `\\(${ORDINAL_NUMBER}\\)|` +
+  `(?:[0-9]+(?:\\.[0-9]+)*|${CHINESE_NUMBER})(?:、|\\)|\\.(?=\\s|$)))`
+);
 const HEADING_TOP_INSET_PX = 8;
 const VIEWPORT_INSET_PX = 8;
 const OUTSIDE_GAP_PX = 6;
@@ -49,6 +56,8 @@ interface AnnotationOutlineOptions {
   MutationObserver?: typeof MutationObserver;
   ResizeObserver?: typeof ResizeObserver;
   isEnabled(): boolean;
+  isNumberingEnabled?(): boolean;
+  isSmartNumberingEnabled?(): boolean;
   isExpanded(): boolean;
   setExpanded(expanded: boolean): void;
   getFontScale?(): number;
@@ -59,6 +68,8 @@ export function trackAnnotationOutline({
   MutationObserver: MutationObserverRef,
   ResizeObserver: ResizeObserverRef,
   isEnabled,
+  isNumberingEnabled = () => false,
+  isSmartNumberingEnabled = () => true,
   isExpanded,
   setExpanded,
   getFontScale = () => 1
@@ -127,6 +138,7 @@ export function trackAnnotationOutline({
       // so a hover tooltip or pointer gesture is not interrupted midway, and
       // only redirect navigation to the replacement headings/scroller.
       rebindTarget(nextTarget, nextHeadings, nextSignature);
+      applyNumbering();
       applyFontScale();
       applyExpandedState();
       const wasHidden = outline.hidden;
@@ -201,6 +213,7 @@ export function trackAnnotationOutline({
       });
       return item;
     });
+    applyNumbering();
     list.append(...buttons);
     menu.append(list);
     surface.append(button, menu);
@@ -243,6 +256,32 @@ export function trackAnnotationOutline({
 
   function getCurrentExpanded(): boolean {
     return isExpanded();
+  }
+
+  function applyNumbering(): void {
+    const headingLabels = headings.map(getHeadingLabel);
+    const headingTooltips = headings.map(getHeadingTooltip);
+    const numbers = !isNumberingEnabled() ? []
+      : isSmartNumberingEnabled() ? getAutomaticHeadingNumbers(headings, headingTooltips)
+        : getHeadingNumbers(headings);
+    buttons.forEach((button, index) => {
+      const number = numbers[index];
+      const prefix = number ? `${number} ` : "";
+      let label = button.querySelector<HTMLElement>(".annotation-markdown-outline-number");
+      if (number) {
+        if (!label) {
+          label = doc.createElement("span");
+          label.className = "annotation-markdown-outline-number";
+          label.setAttribute("aria-hidden", "true");
+          button.prepend(label);
+        }
+        if (label.textContent !== prefix) label.textContent = prefix;
+      } else label?.remove();
+      const accessibleLabel = prefix + headingLabels[index];
+      const tooltip = prefix + headingTooltips[index];
+      if (button.getAttribute("aria-label") !== accessibleLabel) button.setAttribute("aria-label", accessibleLabel);
+      if (button.title !== tooltip) button.title = tooltip;
+    });
   }
 
   function applyExpandedState(expanded = getCurrentExpanded()): void {
@@ -624,6 +663,60 @@ function getKatexSource(math: HTMLElement): string {
     .map(node => node.textContent?.trim() ?? "")
     .filter(Boolean)
     .join(" ");
+}
+
+function hasAuthoredHeadingNumber(heading: HTMLElement, tooltip: string): boolean {
+  // Normalize only for recognition, preserving the original fullwidth digits
+  // and punctuation. Bare numbers and decimal values remain ambiguous.
+  if (!AUTHORED_HEADING_NUMBER.test(tooltip.normalize("NFKC"))) return false;
+  const text = heading.ownerDocument.createTreeWalker(heading, 4 /* SHOW_TEXT */);
+  let first = text.nextNode();
+  while (first && !first.textContent?.trim()) first = text.nextNode();
+  // A numeric example in code or rendered math is content, not an ordinal.
+  return Boolean(first && !first.parentElement?.closest("code, math, .katex"));
+}
+
+function getAutomaticHeadingNumbers(headings: HTMLElement[], tooltips: string[]): string[] {
+  const numbers = getHeadingNumbers(headings);
+  const authoredGroups = new Set<string>();
+  // Scan every sibling before deciding which prefixes to show, so a later
+  // authored ordinal also suppresses earlier siblings and their descendants.
+  headings.forEach((heading, index) => {
+    if (hasAuthoredHeadingNumber(heading, tooltips[index])) {
+      authoredGroups.add(getHeadingNumberParent(numbers[index]));
+    }
+  });
+  return numbers.map(number => {
+    let parent = getHeadingNumberParent(number);
+    while (true) {
+      if (authoredGroups.has(parent)) return "";
+      if (!parent) return number;
+      parent = getHeadingNumberParent(parent);
+    }
+  });
+}
+
+function getHeadingNumberParent(number: string): string {
+  // Use complete path components: parent 1 must not match parent 10.
+  const separator = number.lastIndexOf(".");
+  return separator < 0 ? "" : number.slice(0, separator);
+}
+
+function getHeadingNumbers(headings: HTMLElement[]): string[] {
+  const headingLevels = headings.map(heading => Number(heading.tagName.slice(1)));
+  // Determine depth from the whole annotation: a leading H2 must stay below
+  // an H1 that appears later. Levels absent throughout the annotation are skipped.
+  const presentLevels = [...new Set(headingLevels)].sort((left, right) => left - right);
+  const counters: number[] = [];
+  return headingLevels.map(level => {
+    const depth = presentLevels.indexOf(level);
+    counters.length = depth + 1;
+    // Reserve the first number for a missing parent, without inserting an
+    // outline entry. A later real sibling advances that counter normally.
+    for (let index = 0; index < depth; index++) counters[index] ||= 1;
+    counters[depth] = (counters[depth] ?? 0) + 1;
+    return counters.join(".");
+  });
 }
 
 function appendHeadingContent(target: HTMLElement, heading: HTMLElement): void {

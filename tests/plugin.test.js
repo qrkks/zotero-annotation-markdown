@@ -377,6 +377,75 @@ describe("createPlugin", () => {
     expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
   });
 
+  test.each([["One", "1 One", "1.1 Two"], ["三、One", "三、One", "Two"]])("refreshes live outline numbering through preferences without rebuilding the preview (%s)", async (firstHeading, numberedHeading, numberedChild) => {
+    document.body.innerHTML = `
+      <div id="annotations" style="overflow-y:auto">
+        <div data-sidebar-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content"># ${firstHeading}\n\n### Two</div></div>
+        </div>
+      </div>
+    `;
+    document.querySelector("#annotations").getBoundingClientRect = () => ({
+      left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600
+    });
+    const prefix = "extensions.annotationMarkdown.";
+    const values = new Map([[prefix + "outlineExpanded", true]]);
+    const observers = new Map();
+    const plugin = createPlugin({
+      Zotero: {
+        Reader: { _readers: [{ document }], registerEventListener: vi.fn() },
+        Prefs: {
+          get: key => values.get(key),
+          registerObserver: (key, callback) => { observers.set(key, callback); return key; },
+          unregisterObserver: key => observers.delete(key)
+        }
+      }
+    });
+
+    try {
+      await plugin.startup();
+      const source = document.querySelector(".content");
+      const originalSource = source.innerHTML;
+      const preview = document.querySelector("[data-annotation-markdown-preview='true']");
+      const originalHeadings = [...preview.querySelectorAll("h1,h3")].map(heading => heading.innerHTML);
+      const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+      const items = [...outline.querySelectorAll(".annotation-markdown-outline-item")];
+      items[1].focus();
+      expect(items.map(item => item.textContent)).toEqual([firstHeading, "Two"]);
+
+      values.set(prefix + "outlineNumbering", true);
+      observers.get(prefix + "outlineNumbering")();
+      expect(items.map(item => item.textContent)).toEqual([numberedHeading, numberedChild]);
+      expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+      expect(document.activeElement).toBe(items[1]);
+      expect(document.querySelector("[data-annotation-markdown-preview='true']")).toBe(preview);
+      expect([...preview.querySelectorAll("h1,h3")].map(heading => heading.innerHTML)).toEqual(originalHeadings);
+      expect(source.innerHTML).toBe(originalSource);
+      expect(outline.querySelector(".annotation-markdown-outline-panel").hidden).toBe(false);
+
+      values.set(prefix + "outlineSmartNumbering", false);
+      observers.get(prefix + "outlineSmartNumbering")();
+      expect(items.map(item => item.textContent)).toEqual([`1 ${firstHeading}`, "1.1 Two"]);
+      expect(document.activeElement).toBe(items[1]);
+      expect(document.querySelector("[data-annotation-markdown-preview='true']")).toBe(preview);
+      expect(source.innerHTML).toBe(originalSource);
+      values.set(prefix + "outlineSmartNumbering", true);
+      observers.get(prefix + "outlineSmartNumbering")();
+      expect(items.map(item => item.textContent)).toEqual([numberedHeading, numberedChild]);
+
+      values.set(prefix + "outlineNumbering", false);
+      observers.get(prefix + "outlineNumbering")();
+      expect(items.map(item => item.textContent)).toEqual([firstHeading, "Two"]);
+      expect(document.activeElement).toBe(items[1]);
+      expect(source.innerHTML).toBe(originalSource);
+    } finally {
+      plugin.shutdown();
+    }
+    expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+    expect(observers.has(prefix + "outlineNumbering")).toBe(false);
+    expect(observers.has(prefix + "outlineSmartNumbering")).toBe(false);
+  });
+
   test("commits fast editor comments through Zotero's annotation manager", async () => {
     document.body.innerHTML = `
       <button id="outside">outside</button>
@@ -746,6 +815,14 @@ describe("createPlugin", () => {
     observers.get("extensions.annotationMarkdown.outlineEnabled")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineNumbering",expect.any(Function),true);
+    observers.get("extensions.annotationMarkdown.outlineNumbering")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineSmartNumbering",expect.any(Function),true);
+    observers.get("extensions.annotationMarkdown.outlineSmartNumbering")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
     observers.get("extensions.annotationMarkdown.outlineFontScalePercent")();
     expect(refresh).toHaveBeenCalled();
 
@@ -768,6 +845,8 @@ describe("createPlugin", () => {
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.outlineEnabled"
     );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith("observer:extensions.annotationMarkdown.outlineNumbering");
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith("observer:extensions.annotationMarkdown.outlineSmartNumbering");
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.outlineFontScalePercent"
     );

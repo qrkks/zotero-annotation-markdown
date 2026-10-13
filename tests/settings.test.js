@@ -3,6 +3,51 @@ import { describe, expect, test, vi } from "vitest";
 import { createSettings } from "../src/settings.ts";
 
 describe("createSettings", () => {
+  test("defaults smart numbering on and retains its saved choice independently of parent options", () => {
+    const settings = createSettings();
+    expect(settings.isOutlineSmartNumberingEnabled()).toBe(true);
+    settings.setOutlineSmartNumberingEnabled(false);
+    settings.setOutlineNumberingEnabled(true);
+    settings.setOutlineEnabled(false);
+    expect(settings.isOutlineSmartNumberingEnabled()).toBe(false);
+    const values = new Map();
+    const prefs = {
+      get: vi.fn((key, fallback) => values.get(key) ?? fallback),
+      set: vi.fn((key, value) => values.set(key, value))
+    };
+    const stored = createSettings({ prefs });
+    expect(stored.isOutlineSmartNumberingEnabled()).toBe(true);
+    stored.setOutlineSmartNumberingEnabled(false);
+    expect(createSettings({ prefs }).isOutlineSmartNumberingEnabled()).toBe(false);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineSmartNumbering", true);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineSmartNumbering", false);
+    expect(prefs.set).toHaveBeenCalledTimes(1);
+  });
+  test.each([undefined, "false", 0])("preserves smart avoidance for missing or invalid values (%s)", value => {
+    expect(createSettings({ prefs: { get: () => value } }).isOutlineSmartNumberingEnabled()).toBe(true);
+  });
+  test("defaults outline numbering off and stores it independently of visibility and expansion", () => {
+    const settings = createSettings();
+    expect(settings.isOutlineNumberingEnabled()).toBe(false);
+    settings.setOutlineNumberingEnabled(true);
+    settings.setOutlineEnabled(false);
+    settings.setOutlineExpanded(true);
+    expect(settings.isOutlineNumberingEnabled()).toBe(true);
+    const values = new Map([["extensions.annotationMarkdown.outlineNumbering", true]]);
+    const prefs = {
+      get: vi.fn((key, fallback) => values.get(key) ?? fallback),
+      set: vi.fn((key, value) => values.set(key, value))
+    };
+    const stored = createSettings({ prefs });
+    expect(stored.isOutlineNumberingEnabled()).toBe(true);
+    stored.setOutlineNumberingEnabled(false);
+    expect(prefs.get).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineNumbering", false);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.outlineNumbering", false);
+    expect(prefs.set).toHaveBeenCalledTimes(1);
+  });
+  test.each([undefined, "true", 1])("keeps missing or invalid outline numbering values off (%s)", value => {
+    expect(createSettings({ prefs: { get: () => value } }).isOutlineNumberingEnabled()).toBe(false);
+  });
   test("keeps existing sidebar and popup choices independent without rewriting stored preferences", () => {
     const values = new Map([
       ["extensions.annotationMarkdown.enabled", false],
