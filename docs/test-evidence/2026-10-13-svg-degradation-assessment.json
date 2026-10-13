@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "scope": "isolated prototype; production unchanged",
+  "cssTreeVersion": "3.2.1",
+  "assessment": {
+    "cases": 76,
+    "counts": {
+      "complete": 8,
+      "degraded": 19,
+      "fallback": 49
+    },
+    "bundleSizes": {
+      "baseline": {
+        "minifiedBytes": 47642,
+        "gzipBytes": 17937
+      },
+      "parserAndPolicy": {
+        "minifiedBytes": 117946,
+        "gzipBytes": 37428
+      },
+      "fullLexerProbe": {
+        "minifiedBytes": 200751,
+        "gzipBytes": 56327
+      }
+    }
+  },
+  "native": {
+    "engine": "Zotero 10.0.6 / Gecko",
+    "readerURL": "resource://zotero/reader/reader.html",
+    "comparisons": [
+      {
+        "name": "jordan",
+        "status": "complete",
+        "dimensions": [
+          640,
+          280
+        ],
+        "pixels": 179200,
+        "changedPixels": 0,
+        "maxChannelDifference": 0,
+        "warningVisible": false,
+        "previewHasSVGNodes": 0,
+        "sourcePreserved": true
+      },
+      {
+        "name": "efa-class-styles",
+        "status": "complete",
+        "dimensions": [
+          1120,
+          1200
+        ],
+        "pixels": 1344000,
+        "changedPixels": 0,
+        "maxChannelDifference": 0,
+        "warningVisible": false,
+        "previewHasSVGNodes": 0,
+        "sourcePreserved": true
+      },
+      {
+        "name": "efa-font-shorthand",
+        "status": "complete",
+        "dimensions": [
+          1200,
+          880
+        ],
+        "pixels": 1056000,
+        "changedPixels": 0,
+        "maxChannelDifference": 0,
+        "warningVisible": false,
+        "previewHasSVGNodes": 0,
+        "sourcePreserved": true
+      },
+      {
+        "name": "efa-font-shorthand-degraded",
+        "status": "degraded",
+        "dimensions": [
+          1200,
+          880
+        ],
+        "pixels": 1056000,
+        "changedPixels": 0,
+        "maxChannelDifference": 0,
+        "warningVisible": true,
+        "previewHasSVGNodes": 0,
+        "sourcePreserved": true
+      }
+    ],
+    "blocked": {
+      "status": "fallback",
+      "kind": "security",
+      "imageCount": 0
+    },
+    "timings": {
+      "baseline": {
+        "samples": 90,
+        "medianMs": 15,
+        "p95Ms": 27
+      },
+      "complete": {
+        "samples": 90,
+        "medianMs": 14,
+        "p95Ms": 26
+      },
+      "efaBaseline": {
+        "samples": 30,
+        "medianMs": 23,
+        "p95Ms": 28
+      },
+      "efaComplete": {
+        "samples": 30,
+        "medianMs": 25,
+        "p95Ms": 37
+      },
+      "degraded": {
+        "samples": 30,
+        "medianMs": 34,
+        "p95Ms": 45
+      }
+    }
+  },
+  "limits": "Prototype renderer checks only; no saved-annotation lifecycle or production installation."
+}

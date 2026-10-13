@@ -1,0 +1,278 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="880" viewBox="0 0 1200 880">
+
+  <title>探索性因素分析结果：PAF 与 Promax 斜交旋转</title>
+
+  <rect width="1200" height="880" fill="#ffffff"/>
+
+  <style>
+    .heading {
+      font: bold 24px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      fill: #17263b;
+      text-anchor: middle;
+    }
+    .subhead {
+      font: 19px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      fill: #334155;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .cell {
+      font: 20px Georgia, "Times New Roman", serif;
+      fill: #1e293b;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .item {
+      font: 19px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      fill: #1e293b;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .note {
+      font: 16px "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      fill: #475569;
+    }
+    .english {
+      font: 16px Georgia, "Times New Roman", serif;
+      fill: #475569;
+    }
+    .gridline {
+      stroke: #94a3b8;
+      stroke-width: 1;
+    }
+  </style>
+
+  <!-- ======================== -->
+  <!-- 1. 成分矩阵（未旋转） -->
+  <!-- ======================== -->
+
+  <text x="198" y="40" class="heading">成分矩阵ᵃ</text>
+
+  <rect x="28" y="70" width="340" height="298"
+        fill="#f1f6ff" stroke="#64748b" stroke-width="1.5"/>
+
+  <g class="gridline">
+    <line x1="128" y1="70" x2="128" y2="368"/>
+    <line x1="248" y1="112" x2="248" y2="368"/>
+    <line x1="128" y1="112" x2="368" y2="112"/>
+    <line x1="28" y1="146" x2="368" y2="146"/>
+  </g>
+
+  <text x="78" y="108" class="subhead">项目</text>
+  <text x="248" y="91" class="subhead">成分</text>
+  <text x="188" y="129" class="cell">1</text>
+  <text x="308" y="129" class="cell">2</text>
+
+  <g class="item">
+    <text x="78" y="165">项目 6</text>
+    <text x="78" y="202">项目 2</text>
+    <text x="78" y="239">项目 5</text>
+    <text x="78" y="276">项目 4</text>
+    <text x="78" y="313">项目 1</text>
+    <text x="78" y="350">项目 3</text>
+  </g>
+
+  <g class="cell">
+    <text x="188" y="165">0.754</text>
+    <text x="308" y="165">−0.457</text>
+
+    <text x="188" y="202">0.667</text>
+    <text x="308" y="202">0.536</text>
+
+    <text x="188" y="239">0.620</text>
+    <text x="308" y="239">−0.399</text>
+
+    <text x="188" y="276">0.589</text>
+    <text x="308" y="276">−0.339</text>
+
+    <text x="188" y="313">0.561</text>
+    <text x="308" y="313">0.417</text>
+
+    <text x="188" y="350">0.513</text>
+    <text x="308" y="350">0.391</text>
+  </g>
+
+  <text x="38" y="401" class="note">提取方法：</text>
+  <text x="38" y="425" class="english">
+    Principal Axis Factoring.
+  </text>
+  <text x="38" y="454" class="note">
+    a. 提取 2 个因子需要 15 次迭代
+  </text>
+
+  <!-- ======================== -->
+  <!-- 2. 旋转后成分矩阵（模式矩阵） -->
+  <!-- ======================== -->
+
+  <text x="600" y="40" class="heading">旋转后成分矩阵ᵇ</text>
+
+  <rect x="430" y="70" width="340" height="298"
+        fill="#effaf5" stroke="#64748b" stroke-width="1.5"/>
+
+  <g class="gridline">
+    <line x1="530" y1="70" x2="530" y2="368"/>
+    <line x1="650" y1="112" x2="650" y2="368"/>
+    <line x1="530" y1="112" x2="770" y2="112"/>
+    <line x1="430" y1="146" x2="770" y2="146"/>
+  </g>
+
+  <text x="480" y="108" class="subhead">项目</text>
+  <text x="650" y="91" class="subhead">成分</text>
+  <text x="590" y="129" class="cell">1</text>
+  <text x="710" y="129" class="cell">2</text>
+
+  <g class="item">
+    <text x="480" y="165">项目 6</text>
+    <text x="480" y="202">项目 5</text>
+    <text x="480" y="239">项目 4</text>
+    <text x="480" y="276">项目 2</text>
+    <text x="480" y="313">项目 1</text>
+    <text x="480" y="350">项目 3</text>
+  </g>
+
+  <g class="cell">
+    <text x="590" y="165">0.880</text>
+    <text x="710" y="165">0.004</text>
+
+    <text x="590" y="202">0.743</text>
+    <text x="710" y="202">−0.017</text>
+
+    <text x="590" y="239">0.672</text>
+    <text x="710" y="239">−0.021</text>
+
+    <text x="590" y="276">−0.015</text>
+    <text x="710" y="276">0.861</text>
+
+    <text x="590" y="313">0.016</text>
+    <text x="710" y="313">0.694</text>
+
+    <text x="590" y="350">0.007</text>
+    <text x="710" y="350">0.642</text>
+  </g>
+
+  <text x="440" y="401" class="note">提取方法：</text>
+  <text x="440" y="425" class="english">
+    Principal Axis Factoring.
+  </text>
+  <text x="440" y="454" class="note">旋转方法：</text>
+  <text x="440" y="478" class="english">
+    Promax with Kaiser Normalization
+  </text>
+  <text x="440" y="506" class="note">
+    b. 3 次迭代后收敛
+  </text>
+
+  <!-- ======================== -->
+  <!-- 3. 结构矩阵 -->
+  <!-- ======================== -->
+
+  <text x="1002" y="40" class="heading">结构矩阵</text>
+
+  <rect x="832" y="70" width="340" height="298"
+        fill="#fff8ed" stroke="#64748b" stroke-width="1.5"/>
+
+  <g class="gridline">
+    <line x1="932" y1="70" x2="932" y2="368"/>
+    <line x1="1052" y1="112" x2="1052" y2="368"/>
+    <line x1="932" y1="112" x2="1172" y2="112"/>
+    <line x1="832" y1="146" x2="1172" y2="146"/>
+  </g>
+
+  <text x="882" y="108" class="subhead">项目</text>
+  <text x="1052" y="91" class="subhead">成分</text>
+  <text x="992" y="129" class="cell">1</text>
+  <text x="1112" y="129" class="cell">2</text>
+
+  <g class="item">
+    <text x="882" y="165">项目 6</text>
+    <text x="882" y="202">项目 5</text>
+    <text x="882" y="239">项目 4</text>
+    <text x="882" y="276">项目 2</text>
+    <text x="882" y="313">项目 1</text>
+    <text x="882" y="350">项目 3</text>
+  </g>
+
+  <g class="cell">
+    <text x="992" y="165">0.882</text>
+    <text x="1112" y="165">0.314</text>
+
+    <text x="992" y="202">0.737</text>
+    <text x="1112" y="202">0.245</text>
+
+    <text x="992" y="239">0.679</text>
+    <text x="1112" y="239">0.257</text>
+
+    <text x="992" y="276">0.288</text>
+    <text x="1112" y="276">0.855</text>
+
+    <text x="992" y="313">0.260</text>
+    <text x="1112" y="313">0.699</text>
+
+    <text x="992" y="350">0.233</text>
+    <text x="1112" y="350">0.644</text>
+  </g>
+
+  <text x="842" y="401" class="note">提取方法：</text>
+  <text x="842" y="425" class="english">
+    Principal Axis Factoring.
+  </text>
+  <text x="842" y="454" class="note">旋转方法：</text>
+  <text x="842" y="478" class="english">
+    Promax with Kaiser Normalization
+  </text>
+
+  <!-- ======================== -->
+  <!-- 4. 成分相关矩阵 -->
+  <!-- ======================== -->
+
+  <text x="600" y="573" class="heading">
+    成分相关矩阵
+  </text>
+
+  <rect x="360" y="596" width="480" height="142"
+        fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+
+  <g class="gridline">
+    <line x1="520" y1="596" x2="520" y2="738"/>
+    <line x1="680" y1="596" x2="680" y2="738"/>
+    <line x1="360" y1="643" x2="840" y2="643"/>
+  </g>
+
+  <g class="cell">
+    <text x="440" y="619">Factor</text>
+    <text x="600" y="619">1</text>
+    <text x="760" y="619">2</text>
+
+    <text x="440" y="669">1</text>
+    <text x="600" y="669">1</text>
+    <text x="760" y="669">0.352</text>
+
+    <text x="440" y="715">2</text>
+    <text x="600" y="715">0.352</text>
+    <text x="760" y="715">1.000</text>
+  </g>
+
+  <text x="370" y="767" class="note">
+    提取方法：
+  </text>
+  <text x="465" y="767" class="english">
+    Principal Axis Factoring
+  </text>
+
+  <text x="370" y="793" class="note">
+    旋转方法：
+  </text>
+  <text x="465" y="793" class="english">
+    Promax with Kaiser Normalization
+  </text>
+
+  <!-- 原图标题 -->
+  <text x="600" y="844"
+        text-anchor="middle" font-size="18"
+        font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif"
+        fill="#334155">
+    图 4-7　六项问卷中“更真实”的数据的探索性因素分析的部分结果
+  </text>
+
+</svg>

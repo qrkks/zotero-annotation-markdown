@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Preview static SVG diagrams using restricted `font` shorthand in simple class rules. Expand font style, weight, size and family only in the preview copy, preserve declaration order and normal resets, and keep the original comment and existing validation limits.
+
+### Development
+
+- Add an isolated SVG graded-degradation prototype and reproducible assessment, with native image comparisons and dependency-selection decisions. Production integration of graded degradation remains pending.
+
+### 修复
+
+- 支持简单类规则中使用受限 `font` 简写的静态 SVG 图示预览。仅在预览副本中展开字形、字重、字号和字体族，保留声明顺序与默认值重置，沿用原始评论及现有校验限制。
+
+### 开发
+
+- 增加独立的 SVG 分级降级原型、可复现评估、原生图片对比及依赖选型决策。分级降级尚待接入正式渲染器。
+
 ## 0.14.3 - 2026-10-12
 
 ### Fixed

@@ -1,4 +1,6 @@
 /** Restricted class rules are flattened into an isolated SVG preview copy. */
+import { parseSvgFontShorthand } from "./svg-font-shorthand.js";
+
 export const SVG_CLASS_STYLE_LIMITS = { rules: 256, declarations: 1024, selectorsPerRule: 16, classesPerElement: 16 } as const;
 const CLASS_NAME = /^[A-Za-z_][\w-]{0,63}$/;
 const PROPERTIES = new Set([
@@ -47,12 +49,16 @@ export function createSvgClassStyles(
           throw new Error("SVG stylesheets support only simple .class selectors and comma groups.");
         }
         if (rules.length >= SVG_CLASS_STYLE_LIMITS.rules) throw new Error("SVG exceeds 256 class rules.");
-        const declarations = parseDeclarations(rule[2]);
-        for (const [name, value] of declarations) {
-          if (++declarationCount > SVG_CLASS_STYLE_LIMITS.declarations) throw new Error("SVG exceeds 1,024 class declarations.");
-          if (!PROPERTIES.has(name)) throw new Error(`Unsupported SVG class property: ${name}.`);
-          // Validate even unused or later overridden declarations.
-          validateDeclaration(name, value);
+        const declarations: Declaration[] = [];
+        for (const [name, value] of parseDeclarations(rule[2])) {
+          const expanded: Declaration[] = name === "font" ? parseSvgFontShorthand(value) : [[name, value]];
+          for (const [property, content] of expanded) {
+            if (++declarationCount > SVG_CLASS_STYLE_LIMITS.declarations) throw new Error("SVG exceeds 1,024 class declarations.");
+            if (!PROPERTIES.has(property)) throw new Error(`Unsupported SVG class property: ${property}.`);
+            // Validate even unused or later overridden declarations.
+            validateDeclaration(property, content);
+            declarations.push([property, content]);
+          }
         }
         rules.push({ classes: selectors.map(value => value.slice(1)), declarations });
       }
