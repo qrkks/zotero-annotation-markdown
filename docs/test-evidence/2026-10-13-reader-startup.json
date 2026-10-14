@@ -1,0 +1,2970 @@
+{
+  "date": "2026-10-13",
+  "runtime": {
+    "os": "Windows",
+    "zotero": "10.0.6",
+    "react": "18.3.1",
+    "addon": "0.14.3",
+    "installedBuilds": {
+      "initialSHA256": "2A3C736DF4525D3B1CDA80E4C1346F4EE30F0161ACD9E23D66AE92E4F30785CB",
+      "currentRepositorySHA256": "5D07F6C158232E1D72B7846432C07E01101F15DA7CE096010156881D55C40A55",
+      "currentInstalledMatchesBuild": true
+    }
+  },
+  "sampleAnnotations": {
+    "large": 423,
+    "synthetic": 19
+  },
+  "primaryGoal": "Avoid prolonged unresponsive startup without requiring a height cache",
+  "productionIntegrated": true,
+  "measureDefinitions": {
+    "openToRowsMs": "Host Reader.open call to native rows observed after initialization",
+    "firstFrameMs": "Reader factory to first row animation-frame callback",
+    "firstNativeContentFrameMs": "Reader factory to a frame opportunity with a non-placeholder native row intersecting the viewport; not Markdown completion",
+    "maxTimerGapMs": "Maximum 16ms interval gap during the startup observation window"
+  },
+  "baseline": {
+    "disabledLight": {
+      "running": false,
+      "phase": "complete",
+      "runs": [
+        {
+          "mode": "baseline",
+          "eagerViewport": false,
+          "stableScroll": false,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 1317,
+          "firstFrameMs": 1634,
+          "maxTimerGapMs": 1894,
+          "firstNativeContentMs": null,
+          "firstNativeContentFrameMs": null,
+          "nativeElementsRequested": 423,
+          "deferredRows": 0,
+          "deferredPreviews": 0,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "openToRowsMs": 3534.192000000039,
+          "visibility": "visible",
+          "warmup": false,
+          "pluginEnabled": false
+        }
+      ],
+      "error": null,
+      "progress": "cleanup-complete",
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true,
+      "cacheEntries": 0
+    },
+    "enabledFailure": {
+      "sampleAnnotations": 423,
+      "pluginEnabled": true,
+      "measureGeometry": false,
+      "captureCache": false,
+      "lastStage": "annotation-rows-committed",
+      "lastStageTime": "2026-10-13T11:47:29.432Z",
+      "observedAt": "2026-10-13T11:50:28.3691756+00:00",
+      "secondsSinceLastStage": 178.9532658,
+      "responding": false,
+      "terminatedDedicatedInstance": true,
+      "sweepComplete": false
+    },
+    "recovery": {
+      "preferencesRestoredAfterRestart": true,
+      "readersClosed": true
+    },
+    "currentRepositoryLight": {
+      "running": false,
+      "phase": "complete",
+      "runs": [
+        {
+          "mode": "baseline",
+          "eagerViewport": false,
+          "stableScroll": false,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 879,
+          "firstFrameMs": 1195,
+          "maxTimerGapMs": 2920,
+          "firstNativeContentMs": null,
+          "firstNativeContentFrameMs": null,
+          "nativeElementsRequested": 423,
+          "deferredRows": 0,
+          "deferredPreviews": 0,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "openToRowsMs": 2870.246599999955,
+          "visibility": "visible",
+          "warmup": false,
+          "pluginEnabled": true,
+          "nativeRowLazyEnabled": true,
+          "nativeRowStatus": {
+            "active": true,
+            "activationPending": false,
+            "cachedRows": 423,
+            "activations": 0,
+            "wrapperCalls": 0,
+            "shellCalls": 0,
+            "pendingRows": 0,
+            "lastDecision": "idle"
+          }
+        }
+      ],
+      "error": null,
+      "progress": "cleanup-complete",
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true,
+      "cacheEntries": 0
+    }
+  },
+  "candidate": {
+    "stableLarge": [
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 357,
+            "firstFrameMs": 484,
+            "maxTimerGapMs": 898,
+            "firstNativeContentMs": 469,
+            "firstNativeContentFrameMs": 486,
+            "nativeElementsRequested": 2961,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 3073,
+              "totalHeight": 45575,
+              "hidden": false
+            },
+            "openToRowsMs": 1824.8037000000477,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": false,
+            "interactions": {
+              "test": "selection",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 799.159500000067,
+              "selectionGeometry": {
+                "top": 888.683349609375,
+                "bottom": 1008.0000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 410
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 141,
+            "firstFrameMs": 161,
+            "maxTimerGapMs": 623,
+            "firstNativeContentMs": 161,
+            "firstNativeContentFrameMs": 162,
+            "nativeElementsRequested": 846,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 7,
+              "elements": 13241,
+              "totalHeight": 45603,
+              "hidden": false
+            },
+            "openToRowsMs": 1727.3567999999505,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "interactions": {
+              "test": "selection",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 802.1896999997552,
+              "selectionGeometry": {
+                "top": 808.683349609375,
+                "bottom": 928.0000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 400
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 146,
+            "firstFrameMs": 168,
+            "maxTimerGapMs": 586,
+            "firstNativeContentMs": 167,
+            "firstNativeContentFrameMs": 168,
+            "nativeElementsRequested": 1269,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 5,
+              "elements": 10018,
+              "totalHeight": 45595,
+              "hidden": false
+            },
+            "openToRowsMs": 1466.187900000019,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "interactions": {
+              "test": "focus",
+              "selection": null,
+              "selectedTargetVisible": null,
+              "selectionToVisibleMs": null,
+              "selectionGeometry": null,
+              "focus": true,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 402
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 137,
+            "firstFrameMs": 157,
+            "maxTimerGapMs": 670,
+            "firstNativeContentMs": 157,
+            "firstNativeContentFrameMs": 158,
+            "nativeElementsRequested": 846,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 7,
+              "elements": 13241,
+              "totalHeight": 45603,
+              "hidden": false
+            },
+            "openToRowsMs": 1315.279899999965,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "interactions": {
+              "test": "scroll",
+              "selection": null,
+              "selectedTargetVisible": null,
+              "selectionToVisibleMs": null,
+              "selectionGeometry": null,
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 408
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      }
+    ],
+    "enabledSettingCoexistence": [
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 150,
+            "firstFrameMs": 227,
+            "maxTimerGapMs": 943,
+            "firstNativeContentMs": 218,
+            "firstNativeContentFrameMs": 228,
+            "nativeElementsRequested": 846,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 7,
+              "elements": 13241,
+              "totalHeight": 45603,
+              "hidden": false
+            },
+            "openToRowsMs": 1462.6928999999946,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": null,
+            "interactions": {
+              "test": "selection",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 617.7441999999864,
+              "selectionGeometry": {
+                "top": 873.683349609375,
+                "bottom": 993.0000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 409
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 115,
+            "firstFrameMs": 135,
+            "maxTimerGapMs": 643,
+            "firstNativeContentMs": 135,
+            "firstNativeContentFrameMs": 136,
+            "nativeElementsRequested": 1269,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 6,
+              "elements": 10675,
+              "totalHeight": 45599,
+              "hidden": false
+            },
+            "openToRowsMs": 1106.6589000000095,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": null,
+            "interactions": {
+              "test": "scroll",
+              "selection": null,
+              "selectedTargetVisible": null,
+              "selectionToVisibleMs": null,
+              "selectionGeometry": null,
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 408
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      }
+    ],
+    "currentRepository": [
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 112,
+            "firstFrameMs": 139,
+            "maxTimerGapMs": 738,
+            "firstNativeContentMs": 132,
+            "firstNativeContentFrameMs": 140,
+            "nativeElementsRequested": 423,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 7,
+              "elements": 13241,
+              "totalHeight": 45603,
+              "hidden": false
+            },
+            "openToRowsMs": 1737.5803000000305,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": {
+              "active": true,
+              "activationPending": false,
+              "cachedRows": 423,
+              "activations": 0,
+              "wrapperCalls": 0,
+              "shellCalls": 0,
+              "pendingRows": 0,
+              "lastDecision": "idle"
+            },
+            "interactions": {
+              "test": "selection",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 659.6907999998657,
+              "selectionGeometry": {
+                "top": 882.683349609375,
+                "bottom": 996.5000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 409
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 142,
+            "firstFrameMs": 165,
+            "maxTimerGapMs": 709,
+            "firstNativeContentMs": 164,
+            "firstNativeContentFrameMs": 166,
+            "nativeElementsRequested": 423,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 8,
+              "elements": 14585,
+              "totalHeight": 45607,
+              "hidden": false
+            },
+            "openToRowsMs": 1456.8775000000605,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": {
+              "active": true,
+              "activationPending": false,
+              "cachedRows": 423,
+              "activations": 0,
+              "wrapperCalls": 0,
+              "shellCalls": 0,
+              "pendingRows": 0,
+              "lastDecision": "idle"
+            },
+            "interactions": {
+              "test": "focus",
+              "selection": null,
+              "selectedTargetVisible": null,
+              "selectionToVisibleMs": null,
+              "selectionGeometry": null,
+              "focus": true,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 408
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "stableScroll": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 128,
+            "firstFrameMs": 145,
+            "maxTimerGapMs": 537,
+            "firstNativeContentMs": 144,
+            "firstNativeContentFrameMs": 145,
+            "nativeElementsRequested": 423,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 6,
+              "elements": 10675,
+              "totalHeight": 45599,
+              "hidden": false
+            },
+            "openToRowsMs": 1605.5832999999402,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": {
+              "active": true,
+              "activationPending": false,
+              "cachedRows": 423,
+              "activations": 0,
+              "wrapperCalls": 0,
+              "shellCalls": 0,
+              "pendingRows": 0,
+              "lastDecision": "idle"
+            },
+            "interactions": {
+              "test": "scroll",
+              "selection": null,
+              "selectedTargetVisible": null,
+              "selectionToVisibleMs": null,
+              "selectionGeometry": null,
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 407
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      }
+    ]
+  },
+  "mechanismChecks": {
+    "smallDeferredNavigation": {
+      "running": false,
+      "phase": "complete",
+      "runs": [
+        {
+          "mode": "baseline",
+          "installedBeforeFactory": true,
+          "firstRowsMs": 136,
+          "firstFrameMs": 174,
+          "maxTimerGapMs": 197,
+          "firstNativeContentMs": 174,
+          "firstNativeContentFrameMs": 175,
+          "nativeElementsRequested": 19,
+          "deferredRows": 0,
+          "deferredPreviews": 0,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 0,
+            "elements": 506,
+            "totalHeight": 1799,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 0,
+            "elements": 506,
+            "totalHeight": 1799,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 0,
+            "elements": 1048,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "openToRowsMs": 1540.5547000000079,
+          "visibility": "visible",
+          "warmup": true
+        },
+        {
+          "mode": "cached-rows",
+          "installedBeforeFactory": true,
+          "firstRowsMs": 151,
+          "firstFrameMs": 173,
+          "maxTimerGapMs": 140,
+          "firstNativeContentMs": 252,
+          "firstNativeContentFrameMs": 340,
+          "nativeElementsRequested": 1,
+          "deferredRows": 19,
+          "deferredPreviews": 0,
+          "cacheCompatible": true,
+          "materialized": 11,
+          "firstRowsCounts": {
+            "rows": 19,
+            "rowShells": 19,
+            "previewShells": 0,
+            "elements": 19,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 19,
+            "rowShells": 19,
+            "previewShells": 0,
+            "elements": 19,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 19,
+            "rowShells": 8,
+            "previewShells": 0,
+            "elements": 483,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "openToRowsMs": 1857.0011999999988,
+          "visibility": "visible",
+          "warmup": false,
+          "interactions": {
+            "selection": true,
+            "focus": true,
+            "focusTargetAvailable": true,
+            "scrolled": true,
+            "rowOrderUnchanged": true,
+            "remainingShells": 0
+          }
+        },
+        {
+          "mode": "preview-lazy",
+          "installedBeforeFactory": true,
+          "firstRowsMs": 146,
+          "firstFrameMs": 170,
+          "maxTimerGapMs": 155,
+          "firstNativeContentMs": 414,
+          "firstNativeContentFrameMs": 414,
+          "nativeElementsRequested": 19,
+          "deferredRows": 0,
+          "deferredPreviews": 19,
+          "cacheCompatible": false,
+          "materialized": 13,
+          "firstRowsCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 19,
+            "elements": 38,
+            "totalHeight": 2037,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 19,
+            "elements": 38,
+            "totalHeight": 2037,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 6,
+            "elements": 682,
+            "totalHeight": 2335,
+            "hidden": false
+          },
+          "openToRowsMs": 1804.4196999999986,
+          "visibility": "visible",
+          "warmup": false,
+          "interactions": {
+            "selection": true,
+            "focus": true,
+            "focusTargetAvailable": true,
+            "scrolled": true,
+            "rowOrderUnchanged": true,
+            "remainingShells": 0
+          }
+        }
+      ],
+      "error": null,
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true,
+      "cacheEntries": 19
+    },
+    "smallEagerHeightReservation": {
+      "running": false,
+      "phase": "complete",
+      "runs": [
+        {
+          "mode": "baseline",
+          "eagerViewport": true,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 98,
+          "firstFrameMs": 116,
+          "maxTimerGapMs": 175,
+          "firstNativeContentMs": 116,
+          "firstNativeContentFrameMs": 116,
+          "nativeElementsRequested": 114,
+          "deferredRows": 0,
+          "deferredPreviews": 0,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 0,
+            "elements": 506,
+            "totalHeight": 1799,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 0,
+            "elements": 506,
+            "totalHeight": 1799,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 0,
+            "elements": 1048,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "openToRowsMs": 1084.467100000009,
+          "visibility": "visible",
+          "warmup": true
+        },
+        {
+          "mode": "cached-rows",
+          "eagerViewport": true,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 87,
+          "firstFrameMs": 99,
+          "maxTimerGapMs": 68,
+          "firstNativeContentMs": 99,
+          "firstNativeContentFrameMs": 100,
+          "nativeElementsRequested": 1,
+          "deferredRows": 10,
+          "deferredPreviews": 0,
+          "cacheCompatible": true,
+          "materialized": 2,
+          "firstRowsCounts": {
+            "rows": 19,
+            "rowShells": 10,
+            "previewShells": 0,
+            "elements": 272,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 19,
+            "rowShells": 10,
+            "previewShells": 0,
+            "elements": 272,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 19,
+            "rowShells": 8,
+            "previewShells": 0,
+            "elements": 483,
+            "totalHeight": 2375,
+            "hidden": false
+          },
+          "openToRowsMs": 1026.9505999999237,
+          "visibility": "visible",
+          "warmup": false,
+          "interactions": {
+            "selection": true,
+            "focus": null,
+            "focusTargetAvailable": false,
+            "scrolled": true,
+            "rowOrderUnchanged": true,
+            "remainingShells": 0
+          }
+        },
+        {
+          "mode": "preview-lazy",
+          "eagerViewport": true,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 59,
+          "firstFrameMs": 68,
+          "maxTimerGapMs": 70,
+          "firstNativeContentMs": 68,
+          "firstNativeContentFrameMs": 68,
+          "nativeElementsRequested": 114,
+          "deferredRows": 0,
+          "deferredPreviews": 7,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 7,
+            "elements": 351,
+            "totalHeight": 1976,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 7,
+            "elements": 351,
+            "totalHeight": 1976,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 19,
+            "rowShells": 0,
+            "previewShells": 7,
+            "elements": 602,
+            "totalHeight": 2328,
+            "hidden": false
+          },
+          "openToRowsMs": 791.7875000000349,
+          "visibility": "visible",
+          "warmup": false,
+          "interactions": {
+            "selection": true,
+            "focus": null,
+            "focusTargetAvailable": false,
+            "scrolled": true,
+            "rowOrderUnchanged": true,
+            "remainingShells": 0
+          }
+        }
+      ],
+      "error": null,
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true,
+      "cacheEntries": 19
+    },
+    "largeUnstableSelection": [
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 135,
+            "firstFrameMs": 182,
+            "maxTimerGapMs": 826,
+            "firstNativeContentMs": 171,
+            "firstNativeContentFrameMs": 183,
+            "nativeElementsRequested": 2961,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 3073,
+              "totalHeight": 45575,
+              "hidden": false
+            },
+            "openToRowsMs": 1523.9292000001296,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": false,
+            "interactions": {
+              "test": "selection",
+              "selection": true,
+              "selectedTargetVisible": false,
+              "selectionToVisibleMs": null,
+              "selectionGeometry": {
+                "top": 2099.933349609375,
+                "bottom": 2219.250015258789,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 246
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "preview-lazy",
+            "eagerViewport": true,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 113,
+            "firstFrameMs": 128,
+            "maxTimerGapMs": 745,
+            "firstNativeContentMs": 127,
+            "firstNativeContentFrameMs": 128,
+            "nativeElementsRequested": 846,
+            "deferredRows": 0,
+            "deferredPreviews": 411,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 7,
+              "elements": 13241,
+              "totalHeight": 45603,
+              "hidden": false
+            },
+            "openToRowsMs": 1190.9196999999695,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "interactions": {
+              "test": "selection",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 776.4231000002474,
+              "selectionGeometry": {
+                "top": 896.3499755859375,
+                "bottom": 1015.6666412353516,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": null,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 389
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      }
+    ]
+  },
+  "limitations": [
+    "One enabled baseline aborted the attempted six-run alternating comparison",
+    "Earlier 120-second debugger timeouts were confounded by geometry/cache collection and are not user-hang durations",
+    "Current candidate still has roughly 0.6-second startup timer gaps",
+    "API selection and focus checks do not establish mouse/touch/editing compatibility",
+    "Top-start viewport assumption; restored scroll positions and other document types require further validation",
+    "The current native-row runtime was active and cached 423 rows with 411 deferred previews: placeholder height invalidation and filter relaxation remain unverified",
+    "One current-build full-preview baseline completed with a 2920ms timer gap; the earlier prolonged failure is not a claim that every current-build open persistently hangs"
+  ],
+  "verification": {
+    "testFiles": 36,
+    "tests": 952,
+    "typecheck": true,
+    "docsCheck": true,
+    "build": true,
+    "package": true,
+    "auditProduction": "no known vulnerabilities",
+    "publishedUpdatesSHA256": "B38C7C638E347DFAD089F7A6C953F9DEB94FFB60DC8C04B4F701E40967FDA858"
+  },
+  "nativeProfiler": {
+    "runtime": {
+      "gecko": "140.17.0",
+      "accessibilityEnabled": true,
+      "accessibilityForceDisabled": 0
+    },
+    "configuration": {
+      "intervalMs": 2,
+      "features": [
+        "js",
+        "stackwalk",
+        "cpu"
+      ],
+      "threads": [
+        "GeckoMain"
+      ],
+      "entries": 1048576
+    },
+    "protocol": {
+      "skipWarmup": true,
+      "settleMs": 5000,
+      "measureGeometry": false,
+      "captureCache": false,
+      "includesReaderClose": true,
+      "baselineProbeReplacesNativeComponents": false,
+      "progressiveEagerViewport": true,
+      "progressiveStableScroll": true
+    },
+    "cases": {
+      "addonEnabledFullPreviews": {
+        "addonFullyDisabled": false,
+        "run": {
+          "mode": "baseline",
+          "eagerViewport": false,
+          "stableScroll": false,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 863,
+          "firstFrameMs": 1203,
+          "maxTimerGapMs": 160373,
+          "firstNativeContentMs": null,
+          "firstNativeContentFrameMs": null,
+          "nativeElementsRequested": 423,
+          "deferredRows": 0,
+          "deferredPreviews": 0,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "openToRowsMs": 3010.3568000001833,
+          "visibility": "visible",
+          "warmup": false,
+          "pluginEnabled": true,
+          "nativeRowLazyEnabled": true,
+          "nativeRowStatus": {
+            "active": true,
+            "activationPending": false,
+            "cachedRows": 423,
+            "activations": 0,
+            "wrapperCalls": 0,
+            "shellCalls": 0,
+            "pendingRows": 0,
+            "lastDecision": "idle"
+          }
+        },
+        "mainThreadSamples": 83624,
+        "allMainThreadIntervals": {
+          "LongTask": {
+            "count": 8,
+            "totalIntervalMs": 166038.65999999922,
+            "maxIntervalMs": 160264.50479999976
+          },
+          "NotificationController::WillRefresh": {
+            "count": 112,
+            "totalIntervalMs": 160294.45139999967,
+            "maxIntervalMs": 160249.7194000003
+          },
+          "a11y::PlatformShowHideEvent": {
+            "count": 126703,
+            "totalIntervalMs": 156707.0197999631,
+            "maxIntervalMs": 17.505599999800324
+          },
+          "DocAccessible::PruneOrInsertSubtree": {
+            "count": 263780,
+            "totalIntervalMs": 1752.7974000098184,
+            "maxIntervalMs": 107.23420000029728
+          },
+          "Reflow (sync)": {
+            "count": 814,
+            "totalIntervalMs": 1943.4260999918915,
+            "maxIntervalMs": 908.1609000000171
+          },
+          "Styles": {
+            "count": 864,
+            "totalIntervalMs": 794.5003000050783,
+            "maxIntervalMs": 387.9381999997422
+          }
+        },
+        "longestTask": {
+          "durationMs": 160264.50479999976,
+          "containedIntervals": {
+            "LongTask": {
+              "count": 1,
+              "totalIntervalMs": 160264.50479999976,
+              "maxIntervalMs": 160264.50479999976
+            },
+            "NotificationController::WillRefresh": {
+              "count": 2,
+              "totalIntervalMs": 160249.74490000028,
+              "maxIntervalMs": 160249.7194000003
+            },
+            "a11y::PlatformShowHideEvent": {
+              "count": 126691,
+              "totalIntervalMs": 156706.06989996275,
+              "maxIntervalMs": 17.505599999800324
+            },
+            "DocAccessible::PruneOrInsertSubtree": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            },
+            "Reflow (sync)": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            },
+            "Styles": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            }
+          }
+        },
+        "nativeLeafLibrarySamples": {
+          "win32u.dll": 78549,
+          "xul.dll": 3700,
+          "ntdll.dll": 738,
+          "VCRUNTIME140.dll": 210,
+          "mozglue.dll": 205
+        },
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true
+      },
+      "addonDisabledFullPreviews": {
+        "addonFullyDisabled": true,
+        "run": {
+          "mode": "baseline",
+          "eagerViewport": false,
+          "stableScroll": false,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 1028,
+          "firstFrameMs": 1408,
+          "maxTimerGapMs": 140346,
+          "firstNativeContentMs": null,
+          "firstNativeContentFrameMs": null,
+          "nativeElementsRequested": 846,
+          "deferredRows": 0,
+          "deferredPreviews": 0,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 0,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "openToRowsMs": 3096.3301000003703,
+          "visibility": "visible",
+          "warmup": false,
+          "pluginEnabled": false,
+          "nativeRowLazyEnabled": false,
+          "nativeRowStatus": null
+        },
+        "mainThreadSamples": 73133,
+        "allMainThreadIntervals": {
+          "LongTask": {
+            "count": 8,
+            "totalIntervalMs": 145485.09159999993,
+            "maxIntervalMs": 140265.79059999995
+          },
+          "NotificationController::WillRefresh": {
+            "count": 111,
+            "totalIntervalMs": 140318.52930000192,
+            "maxIntervalMs": 140256.99809999997
+          },
+          "a11y::PlatformShowHideEvent": {
+            "count": 126709,
+            "totalIntervalMs": 136847.7757000625,
+            "maxIntervalMs": 19.068400000222027
+          },
+          "DocAccessible::PruneOrInsertSubtree": {
+            "count": 126961,
+            "totalIntervalMs": 175.07080003153533,
+            "maxIntervalMs": 2.0326999998651445
+          },
+          "Reflow (sync)": {
+            "count": 808,
+            "totalIntervalMs": 1510.600000005681,
+            "maxIntervalMs": 37.94649999961257
+          },
+          "Styles": {
+            "count": 864,
+            "totalIntervalMs": 548.2897000014782,
+            "maxIntervalMs": 48.91720000002533
+          }
+        },
+        "longestTask": {
+          "durationMs": 140265.79059999995,
+          "containedIntervals": {
+            "LongTask": {
+              "count": 1,
+              "totalIntervalMs": 140265.79059999995,
+              "maxIntervalMs": 140265.79059999995
+            },
+            "NotificationController::WillRefresh": {
+              "count": 2,
+              "totalIntervalMs": 140257.0262000002,
+              "maxIntervalMs": 140256.99809999997
+            },
+            "a11y::PlatformShowHideEvent": {
+              "count": 126691,
+              "totalIntervalMs": 136842.1862000632,
+              "maxIntervalMs": 19.068400000222027
+            },
+            "DocAccessible::PruneOrInsertSubtree": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            },
+            "Reflow (sync)": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            },
+            "Styles": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            }
+          }
+        },
+        "nativeLeafLibrarySamples": {
+          "win32u.dll": 68613,
+          "xul.dll": 3259,
+          "ntdll.dll": 642,
+          "VCRUNTIME140.dll": 201,
+          "mozglue.dll": 185
+        },
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true
+      },
+      "addonDisabledProgressivePreviews": {
+        "addonFullyDisabled": true,
+        "run": {
+          "mode": "preview-lazy",
+          "eagerViewport": true,
+          "stableScroll": true,
+          "installedBeforeFactory": true,
+          "firstRowsMs": 129,
+          "firstFrameMs": 137,
+          "maxTimerGapMs": 541,
+          "firstNativeContentMs": null,
+          "firstNativeContentFrameMs": null,
+          "nativeElementsRequested": 4230,
+          "deferredRows": 0,
+          "deferredPreviews": 411,
+          "cacheCompatible": false,
+          "materialized": 0,
+          "firstRowsCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 411,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "firstFrameCounts": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 411,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "rowShells": 0,
+            "previewShells": 411,
+            "markdownPreviews": 0,
+            "elements": null,
+            "totalHeight": null,
+            "hidden": false
+          },
+          "openToRowsMs": 1393.255700000096,
+          "visibility": "visible",
+          "warmup": false,
+          "pluginEnabled": false,
+          "nativeRowLazyEnabled": false,
+          "nativeRowStatus": null
+        },
+        "mainThreadSamples": 3333,
+        "allMainThreadIntervals": {
+          "LongTask": {
+            "count": 10,
+            "totalIntervalMs": 1482.985600000713,
+            "maxIntervalMs": 402.845100000035
+          },
+          "NotificationController::WillRefresh": {
+            "count": 112,
+            "totalIntervalMs": 462.3778999983333,
+            "maxIntervalMs": 397.42889999970794
+          },
+          "a11y::PlatformShowHideEvent": {
+            "count": 3836,
+            "totalIntervalMs": 391.2890999983065,
+            "maxIntervalMs": 0.8399000000208616
+          },
+          "DocAccessible::PruneOrInsertSubtree": {
+            "count": 6022,
+            "totalIntervalMs": 11.995999990962446,
+            "maxIntervalMs": 0.8837000001221895
+          },
+          "Reflow (sync)": {
+            "count": 86,
+            "totalIntervalMs": 106.48230000399053,
+            "maxIntervalMs": 14.225300000049174
+          },
+          "Styles": {
+            "count": 130,
+            "totalIntervalMs": 142.9150000005029,
+            "maxIntervalMs": 33.999100000131875
+          }
+        },
+        "longestTask": {
+          "durationMs": 402.845100000035,
+          "containedIntervals": {
+            "LongTask": {
+              "count": 1,
+              "totalIntervalMs": 402.845100000035,
+              "maxIntervalMs": 402.845100000035
+            },
+            "NotificationController::WillRefresh": {
+              "count": 2,
+              "totalIntervalMs": 397.45099999941885,
+              "maxIntervalMs": 397.42889999970794
+            },
+            "a11y::PlatformShowHideEvent": {
+              "count": 3361,
+              "totalIntervalMs": 364.15970000065863,
+              "maxIntervalMs": 0.8399000000208616
+            },
+            "DocAccessible::PruneOrInsertSubtree": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            },
+            "Reflow (sync)": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            },
+            "Styles": {
+              "count": 0,
+              "totalIntervalMs": 0,
+              "maxIntervalMs": 0
+            }
+          }
+        },
+        "nativeLeafLibrarySamples": {
+          "win32u.dll": 1754,
+          "xul.dll": 938,
+          "ntdll.dll": 337,
+          "VCRUNTIME140.dll": 111,
+          "mozglue.dll": 74
+        },
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true
+      }
+    },
+    "interpretation": "Both full-preview runs have a roughly 140-160 second main-thread task dominated by native platform accessibility show/hide notifications. The same sample with progressive previews has a maximum profiled task near 403 ms. This establishes one native blocking path, not the cause of every large-document hang.",
+    "caveats": [
+      "Marker intervals are wall time, may nest, and must not be added across names as exclusive CPU costs.",
+      "One profiled run per condition; sequential same-process runs and profiler overhead do not establish a population effect or incidence.",
+      "Addon-disabled means the Annotation Markdown add-on itself was disabled, with native-row and Markdown settings also disabled; the development MCP bridge remained active.",
+      "The external UI Automation instantiator was identified locally, but its application name/path is omitted from public evidence. Activation does not prove responsibility for the delay.",
+      "Progressive startup retains 411 preview placeholders and does not measure full-list materialization or long scroll sessions.",
+      "Raw native profiles and private metadata remain under ignored .tmp only."
+    ],
+    "cleanup": {
+      "profilerStopped": true,
+      "addonStateRestored": true,
+      "featurePreferencesRestored": true,
+      "accessibilityPreferencesUnchanged": true,
+      "noOpenDevelopmentReaders": true
+    }
+  },
+  "productionImplementation": {
+    "xpiSHA256": "F0D3E71EF2BD8FB07A1CD665A7ED8D558E9BC78C13A8307C720A7E20D530D164",
+    "preference": "extensions.annotationMarkdown.nativeRowLazy",
+    "defaultEnabled": false,
+    "newDependencies": [],
+    "accessibilityPreferencesChanged": false,
+    "verification": {
+      "files": 37,
+      "tests": 967,
+      "typecheck": true,
+      "docsCheck": true,
+      "build": true,
+      "package": true
+    },
+    "windows": [
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "baseline",
+            "eagerViewport": false,
+            "stableScroll": false,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 109,
+            "firstFrameMs": 131,
+            "maxTimerGapMs": 646,
+            "firstNativeContentMs": 125,
+            "firstNativeContentFrameMs": 132,
+            "nativeElementsRequested": 423,
+            "deferredRows": 0,
+            "deferredPreviews": 0,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 44641,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 3,
+              "elements": 5453,
+              "totalHeight": 45587,
+              "hidden": false
+            },
+            "openToRowsMs": 1403.0358000006527,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": {
+              "active": true,
+              "activationPending": false,
+              "cachedRows": 0,
+              "activations": 0,
+              "wrapperCalls": 0,
+              "shellCalls": 0,
+              "pendingRows": 0,
+              "lastDecision": "idle"
+            },
+            "startupStatus": {
+              "active": true,
+              "large": true,
+              "pendingPreviews": 411,
+              "recovering": false,
+              "recovered": 0
+            },
+            "interactions": {
+              "test": "all",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 88.524299999699,
+              "selectionGeometry": {
+                "top": 873.683349609375,
+                "bottom": 987.5000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": true,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 408
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "baseline",
+            "eagerViewport": false,
+            "stableScroll": false,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 125,
+            "firstFrameMs": 142,
+            "maxTimerGapMs": 644,
+            "firstNativeContentMs": 141,
+            "firstNativeContentFrameMs": 142,
+            "nativeElementsRequested": 423,
+            "deferredRows": 0,
+            "deferredPreviews": 0,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 3,
+              "elements": 5453,
+              "totalHeight": 45587,
+              "hidden": false
+            },
+            "openToRowsMs": 1209.9497999995947,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": {
+              "active": true,
+              "activationPending": false,
+              "cachedRows": 0,
+              "activations": 0,
+              "wrapperCalls": 0,
+              "shellCalls": 0,
+              "pendingRows": 0,
+              "lastDecision": "idle"
+            },
+            "startupStatus": {
+              "active": true,
+              "large": true,
+              "pendingPreviews": 411,
+              "recovering": false,
+              "recovered": 0
+            },
+            "interactions": {
+              "test": "all",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 82.48240000009537,
+              "selectionGeometry": {
+                "top": 829.683349609375,
+                "bottom": 943.5000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": true,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 408
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      },
+      {
+        "running": false,
+        "phase": "complete",
+        "runs": [
+          {
+            "mode": "baseline",
+            "eagerViewport": false,
+            "stableScroll": false,
+            "installedBeforeFactory": true,
+            "firstRowsMs": 146,
+            "firstFrameMs": 168,
+            "maxTimerGapMs": 660,
+            "firstNativeContentMs": 167,
+            "firstNativeContentFrameMs": 169,
+            "nativeElementsRequested": 423,
+            "deferredRows": 0,
+            "deferredPreviews": 0,
+            "cacheCompatible": false,
+            "materialized": 0,
+            "firstRowsCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "firstFrameCounts": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 0,
+              "elements": 1098,
+              "totalHeight": 45191,
+              "hidden": false
+            },
+            "settled": {
+              "rows": 423,
+              "rowShells": 0,
+              "previewShells": 411,
+              "markdownPreviews": 3,
+              "elements": 5453,
+              "totalHeight": 45587,
+              "hidden": false
+            },
+            "openToRowsMs": 1292.9160000002012,
+            "visibility": "visible",
+            "warmup": false,
+            "pluginEnabled": true,
+            "nativeRowLazyEnabled": true,
+            "nativeRowStatus": {
+              "active": true,
+              "activationPending": false,
+              "cachedRows": 0,
+              "activations": 0,
+              "wrapperCalls": 0,
+              "shellCalls": 0,
+              "pendingRows": 0,
+              "lastDecision": "idle"
+            },
+            "startupStatus": {
+              "active": true,
+              "large": true,
+              "pendingPreviews": 411,
+              "recovering": false,
+              "recovered": 0
+            },
+            "interactions": {
+              "test": "all",
+              "selection": true,
+              "selectedTargetVisible": true,
+              "selectionToVisibleMs": 86.25619999971241,
+              "selectionGeometry": {
+                "top": 829.683349609375,
+                "bottom": 943.5000152587891,
+                "viewportTop": 81,
+                "viewportBottom": 916
+              },
+              "focus": true,
+              "focusTargetAvailable": true,
+              "scrolled": true,
+              "rowOrderUnchanged": true,
+              "remainingShells": 403
+            }
+          }
+        ],
+        "error": null,
+        "progress": "cleanup-complete",
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true,
+        "cacheEntries": 0
+      }
+    ],
+    "lifecycle": {
+      "largeAnnotations": 423,
+      "checks": {
+        "placeholderClickSelectsNative": true,
+        "middleScrollLoadsPreviews": true,
+        "rowOrderAfterScroll": true,
+        "filterClearRestoresAllRows": true,
+        "filterDidNotCacheShellHeights": true,
+        "liveDisableRestoresAllPreviews": true,
+        "liveDisableRestoresHook": true,
+        "liveDisableRemovesRuntime": true,
+        "disablePreservesOrder": true,
+        "smallListKeepsNativePreviews": true
+      },
+      "tabOpenToRowsMs": 1359.896599999629,
+      "maxStartupTimerGapMs": 394.55819999985397,
+      "initial": {
+        "rows": 423,
+        "shells": 415,
+        "startup": {
+          "active": true,
+          "large": true,
+          "pendingPreviews": 415,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeCache": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "filteredRows": 1,
+      "small": {
+        "annotations": 19,
+        "rows": 19,
+        "shells": 0,
+        "large": false
+      },
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true
+    },
+    "navigationRegression": {
+      "beforeCorrection": {
+        "packageSHA256": "EFFC875906B77168F3678386D2F8B3E8797F3DECC5A8C65E2585F049B67E3977",
+        "selected": true,
+        "selectedTargetVisible": false
+      },
+      "fix": "New single selection gets bounded viewport correction; manual wheel/pointer/touch/keyboard input cancels it.",
+      "afterCorrectionVisibleRuns": 3
+    },
+    "caveats": [
+      "Three sequential visible window runs and one native tab lifecycle run on the same 423-annotation sample, not universal performance or failure-incidence claims.",
+      "Window runs use the baseline measurement probe only; native startup deferral comes from the installed production package.",
+      "Tab run uses native opening without the isolated prototype probe.",
+      "API selection/focus, DOM click, middle scrolling, tag filtering and live preference disable do not cover all real editing gestures or host versions.",
+      "Remaining maximum startup timer gaps are about 0.39-0.66 seconds; input responsiveness is not completely smooth.",
+      "Factory eager viewport size remains an estimate; native restored positions, widths/fonts/images and larger samples still merit manual validation."
+    ],
+    "installedPackageMatchesDelivery": true,
+    "publishedUpdateManifestUnchanged": true,
+    "committed": false,
+    "pushed": false,
+    "released": false,
+    "fixtureContentTypes": {
+      "large": "application/pdf",
+      "synthetic": "application/pdf"
+    }
+  },
+  "documentPriorityRevision": {
+    "xpiSHA256": "5F9EC28E2BEF473EB3D833EFA61B274665EA5E98C7B15C56547381686D8DFFFD",
+    "preferences": {
+      "startup": "extensions.annotationMarkdown.readerStartupLazy",
+      "filter": "extensions.annotationMarkdown.nativeRowLazy",
+      "startupDefault": false,
+      "filterSavedValuePreserved": true
+    },
+    "beforeEager": {
+      "startupEnabled": true,
+      "filterEnabled": true,
+      "openToPDFObservedMs": 6180.6177000000025,
+      "probe": {
+        "factoryAt": 1676,
+        "rowsMs": 159,
+        "firstPreviewMs": 160,
+        "pdfCanvasMs": 3947,
+        "pdfFrameMs": 4279,
+        "firstPreviewFrameMs": 169,
+        "maxTimerGapMs": 842,
+        "rowsCounts": {
+          "rows": 423,
+          "shells": 411,
+          "hidden": false
+        },
+        "settled": {
+          "rows": 423,
+          "shells": 411,
+          "hidden": false
+        },
+        "startup": {
+          "active": true,
+          "large": true,
+          "pendingPreviews": 411,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeRow": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true
+    },
+    "runs": [
+      {
+        "startupEnabled": true,
+        "filterEnabled": true,
+        "openToPDFObservedMs": 3463.647799999453,
+        "probe": {
+          "factoryAt": 1608,
+          "rowsMs": 116,
+          "firstPreviewMs": 2003,
+          "pdfCanvasMs": 1319,
+          "pdfFrameMs": 1615,
+          "firstPreviewFrameMs": 2011,
+          "maxTimerGapMs": 298,
+          "rowsCounts": {
+            "rows": 423,
+            "shells": 423,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "shells": 415,
+            "hidden": false
+          },
+          "startup": {
+            "active": true,
+            "large": true,
+            "bodyReady": true,
+            "bodyReason": "pdf-painted",
+            "pdfCanvasMs": 1867,
+            "bodyFrameMs": 1920,
+            "pendingPreviews": 415,
+            "recovering": false,
+            "recovered": 0
+          },
+          "nativeRow": {
+            "active": true,
+            "activationPending": false,
+            "cachedRows": 0,
+            "activations": 0,
+            "wrapperCalls": 0,
+            "shellCalls": 0,
+            "pendingRows": 0,
+            "lastDecision": "idle"
+          }
+        },
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true
+      },
+      {
+        "startupEnabled": true,
+        "filterEnabled": false,
+        "openToPDFObservedMs": 2876.969000000041,
+        "probe": {
+          "factoryAt": 952,
+          "rowsMs": 193,
+          "firstPreviewMs": 1997,
+          "pdfCanvasMs": 1182,
+          "pdfFrameMs": 1532,
+          "firstPreviewFrameMs": 2018,
+          "maxTimerGapMs": 335,
+          "rowsCounts": {
+            "rows": 423,
+            "shells": 423,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "shells": 415,
+            "hidden": false
+          },
+          "startup": {
+            "active": true,
+            "large": true,
+            "bodyReady": true,
+            "bodyReason": "pdf-painted",
+            "pdfCanvasMs": 1842,
+            "bodyFrameMs": 1911,
+            "pendingPreviews": 415,
+            "recovering": false,
+            "recovered": 0
+          },
+          "nativeRow": null
+        },
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true
+      },
+      {
+        "startupEnabled": true,
+        "filterEnabled": true,
+        "openToPDFObservedMs": 2622.971799999941,
+        "probe": {
+          "factoryAt": 1089,
+          "rowsMs": 97,
+          "firstPreviewMs": 1728,
+          "pdfCanvasMs": 1051,
+          "pdfFrameMs": 1365,
+          "firstPreviewFrameMs": 1749,
+          "maxTimerGapMs": 320,
+          "rowsCounts": {
+            "rows": 423,
+            "shells": 423,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "shells": 415,
+            "hidden": false
+          },
+          "startup": {
+            "active": true,
+            "large": true,
+            "bodyReady": true,
+            "bodyReason": "pdf-painted",
+            "pdfCanvasMs": 1587,
+            "bodyFrameMs": 1647,
+            "pendingPreviews": 415,
+            "recovering": false,
+            "recovered": 0
+          },
+          "nativeRow": {
+            "active": true,
+            "activationPending": false,
+            "cachedRows": 0,
+            "activations": 0,
+            "wrapperCalls": 0,
+            "shellCalls": 0,
+            "pendingRows": 0,
+            "lastDecision": "idle"
+          }
+        },
+        "sourceUnchanged": true,
+        "preferencesRestored": true,
+        "readersClosed": true
+      }
+    ],
+    "lifecycle": {
+      "largeAnnotations": 423,
+      "checks": {
+        "placeholderClickSelectsNative": true,
+        "middleScrollLoadsPreviews": true,
+        "rowOrderAfterScroll": true,
+        "filterClearRestoresAllRows": true,
+        "filterDidNotCacheShellHeights": true,
+        "liveDisableRestoresAllPreviews": true,
+        "liveDisableRestoresHook": true,
+        "liveDisableRemovesRuntime": true,
+        "disablePreservesOrder": true,
+        "smallListKeepsNativePreviews": true
+      },
+      "tabOpenToRowsMs": 1826.9497000002302,
+      "maxStartupTimerGapMs": 497.2634999998845,
+      "initial": {
+        "rows": 423,
+        "shells": 423,
+        "startup": {
+          "active": true,
+          "large": true,
+          "bodyReady": false,
+          "bodyReason": "waiting",
+          "pdfCanvasMs": null,
+          "bodyFrameMs": null,
+          "pendingPreviews": 423,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeCache": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "filteredRows": 1,
+      "small": {
+        "annotations": 19,
+        "rows": 19,
+        "shells": 0,
+        "large": false
+      },
+      "sourceUnchanged": true,
+      "preferencesRestored": true,
+      "readersClosed": true
+    },
+    "acceptance": {
+      "bodyBeforeAutomaticPreviews": true,
+      "independentStartupOnly": true,
+      "lifecycle": true,
+      "sourceUnchanged": true
+    },
+    "verification": {
+      "files": 37,
+      "tests": 979,
+      "typecheck": true,
+      "docsCheck": true,
+      "build": true,
+      "package": true
+    },
+    "limitations": [
+      "Sequential samples from one 423-annotation PDF; earlier eager reference followed an app restart, so cache warming prevents a general speedup claim.",
+      "The gate requires primary-view initialization, successful current-page visible canvas rendering, and two animation-frame opportunities; this is not OS pixel presentation evidence.",
+      "The independent canvas probe can precede restored-view initialization; runtime bodyFrameMs is the stronger acceptance gate.",
+      "A ten-second timeout opens progressive recovery; explicit user intent can load an individual preview earlier.",
+      "One invalid harness attempt captured an old opening method before enabling the new preference and bypassed the patch; it is excluded from performance data."
+    ],
+    "cleanup": {
+      "preferencesRestored": true,
+      "sourceUnchanged": true,
+      "readersClosed": true,
+      "accessibilitySettingsUnchanged": true,
+      "publishedUpdatesRestored": true
+    }
+  },
+  "dailyProfileRetest": {
+    "date": "2026-10-14",
+    "buildSHA256": "5F9EC28E2BEF473EB3D833EFA61B274665EA5E98C7B15C56547381686D8DFFFD",
+    "samePDFBytes": true,
+    "PDFBytes": 84099141,
+    "annotations": 423,
+    "activeAddons": 12,
+    "preferences": {
+      "enabled": true,
+      "popupEnabled": true,
+      "readerStartupLazy": true,
+      "nativeRowLazy": true
+    },
+    "automaticRestore": {
+      "readerAlreadyInitializedBeforePluginStartup": true,
+      "nativeRows": 423,
+      "previewPlaceholders": 0,
+      "startupRuntimePresent": false,
+      "pushHookBeforePluginStartup": false,
+      "pushHookAfterPluginStartup": true,
+      "addonStartupAfterProcessStartSeconds": [
+        57.6,
+        42.8
+      ],
+      "timingMeaning": "Process-start to Annotation Markdown startup log, not a measured PDF first-frame or exact unresponsive interval."
+    },
+    "manualReopen": {
+      "phase": "complete",
+      "started": 1791907801208,
+      "closeMs": 780.0370999999868,
+      "openStarted": 1791907803434,
+      "openResolvedMs": 258.47930000000633,
+      "initializedMs": 7362.029500000004,
+      "openToPDFObservedMs": 28159.00960000002,
+      "probe": {
+        "factoryAt": 7331,
+        "rowsMs": 114,
+        "firstPreviewMs": 10642,
+        "pdfCanvasMs": 20116,
+        "pdfFrameMs": 20440,
+        "firstPreviewFrameMs": 11394,
+        "maxTimerGapMs": 1303,
+        "rowsCounts": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "settled": {
+          "rows": 423,
+          "shells": 419,
+          "hidden": false
+        },
+        "startup": {
+          "active": true,
+          "large": true,
+          "bodyReady": true,
+          "bodyReason": "pdf-timeout-fallback",
+          "pdfCanvasMs": null,
+          "bodyFrameMs": 10090,
+          "pendingPreviews": 419,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeRow": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "maxHostTimerGapMs": 1112.9844000000157,
+      "nativeNodes": 8765,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "preferences": {
+        "enabled": true,
+        "popupEnabled": true,
+        "readerStartupLazy": true,
+        "nativeRowLazy": true
+      },
+      "finished": 1791907833143
+    },
+    "visible": {
+      "visible": true,
+      "page": 35,
+      "pages": 438,
+      "scale": 0.5570184322463034,
+      "scaleValue": "page-width",
+      "canvas": {
+        "width": 440,
+        "height": 547,
+        "state": 3
+      },
+      "window": {
+        "width": 927,
+        "height": 594,
+        "devicePixelRatio": 1
+      },
+      "runtime": {
+        "active": true,
+        "large": true,
+        "bodyReady": true,
+        "bodyReason": "pdf-timeout-fallback",
+        "pdfCanvasMs": null,
+        "bodyFrameMs": 10090,
+        "pendingPreviews": 419,
+        "recovering": false,
+        "recovered": 0
+      }
+    },
+    "acceptance": {
+      "bodyBeforeAutomaticPreviews": false,
+      "automaticRestoreCovered": false,
+      "sourceUnchanged": true
+    },
+    "limitations": [
+      "One manual reopen with the normal active plugin set. Not an alternating A/B benchmark and not a root-cause profile.",
+      "The main window was restored to normal size (927x594), so timings do not represent the user maximized window.",
+      "The visible current page was 35; the copied development document did not establish identical restored position and plugin environment.",
+      "PDF frame timing is a canvas completion and animation-frame opportunity observation. A later screenshot verified visible content.",
+      "Accessibility was false at the final readback; the prior accessibility profile cannot be assigned as the cause of this run."
+    ],
+    "cleanup": {
+      "readerLeftOpen": true,
+      "sourceUnchanged": true,
+      "measurementTimersStopped": true,
+      "pageProbeRemoved": true,
+      "readerCollectionHookRestored": true,
+      "temporaryUserJSRemoved": true,
+      "debugPreferencesCleared": true,
+      "debugListenerClosed": true,
+      "collectorStateStillInWindow": true,
+      "note": "The successful preference-restore response reported all four user values cleared; disk preferences and the closed listener were checked separately. Clearing remote-enabled closed the debug connection before removal of the inert collector result object; it contains only aggregate metrics and disappears with the window."
+    },
+    "decision": "The current package does not meet the daily-profile startup goal. Cover automatic restore before Reader creation, revisit the ten-second fallback while PDF loading continues, and profile the actual daily opening path before claiming success."
+  },
+  "startupRecoveryRevision": {
+    "date": "2026-10-14",
+    "finalXpiSHA256": "F7E9FE17FB32FEC182E3DEB58D6E1303CE1876F42B1AA120EDC9B2B4B0D88427",
+    "interimXpiSHA256": "5090D0E2FF8787BD8A0091EB012B108A1805E9C5D0CDE76FA2678FEA8E5BA366",
+    "changes": [
+      "Defer a selected large Zotero 10 Reader tab in serialized native session selection until startup hooks are installed; retain all tabs and native reading-position storage.",
+      "Keep supported PDF loading/visibility deferred after ten seconds, with progressive fallback on failed/unsupported probes and rejected loading tasks."
+    ],
+    "developmentRestart": {
+      "rows": 423,
+      "shells": 418,
+      "runtime": {
+        "active": true,
+        "large": true,
+        "bodyReady": true,
+        "bodyReason": "pdf-painted",
+        "pdfCanvasMs": 2206,
+        "bodyFrameMs": 2245,
+        "pendingPreviews": 418,
+        "recovering": false,
+        "recovered": 0
+      },
+      "pagePreserved": true,
+      "sourceUnchanged": true,
+      "initialReadersAtPluginStartup": 0
+    },
+    "dailyUnprofiledRestart": {
+      "phase": "complete",
+      "captureStarted": 1791911043041,
+      "maxTimerGapMs": 2018.3721000000005,
+      "profilerStarted": false,
+      "hookObservedAt": 1791911054571,
+      "readerObservedAt": 1791911054571,
+      "rowsObservedAt": 1791911062459,
+      "initial": {
+        "rows": 423,
+        "shells": 423,
+        "hidden": false,
+        "runtime": {
+          "active": true,
+          "large": true,
+          "bodyReady": false,
+          "bodyReason": "waiting",
+          "pdfCanvasMs": null,
+          "bodyFrameMs": null,
+          "pendingPreviews": 423,
+          "recovering": false,
+          "recovered": 0
+        }
+      },
+      "pdfCanvasObservedAt": 1791911077234,
+      "page": 34,
+      "pdfFrameObservedAt": 1791911077923,
+      "bodyReadyObservedAt": 1791911085903,
+      "previewObservedAt": 1791911086757,
+      "runtime": {
+        "active": true,
+        "large": true,
+        "bodyReady": true,
+        "bodyReason": "pdf-painted",
+        "pdfCanvasMs": 25851,
+        "bodyFrameMs": 25886,
+        "pendingPreviews": 421,
+        "recovering": false,
+        "recovered": 0
+      },
+      "rows": 423,
+      "shells": 421,
+      "sourceUnchanged": true,
+      "beforePageIndex": 33,
+      "accessibility": false,
+      "finished": 1791911088491
+    },
+    "interimManual": {
+      "phase": "complete",
+      "started": 1791911177578,
+      "closeMs": 552.8409000000102,
+      "openStarted": 1791911178151,
+      "openResolvedMs": 408.69740000000456,
+      "initializedMs": 8179.677400000015,
+      "openToPDFObservedMs": 19697.56110000002,
+      "probe": {
+        "factoryAt": 8133,
+        "rowsMs": 161,
+        "firstPreviewMs": null,
+        "pdfCanvasMs": 11106,
+        "pdfFrameMs": 11499,
+        "firstPreviewFrameMs": null,
+        "maxTimerGapMs": 1721,
+        "rowsCounts": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "settled": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "startup": {
+          "active": true,
+          "large": true,
+          "bodyReady": false,
+          "bodyReason": "waiting",
+          "pdfCanvasMs": null,
+          "bodyFrameMs": null,
+          "pendingPreviews": 423,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeRow": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "maxHostTimerGapMs": 2575.512299999973,
+      "nativeNodes": 5975,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "preferences": {
+        "enabled": true,
+        "popupEnabled": true,
+        "readerStartupLazy": true,
+        "nativeRowLazy": true
+      },
+      "finished": 1791911199407
+    },
+    "interimIsolation": {
+      "phase": "complete",
+      "disabled": [
+        {
+          "name": "Weavero",
+          "active": false
+        },
+        {
+          "name": "Ethereal Style",
+          "active": false
+        }
+      ],
+      "measurement": {
+        "phase": "complete",
+        "started": 1791911323572,
+        "closeMs": 305.13300000003073,
+        "openStarted": 1791911323944,
+        "openResolvedMs": 13.561099999991711,
+        "initializedMs": 5109.205000000016,
+        "openToPDFObservedMs": 8697.816900000034,
+        "probe": {
+          "factoryAt": 5071,
+          "rowsMs": 131,
+          "firstPreviewMs": null,
+          "pdfCanvasMs": 3198,
+          "pdfFrameMs": 3560,
+          "firstPreviewFrameMs": null,
+          "maxTimerGapMs": 746,
+          "rowsCounts": {
+            "rows": 423,
+            "shells": 423,
+            "hidden": false
+          },
+          "settled": {
+            "rows": 423,
+            "shells": 423,
+            "hidden": false
+          },
+          "startup": {
+            "active": true,
+            "large": true,
+            "bodyReady": false,
+            "bodyReason": "waiting",
+            "pdfCanvasMs": null,
+            "bodyFrameMs": null,
+            "pendingPreviews": 423,
+            "recovering": false,
+            "recovered": 0
+          },
+          "nativeRow": {
+            "active": true,
+            "activationPending": false,
+            "cachedRows": 0,
+            "activations": 0,
+            "wrapperCalls": 0,
+            "shellCalls": 0,
+            "pendingRows": 0,
+            "lastDecision": "idle"
+          }
+        },
+        "maxHostTimerGapMs": 1434.759699999995,
+        "nativeNodes": 4455,
+        "sourceUnchanged": true,
+        "accessibility": false,
+        "preferences": {
+          "enabled": true,
+          "popupEnabled": true,
+          "readerStartupLazy": true,
+          "nativeRowLazy": true
+        },
+        "finished": 1791911334177
+      },
+      "restored": true
+    },
+    "interimRestoredControl": {
+      "phase": "complete",
+      "started": 1791911488496,
+      "closeMs": 450.8817000000272,
+      "openStarted": 1791911488961,
+      "openResolvedMs": 297.58479999995325,
+      "initializedMs": 5993.201199999952,
+      "openToPDFObservedMs": 12658.909399999946,
+      "probe": {
+        "factoryAt": 5956,
+        "rowsMs": 157,
+        "firstPreviewMs": null,
+        "pdfCanvasMs": 6492,
+        "pdfFrameMs": 6525,
+        "firstPreviewFrameMs": null,
+        "maxTimerGapMs": 1295,
+        "rowsCounts": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "settled": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "startup": {
+          "active": true,
+          "large": true,
+          "bodyReady": false,
+          "bodyReason": "waiting",
+          "pdfCanvasMs": null,
+          "bodyFrameMs": null,
+          "pendingPreviews": 423,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeRow": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "maxHostTimerGapMs": 1101.7157000000007,
+      "nativeNodes": 5975,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "preferences": {
+        "enabled": true,
+        "popupEnabled": true,
+        "readerStartupLazy": true,
+        "nativeRowLazy": true
+      },
+      "finished": 1791911503224
+    },
+    "finalManual": {
+      "phase": "complete",
+      "started": 1791912402011,
+      "closeMs": 505.67229999997653,
+      "openStarted": 1791912403097,
+      "openResolvedMs": 282.0179000000935,
+      "initializedMs": 5263.014500000048,
+      "openToPDFObservedMs": 10194.740800000029,
+      "probe": {
+        "factoryAt": 5227,
+        "rowsMs": 136,
+        "firstPreviewMs": null,
+        "pdfCanvasMs": 4661,
+        "pdfFrameMs": 4960,
+        "firstPreviewFrameMs": null,
+        "maxTimerGapMs": 1203,
+        "rowsCounts": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "settled": {
+          "rows": 423,
+          "shells": 423,
+          "hidden": false
+        },
+        "startup": {
+          "active": true,
+          "large": true,
+          "bodyReady": false,
+          "bodyReason": "waiting",
+          "pdfCanvasMs": null,
+          "bodyFrameMs": null,
+          "pendingPreviews": 423,
+          "recovering": false,
+          "recovered": 0
+        },
+        "nativeRow": {
+          "active": true,
+          "activationPending": false,
+          "cachedRows": 0,
+          "activations": 0,
+          "wrapperCalls": 0,
+          "shellCalls": 0,
+          "pendingRows": 0,
+          "lastDecision": "idle"
+        }
+      },
+      "maxHostTimerGapMs": 965.5668999999762,
+      "nativeNodes": 5975,
+      "sourceUnchanged": true,
+      "accessibility": true,
+      "preferences": {
+        "enabled": true,
+        "popupEnabled": true,
+        "readerStartupLazy": true,
+        "nativeRowLazy": true
+      },
+      "finished": 1791912415257
+    },
+    "finalReadback": {
+      "runtime": {
+        "active": true,
+        "large": true,
+        "bodyReady": true,
+        "bodyReason": "pdf-painted",
+        "pdfCanvasMs": 9441,
+        "bodyFrameMs": 9515,
+        "pendingPreviews": 419,
+        "recovering": false,
+        "recovered": 0
+      },
+      "rows": 423,
+      "shells": 419,
+      "sourceUnchanged": true,
+      "positionPreserved": false,
+      "page": 35,
+      "activeAddons": 12,
+      "otherAddonsRestored": true,
+      "readerOpen": true,
+      "probeRemoved": true,
+      "savedMarkerPresent": true
+    },
+    "positionReadback": {
+      "samePageScaleHorizontalAndModes": true,
+      "verticalPDFCoordinateDrift": 3,
+      "strictEquality": false
+    },
+    "verification": {
+      "files": 38,
+      "tests": 998,
+      "typecheck": true,
+      "docsCheck": true,
+      "build": true,
+      "package": true
+    },
+    "cleanup": {
+      "collectorsRemoved": true,
+      "otherPluginsRestored": true,
+      "activeAddons": 12,
+      "readerOpen": true,
+      "preferences": {
+        "enabled": true,
+        "popupEnabled": true,
+        "readerStartupLazy": true,
+        "nativeRowLazy": true
+      },
+      "debugUserValuesCleared": true
+    },
+    "limitations": [
+      "Development and interim daily restart tests used the interim hash. The final hash additionally catches loading-task failures and was verified installed and manually reopened in the daily profile.",
+      "Sequential normal-window runs with warm caches and hot add-on reloads are not a randomized A/B comparison or a general speedup claim.",
+      "A current-page canvas/frame probe can precede completion of restored-position initialization. Strict runtime pdf-painted readiness and final view state validate ordering; early frame timings do not denote full readiness.",
+      "Both Weavero and Ethereal Style were disabled together for one reversible hot-isolation sample. It cannot identify individual causal costs. Both are restored.",
+      "The profiled cold sample stopped before strict body readiness. Its initial false comment check arose from null/empty-string API normalization; a normalized readback verified no comment changes. Raw profiles are private ignored files.",
+      "The final reading-state comparison retained page, scale, horizontal offset and modes but differed by three PDF vertical coordinates after repeated layout/reload; pixel-exact restoration is not established.",
+      "Only selected pane Reader tabs are parked. Standalone Reader windows retain native restoration. If the add-on cannot run on the next launch, the parked book remains available as an unloaded tab.",
+      "Remaining latency and one-to-two-second timer gaps persist with the full plugin set. The overall large-document latency objective is not fully achieved."
+    ]
+  }
+}

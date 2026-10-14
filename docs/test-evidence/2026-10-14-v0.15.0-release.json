@@ -1,0 +1,204 @@
+{
+  "date": "2026-10-14",
+  "version": "0.15.0",
+  "sha256": "8a549a1cccf5cf161b36a3c742542735d6fc1920751da2f0a93db48108c5bf68",
+  "bytes": 1180926,
+  "scope": {
+    "documentOpeningAcceleration": false,
+    "experimentBranch": "qrkks/reader-startup-experiment",
+    "experimentCommit": "7b74352ca2fc7d2b093bf16d6a2b238f5a5cda3b",
+    "researchEvidenceAndDevelopmentProbesRetained": true
+  },
+  "verification": {
+    "testFiles": 36,
+    "tests": 952,
+    "typecheck": true,
+    "bilingualDocumentation": true,
+    "build": true,
+    "package": true,
+    "releaseMetadata": true,
+    "productionAudit": "no known vulnerabilities"
+  },
+  "package": {
+    "startupCodeAbsent": true,
+    "openingPreferenceAbsent": true,
+    "svgExperimental": true,
+    "tagFilterExperimental": true,
+    "nativeMathmlExperimental": false
+  },
+  "nativeSvg": {
+    "zotero": "10.0.6",
+    "gecko": "140",
+    "exactInstalledPackageVerified": true,
+    "processRestarted": true,
+    "samples": [
+      {
+        "date": "2026-10-14",
+        "engine": "Zotero 10.0.6 / Gecko",
+        "readerURL": "resource://zotero/reader/reader.html",
+        "fixture": "jordan",
+        "checks": [
+          {
+            "name": "saved-degraded-preview",
+            "passed": true,
+            "originalSourcePreserved": true,
+            "warningCount": 1
+          },
+          {
+            "name": "native-pixel-comparison",
+            "passed": true,
+            "width": 640,
+            "height": 280,
+            "changedPixels": 0
+          },
+          {
+            "name": "viewer-warning-escape-focus",
+            "passed": true
+          },
+          {
+            "name": "preference-cache-refresh",
+            "passed": true
+          },
+          {
+            "name": "image-load-source-fallback",
+            "passed": true
+          },
+          {
+            "name": "saved-edit-clears-warning",
+            "passed": true,
+            "storedSourceMatches": true
+          },
+          {
+            "name": "saved-unsafe-edit-falls-back",
+            "passed": true,
+            "noImage": true,
+            "storedSourceMatches": true
+          },
+          {
+            "name": "disabled-rendering-cleanup",
+            "passed": true
+          },
+          {
+            "name": "re-enabled-rendering",
+            "passed": true
+          }
+        ],
+        "restored": true
+      },
+      {
+        "date": "2026-10-14",
+        "engine": "Zotero 10.0.6 / Gecko",
+        "readerURL": "resource://zotero/reader/reader.html",
+        "fixture": "efa-class-styles",
+        "checks": [
+          {
+            "name": "saved-degraded-preview",
+            "passed": true,
+            "originalSourcePreserved": true,
+            "warningCount": 1
+          },
+          {
+            "name": "native-pixel-comparison",
+            "passed": true,
+            "width": 1120,
+            "height": 1200,
+            "changedPixels": 0
+          },
+          {
+            "name": "viewer-warning-escape-focus",
+            "passed": true
+          },
+          {
+            "name": "preference-cache-refresh",
+            "passed": true
+          },
+          {
+            "name": "image-load-source-fallback",
+            "passed": true
+          },
+          {
+            "name": "saved-edit-clears-warning",
+            "passed": true,
+            "storedSourceMatches": true
+          },
+          {
+            "name": "saved-unsafe-edit-falls-back",
+            "passed": true,
+            "noImage": true,
+            "storedSourceMatches": true
+          },
+          {
+            "name": "disabled-rendering-cleanup",
+            "passed": true
+          },
+          {
+            "name": "re-enabled-rendering",
+            "passed": true
+          }
+        ],
+        "restored": true
+      },
+      {
+        "date": "2026-10-14",
+        "engine": "Zotero 10.0.6 / Gecko",
+        "readerURL": "resource://zotero/reader/reader.html",
+        "fixture": "efa-font-shorthand",
+        "checks": [
+          {
+            "name": "saved-degraded-preview",
+            "passed": true,
+            "originalSourcePreserved": true,
+            "warningCount": 1
+          },
+          {
+            "name": "native-pixel-comparison",
+            "passed": true,
+            "width": 1200,
+            "height": 880,
+            "changedPixels": 0
+          },
+          {
+            "name": "viewer-warning-escape-focus",
+            "passed": true
+          },
+          {
+            "name": "preference-cache-refresh",
+            "passed": true
+          },
+          {
+            "name": "image-load-source-fallback",
+            "passed": true
+          },
+          {
+            "name": "saved-edit-clears-warning",
+            "passed": true,
+            "storedSourceMatches": true
+          },
+          {
+            "name": "saved-unsafe-edit-falls-back",
+            "passed": true,
+            "noImage": true,
+            "storedSourceMatches": true
+          },
+          {
+            "name": "disabled-rendering-cleanup",
+            "passed": true
+          },
+          {
+            "name": "re-enabled-rendering",
+            "passed": true
+          }
+        ],
+        "restored": true
+      }
+    ],
+    "totalChecks": 27,
+    "sourceUnchanged": true
+  },
+  "limits": [
+    "Native SVG checks use a dedicated development profile; the daily profile was not edited.",
+    "The successful checks followed a full process restart; initial hot-session setup and focus races are not counted as passed checks.",
+    "The probe waits for both storage and native editable DOM readiness before enabling preview rendering.",
+    "The existing tag-filter feature remains experimental; Reader capability probing does not establish speed improvements on every supported host."
+  ]
+}

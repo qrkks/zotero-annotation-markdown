@@ -2,39 +2,63 @@
 
 ## Unreleased
 
-### Added
+## 0.15.0 - 2026-10-14
 
-- Add a nested **Respect existing numbering** setting, on by default, to switch between smart sibling-group avoidance and uniform hierarchical numbering. Retain the saved smart choice when heading numbers or the outline are disabled, and update open Readers in place.
-- Add an optional **Show heading numbers** child setting under **Floating Outline**, off by default. Sidebar and popup outlines retain clear Chinese or Arabic ordinals and suppress automatic prefixes for their entire sibling group and all descendants, including earlier siblings, while other chapters remain eligible. Count headings without adopting authored values, update open Readers immediately, and preserve source headings, math and remembered expansion. Disabling the outline retains the numbering choice.
+This release improves SVG preview compatibility and explains partial rendering,
+adds configurable outline numbering, and updates MathML and tag-filter settings.
+SVG rendering and tag-filter acceleration remain experimental and off by default.
 
-### Fixed
+### SVG rendering
 
-- Remove the experimental label from native MathML output, retaining standard KaTeX rendering as the default and the layout-difference notice. Keep SVG and native-row acceleration experimental. Replace the acceleration's exact Zotero 10.0.3 gate with Reader compatibility checks while retaining its React, component, cache, and native-fallback requirements; clean up partially started hooks on initialization failure.
-- Keep heading numbering depth consistent across each annotation, including leading subheadings before a shallower heading and skipped parents. Reserve missing-parent counters from one without adding outline entries or changing source headings.
-- Preview static SVG diagrams using restricted `font` shorthand in simple class rules. Expand font style, weight, size and family only in the preview copy, preserve declaration order and normal resets, and keep the original comment and existing validation limits.
-- Render supported SVG completely, omit explicitly permitted keyword display hints with a persistent compatibility warning, and keep unsafe or meaningful unsupported content on source fallback. Retain the warning in the larger-image viewer and preserve the original source and complexity limits.
+- Support restricted `font` shorthand in simple class rules, including optional style/weight, a numeric size and a font-family list. For example, `font: bold 24px "Microsoft YaHei", sans-serif` can now render. Preview expansion preserves declaration order, inheritance and normal style/weight resets; unsupported shorthand forms still show source.
+- Use three outcomes: **complete preview**, **compatibility preview with a persistent warning**, and **source fallback with a reason**. Simple keyword values of `text-rendering`, `shape-rendering` and `cursor` may be omitted from presentation attributes or supported class rules. The warning lists the omitted properties and total count, and remains visible in **View larger**; text and edge appearance may differ.
+- Keep unsupported geometry, transforms, fonts, references, malformed CSS and unsafe content on source fallback. Original declarations, including unused or omitted ones, still pass the existing resource and complexity checks. Scripts, external resources and arbitrary drawing elements are not allowed by the compatibility path.
+- Keep stored Markdown/SVG unchanged. Only the isolated preview copy is normalized and sanitized; image-loading failure reveals source fallback. SVG rendering remains **Experimental**, off by default, and uses the existing static-image viewer. See the [supported SVG subset](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.15.0/docs/en/user-guide.md#svg-diagrams-experimental).
 
-### Development
+### Floating outline numbering
 
-- Update the locked transitive `source-map-js` dependency from 1.2.1 to 1.2.2 to resolve GHSA-68fv-2mgg-jv7q and restore the CI production-dependency audit.
-- Integrate css-tree parser/walker with typed SVG diagnostics and one XML parse. Retain the isolated prototype, assessment and dependency decisions as pre-integration evidence, and add production rendering and lifecycle regressions.
+- Add **Show heading numbers** beneath **Floating Outline**, off by default, for sidebar and popup outlines. Numbers follow heading depth, including leading subheadings and missing parent levels. A leading group of level-two headings can use `1.1–1.4`, with the following level-one heading starting at `2`; no synthetic outline entries or source edits are added.
+- Add the nested **Respect existing numbering** option, on by default. Clear Chinese or Arabic ordinals suppress automatic prefixes for their entire sibling group and all descendants, including earlier siblings. For example, an authored `五、` keeps its descendants from receiving a conflicting computed `6.1`. Other groups may still receive automatic numbers. English ordinals are outside this rule.
+- Disable the smart option for uniform hierarchical numbering. Open Readers update immediately; source headings, math and outline expansion are preserved. Turning off numbers or the outline retains the saved child settings.
 
-### 新增
+### Settings and tag-filter acceleration
 
-- 新增默认开启的下一级子选项 **智能避让已有序号**，可切换整组避让与统一层级补号。关闭标题序号或大纲时保留智能选项的选择，并原位更新已打开的 Reader。
-- 在 **悬浮大纲** 分组中新增默认关闭的 **显示标题序号** 子选项。侧栏和弹窗大纲保留已有的明确中文或阿拉伯数字序号，并让其整个兄弟组及全部子孙停止自动补号，包括前面的兄弟标题；其他章节仍可补号。所有标题仍参与计数，不采用手写序号的数值重设计数。即时更新已打开的 Reader，并保留源码标题、公式及记住的展开状态；关闭大纲仍保留编号选择。
+- Remove **Experimental** from the native MathML output choice. **KaTeX HTML + MathML** remains the default; choosing native MathML retains the notice about possible spacing, height and font differences. Saved choices and formula source are preserved.
+- Keep **Accelerate clearing tag filters in very large annotation lists (Experimental)** off by default. Enable it before filtering a fully loaded list. It requires exact cached heights for at least 100 unselected rows and now checks Reader compatibility instead of requiring Zotero 10.0.3. Unsupported Readers or missing caches use the native list; initialization failures clean up partial hooks.
+- Tag-filter acceleration applies to restoring an existing filtered list. **Document-opening acceleration is excluded from this release** and retained on [`qrkks/reader-startup-experiment`](https://github.com/qrkks/zotero-annotation-markdown/tree/qrkks/reader-startup-experiment) for later discussion. Its [assessment and test records](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.15.0/docs/performance-investigations/2026-10-14-reader-startup-deferred.md) remain available.
 
-### 修复
+### Maintenance
 
-- 移除原生 MathML 输出的实验性标签，保留默认 KaTeX 渲染及排版差异说明；SVG 和原生行加速仍标为实验性。加速功能改用 Reader 兼容性检查，不再限定 Zotero 10.0.3，保留 React、组件、缓存及原生回退要求，并在初始化失败时清理部分启动的挂钩。
-- 修正整条标注中标题编号深度不一致的问题，包括浅层标题前的子标题和缺少父级的跳级标题；缺失父级从一开始补位计数，不添加大纲条目或改写源码标题。
-- 支持简单类规则中使用受限 `font` 简写的静态 SVG 图示预览。仅在预览副本中展开字形、字重、字号和字体族，保留声明顺序与默认值重置，沿用原始评论及现有校验限制。
-- 支持完整 SVG 预览；明确允许的简单关键字显示提示可被省略，并持续显示兼容提示。不安全或影响图意的不支持内容仍回退到源码。大图查看器保留相同提示，原始源码和复杂度限制保持不变。
+- Add css-tree's CSS parser/walker for SVG declarations and structured complete/compatibility/fallback diagnostics, while retaining DOMPurify as the final sanitization boundary.
+- Update the locked transitive `source-map-js` dependency from 1.2.1 to 1.2.2 to resolve GHSA-68fv-2mgg-jv7q and restore the production-dependency CI audit.
 
-### 开发
+### 中文
 
+本次改进 SVG 预览兼容性及分级降级提示，新增可配置的大纲编号，并调整 MathML 和标签筛选设置。SVG 渲染与标签筛选加速继续保留实验性标签，默认关闭。
+
+#### SVG 渲染
+
+- 支持简单类规则中的受限 `font` 简写，包括可选字形/字重、数值字号和字体族列表。例如 `font: bold 24px "Microsoft YaHei", sans-serif` 现在可以渲染。仅在预览副本中展开，遵循声明顺序、继承以及字形/字重的默认值重置；不支持的简写仍显示源码。
+- 渲染分为 **完整预览**、**持续显示提示的兼容预览**、**带原因的源码回退**。表现属性或受支持类规则中的 `text-rendering`、`shape-rendering` 和 `cursor` 只有值为简单关键字时才可省略。提示列出省略的属性及总次数，**View larger（放大查看）** 中继续显示；文字和边缘外观可能有所不同。
+- 不支持的几何、变换、字体、引用、格式错误的 CSS 和危险内容仍回退为源码。所有原始声明，包括未使用和被省略的声明，仍须通过现有资源与复杂度限制。兼容路径不放行脚本、外部资源或任意绘图元素。
+- Zotero 保存的 Markdown/SVG 原文保持不变，只对隔离的预览副本进行规范化和清理；图片加载失败时显示源码回退。SVG 继续保留 **实验性** 标签、默认关闭，沿用静态图片查看器。详见[支持的 SVG 子集](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.15.0/docs/zh-CN/user-guide.md#svg-示意图实验性)。
+
+#### 悬浮大纲编号
+
+- 在 **悬浮大纲** 下新增默认关闭的 **显示标题序号**，用于侧栏与弹窗大纲。编号按标题深度排列，并处理开头没有父标题的子标题和跳级标题。例如，开头一组二级标题可编号为 `1.1–1.4`，后面的一级标题从 `2` 开始；不增加虚拟大纲条目，也不修改源码。
+- 新增下一级 **智能避让已有序号**，默认开启。标题已有明确中文或阿拉伯数字序号时，其整个兄弟组及全部子孙都停止自动补号，包括前面的兄弟标题。例如，手写的 `五、` 不会搭配冲突的自动子编号 `6.1`；其他组仍可自动编号。暂不识别英语序号。
+- 关闭智能选项可统一补充层级编号。已打开的 Reader 即时更新，保留源码标题、公式及大纲展开状态；关闭标题序号或大纲时，子选项的保存值继续保留。
+
+#### 设置与标签筛选加速
+
+- 移除原生 MathML 输出选项的 **实验性** 标签，默认仍是 **KaTeX HTML + MathML**；选择原生 MathML 时继续说明公式间距、高度和字体可能有所不同。已有选择与公式源码保留。
+- **加速超大批注列表清除标签筛选（实验性）** 继续默认关闭，请在完整加载的列表应用筛选前开启。它要求至少 100 个未选中原生行的精确高度缓存，现改用 Reader 兼容性检查，不再限定 Zotero 10.0.3；Reader 不兼容或缓存缺失时使用原生列表，初始化失败时清理部分启动的挂钩。
+- 标签筛选加速用于恢复已经筛选的列表。**文件打开加速不包含在本次发布中**，完整实现保留在 [`qrkks/reader-startup-experiment`](https://github.com/qrkks/zotero-annotation-markdown/tree/qrkks/reader-startup-experiment) 分支，之后再讨论；[评估与测试记录](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.15.0/docs/performance-investigations/2026-10-14-reader-startup-deferred.md) 继续保留。
+
+#### 维护
+
+- 引入 css-tree 的 CSS parser/walker 处理 SVG 声明，提供完整预览、兼容预览和源码回退的结构化诊断，继续由 DOMPurify 执行最终清理。
 - 将锁定的间接依赖 `source-map-js` 从 1.2.1 更新至 1.2.2，修复 GHSA-68fv-2mgg-jv7q，并恢复 CI 的生产依赖安全审计。
-- 接入 css-tree parser/walker、有类型的 SVG 诊断和单次 XML 解析。独立原型、评估与选型决策保留为接入前证据，并增加正式渲染与生命周期回归测试。
 
 ## 0.14.3 - 2026-10-12
 
