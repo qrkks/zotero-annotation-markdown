@@ -16,7 +16,7 @@
 
 用 Markdown 标题、列表、彩色高亮、LaTeX 公式和实验性 SVG 示意图，让 Zotero 标注评论更清晰易读。渲染时保留 Zotero 保存的标注原文，源码仍可继续编辑。
 
-> 项目持续开发与维护中。遇到渲染或兼容问题，或有功能建议，欢迎[提交 Issue](https://github.com/qrkks/zotero-annotation-markdown/issues)并分享你的反馈。Zotero 和插件版本、复现步骤或最小示例等补充信息，有助于我们更高效地排查问题。
+> 本项目正在持续开发和维护中。如果你遇到 Bug、渲染或兼容性问题，或者有功能建议，欢迎[提交 Issue](https://github.com/qrkks/zotero-annotation-markdown/issues) 与我们交流。提供 Zotero 和插件版本、复现步骤以及最小示例（如 Markdown、LaTeX 或 SVG）将有助于我们更高效地定位问题。
 
 ## 功能预览
 
