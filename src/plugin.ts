@@ -8,6 +8,9 @@ import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js"
 import { createMarkdownRenderer } from "./markdown-renderer.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
+import { createReaderStartupLazyManager } from "./reader-startup-lazy.js";
+import { createReaderTabLoadManager, type ReaderTabLoadHost } from "./reader-tab-load.js";
+import { createReaderStartupSessionManager, type StartupSessionHost } from "./reader-startup-session.js";
 import { registerAutoTodoTagger, type ZoteroTagApi } from "./auto-todo-tag.js";
 import type {
   PreferenceStore,
@@ -26,6 +29,7 @@ import {
   MATH_OUTPUT_PREF_KEY,
   SVG_ENABLED_PREF_KEY,
   NATIVE_ROW_LAZY_PREF_KEY,
+  READER_STARTUP_LAZY_PREF_KEY,
   OUTLINE_ENABLED_PREF_KEY,
   OUTLINE_NUMBERING_PREF_KEY,
   OUTLINE_SMART_NUMBERING_PREF_KEY,
@@ -123,7 +127,7 @@ interface CreatePluginOptions {
 
 interface Plugin {
   startup(): Promise<void[]>;
-  shutdown(): void;
+  shutdown(applicationShutdown?: boolean): void;
 }
 
 interface PluginGlobals {
@@ -158,6 +162,26 @@ export function createPlugin({
   let stopAutoTodoTagger: (() => void) | undefined;
   const diagnosticsLogger = createLogger(Zotero, logger, diagnostics);
   const settings = createSettings({ prefs: createPrefsAdapter(Zotero) });
+  const startupLazy = createReaderStartupLazyManager({
+    readerApi: Zotero?.Reader,
+    isEnabled: () => settings.isEnabled() && settings.isReaderStartupLazyEnabled(),
+    logger: diagnosticsLogger
+  });
+  const startupSession = createReaderStartupSessionManager({
+    host: Zotero as unknown as StartupSessionHost,
+    isEnabled: () => settings.isEnabled() && settings.isReaderStartupLazyEnabled(),
+    getAnnotationCount(itemID) {
+      const items = Zotero?.Items as unknown as { get?(id: number): { getAnnotations?(): unknown[] } | false };
+      const item = items?.get?.(itemID);
+      return item ? item.getAnnotations?.().length ?? 0 : 0;
+    },
+    logger: diagnosticsLogger
+  });
+  const tabLoads = createReaderTabLoadManager({
+    host: Zotero as unknown as ReaderTabLoadHost,
+    isEnabled: () => settings.isEnabled() && settings.isReaderStartupLazyEnabled(),
+    logger: diagnosticsLogger
+  });
 
   function makeRegistry(): PluginRegistry {
     if (registryFactory) {
@@ -217,9 +241,12 @@ export function createPlugin({
       diagnosticsLogger.log("[annotation-markdown] startup");
       registry = makeRegistry();
       const activeRegistry = registry;
+      startupLazy.refresh();
+      tabLoads.refresh();
+      startupSession.refresh();
       preferenceObserverIds = registerPreferenceObservers(
         Zotero,
-        () => activeRegistry.refresh?.()
+        () => { startupLazy.refresh(); tabLoads.refresh(); startupSession.refresh(); activeRegistry.refresh?.(); }
       );
       stopAutoTodoTagger = registerAutoTodoTagger({
         Zotero,
@@ -248,10 +275,10 @@ export function createPlugin({
       diagnosticsLogger.log(`[annotation-markdown] found open readers: ${openReaders.length}`);
       const registrations = openReaders.map((reader) => activeRegistry.register(reader));
 
-      return Promise.all(registrations);
+      return Promise.all([...registrations, startupSession.restore()]);
     },
 
-    shutdown() {
+    shutdown(applicationShutdown = false) {
       try {
         for (const eventName of READER_EVENTS) {
           try {
@@ -272,6 +299,9 @@ export function createPlugin({
         stopAutoTodoTagger?.();
         stopAutoTodoTagger = undefined;
         readerEventHandler = undefined;
+        startupLazy.stop();
+        tabLoads.stop();
+        startupSession.stop(applicationShutdown);
         registry?.shutdown();
         registry = undefined;
       }
@@ -388,6 +418,7 @@ function registerPreferenceObservers(
     [PERFORMANCE_DIAGNOSTICS_PREF_KEY, true],
     [RENDER_STRATEGY_PREF_KEY, true],
     [NATIVE_ROW_LAZY_PREF_KEY, true],
+    [READER_STARTUP_LAZY_PREF_KEY, true],
     [WEAVERO_RECOLOR_AM_LINKS_PREF_KEY]
   ];
   for (const [key, global] of preferenceKeys) {

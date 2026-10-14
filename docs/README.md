@@ -14,6 +14,8 @@ English | [简体中文](#简体中文)
 
 ### Performance investigations
 
+- [Large Reader startup: progressive rendering assessment (English and Chinese)](performance-investigations/2026-10-13-reader-startup-assessment.md)
+- [Reader startup fixes and repeat-test decision (English and Chinese)](performance-investigations/2026-10-14-reader-startup-fixes.md)
 - [Native annotation row lazy rendering: upstream handoff](performance-investigations/2026-09-30-native-row-lazy-upstream-handoff.md)
 - [Large annotation-sidebar filter clearing](performance-investigations/2026-09-29-large-sidebar-filter-clear.md)
 - [Large ebook annotation-sidebar startup](performance-investigations/2026-09-29-large-ebook-sidebar-startup.md)
@@ -30,8 +32,10 @@ The English pages are the source of truth for release and developer documentatio
 - [可直接复制的 SVG 测试样例（中英双语）](examples/svg-samples.md)
 - [已保存的 SVG 验证结果](test-evidence/2026-10-10-svg-mvp.md)
 
-### 性能调查记录（英文）
+### 性能调查记录
 
+- [超大批注 Reader 启动：渐进渲染评估（中英双语）](performance-investigations/2026-10-13-reader-startup-assessment.md)
+- [Reader 启动修复与重复测试决策（中英双语）](performance-investigations/2026-10-14-reader-startup-fixes.md#简体中文)
 - [原生标注行懒加载：上游沟通资料](performance-investigations/2026-09-30-native-row-lazy-upstream-handoff.md)
 - [超大标注侧栏取消标签筛选](performance-investigations/2026-09-29-large-sidebar-filter-clear.md)
 - [超大标注电子书首次打开](performance-investigations/2026-09-29-large-ebook-sidebar-startup.md)

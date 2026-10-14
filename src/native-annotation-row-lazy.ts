@@ -226,6 +226,16 @@ export const NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE = String.raw`(() => {
 
   function captureRows() {
     const rows = getRows();
+    // Startup placeholders are estimates, never exact native row heights.
+    // Discard old geometry too: a partially materialized list shifts every
+    // later position, so an earlier cache cannot safely cover this layout.
+    if (rows.some(row => row.querySelector("[data-annotation-markdown-startup-preview]"))) {
+      state.heights.clear();
+      state.positions.clear();
+      state.layoutSignature = "";
+      clearActivation();
+      return false;
+    }
     if (rows.length < MIN_CACHED_ROWS) return false;
     if (state.heights.size >= MIN_CACHED_ROWS && rows.length < state.heights.size) return false;
 

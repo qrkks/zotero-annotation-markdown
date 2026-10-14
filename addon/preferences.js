@@ -15,6 +15,7 @@ Zotero.AnnotationMarkdownPreferences = {
   autoTodoCleanupKey: "extensions.annotationMarkdown.autoTodoCleanup",
   renderStrategyKey: "extensions.annotationMarkdown.renderStrategy",
   nativeRowLazyKey: "extensions.annotationMarkdown.nativeRowLazy",
+  readerStartupLazyKey: "extensions.annotationMarkdown.readerStartupLazy",
 
   init(documentRef = document) {
     const enabledInput = documentRef.getElementById("annotation-markdown-enabled");
@@ -37,6 +38,7 @@ Zotero.AnnotationMarkdownPreferences = {
     const autoTodoCleanupInput = documentRef.getElementById("annotation-markdown-auto-todo-cleanup");
     const renderStrategySelect = documentRef.getElementById("annotation-markdown-render-strategy");
     const nativeRowLazyInput = documentRef.getElementById("annotation-markdown-native-row-lazy");
+    const readerStartupLazyInput = documentRef.getElementById("annotation-markdown-reader-startup-lazy");
 
     if (
       !enabledInput ||
@@ -96,6 +98,7 @@ Zotero.AnnotationMarkdownPreferences = {
     autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
     renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
     nativeRowLazyInput.checked = this.getPref(this.nativeRowLazyKey, false);
+    if (readerStartupLazyInput) readerStartupLazyInput.checked = this.getPref(this.readerStartupLazyKey, false);
 
     enabledInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.enabledKey, Boolean(enabledInput.checked), true);
@@ -173,6 +176,9 @@ Zotero.AnnotationMarkdownPreferences = {
 
     nativeRowLazyInput.addEventListener("command", () => {
       Zotero.Prefs.set(this.nativeRowLazyKey, Boolean(nativeRowLazyInput.checked), true);
+    });
+    readerStartupLazyInput?.addEventListener("command", () => {
+      Zotero.Prefs.set(this.readerStartupLazyKey, Boolean(readerStartupLazyInput.checked), true);
     });
   },
 

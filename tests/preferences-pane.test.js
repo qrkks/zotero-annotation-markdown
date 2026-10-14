@@ -142,6 +142,20 @@ describe("preferences pane", () => {
     expect(source).toContain('<vbox id="annotation-markdown-popup-option">');
   });
 
+  test("persists startup and tag-filter switches independently", async()=>{
+    const set=vi.fn();
+    const preferences=await loadPreferencesScript({Prefs:{get:()=>undefined,set}});
+    const doc=await loadPreferenceDocument();preferences.init(doc);
+    const startup=doc.getElementById("annotation-markdown-reader-startup-lazy");
+    const filter=doc.getElementById("annotation-markdown-native-row-lazy");
+    expect(startup.checked).toBe(false);expect(filter.checked).toBe(false);
+    startup.checked=true;startup.dispatchEvent(new doc.defaultView.Event("command"));
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.readerStartupLazy",true,true);
+    expect(filter.checked).toBe(false);
+    filter.checked=true;filter.dispatchEvent(new doc.defaultView.Event("command"));
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.nativeRowLazy",true,true);
+  });
+
   test("preserves XUL controls, setting keys, values, and group order", async () => {
     const doc = await loadPreferenceDocument();
     expect(doc.documentElement.getAttribute("onload")).toBe("Zotero.AnnotationMarkdownPreferences.init(document)");
@@ -153,7 +167,8 @@ describe("preferences pane", () => {
       "outline-enabled": "outlineEnabled", "outline-numbering": "outlineNumbering", "outline-font-scale": "outlineFontScalePercent",
       "outline-smart-numbering": "outlineSmartNumbering",
       "auto-todo-tag": "autoTodoTag", "auto-todo-cleanup": "autoTodoCleanup",
-      "render-strategy": "renderStrategy", "native-row-lazy": "nativeRowLazy"
+      "render-strategy": "renderStrategy", "native-row-lazy": "nativeRowLazy",
+      "reader-startup-lazy": "readerStartupLazy"
     };
     expect(doc.querySelectorAll("[preference]")).toHaveLength(Object.keys(keys).length);
     for (const [id, key] of Object.entries(keys)) {

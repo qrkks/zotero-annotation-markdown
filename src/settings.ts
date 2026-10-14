@@ -18,6 +18,7 @@ export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.p
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
 export const RENDER_STRATEGY_PREF_KEY = "extensions.annotationMarkdown.renderStrategy";
 export const NATIVE_ROW_LAZY_PREF_KEY = "extensions.annotationMarkdown.nativeRowLazy";
+export const READER_STARTUP_LAZY_PREF_KEY = "extensions.annotationMarkdown.readerStartupLazy";
 export const OUTLINE_ENABLED_PREF_KEY = "extensions.annotationMarkdown.outlineEnabled";
 export const OUTLINE_NUMBERING_PREF_KEY = "extensions.annotationMarkdown.outlineNumbering";
 export const OUTLINE_SMART_NUMBERING_PREF_KEY = "extensions.annotationMarkdown.outlineSmartNumbering";
@@ -55,6 +56,8 @@ export interface Settings {
   setRenderStrategy(strategy: RenderStrategy): void;
   isNativeRowLazyEnabled(): boolean;
   setNativeRowLazyEnabled(enabled: boolean): void;
+  isReaderStartupLazyEnabled(): boolean;
+  setReaderStartupLazyEnabled(enabled: boolean): void;
   isOutlineEnabled(): boolean;
   setOutlineEnabled(enabled: boolean): void;
   isOutlineNumberingEnabled(): boolean;
@@ -85,6 +88,7 @@ interface CreateSettingsOptions {
   lightweightModeKey?: string;
   renderStrategyKey?: string;
   nativeRowLazyKey?: string;
+  readerStartupLazyKey?: string;
   outlineEnabledKey?: string;
   outlineNumberingKey?: string;
   outlineSmartNumberingKey?: string;
@@ -117,6 +121,7 @@ export function createSettings({
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
   nativeRowLazyKey = NATIVE_ROW_LAZY_PREF_KEY,
+  readerStartupLazyKey = READER_STARTUP_LAZY_PREF_KEY,
   outlineEnabledKey = OUTLINE_ENABLED_PREF_KEY,
   outlineNumberingKey = OUTLINE_NUMBERING_PREF_KEY,
   outlineSmartNumberingKey = OUTLINE_SMART_NUMBERING_PREF_KEY,
@@ -137,6 +142,7 @@ export function createSettings({
   let memoryLightweightMode = false;
   let memoryRenderStrategy: RenderStrategy = "auto";
   let memoryNativeRowLazy = false;
+  let memoryReaderStartupLazy = false;
   let memoryOutlineEnabled = true;
   let memoryOutlineNumbering = false;
   let memoryOutlineSmartNumbering = true;
@@ -336,6 +342,16 @@ export function createSettings({
       }
 
       return memoryNativeRowLazy;
+    },
+
+    isReaderStartupLazyEnabled() {
+      return prefs?.get ? prefs.get(readerStartupLazyKey, false) === true : memoryReaderStartupLazy;
+    },
+
+    setReaderStartupLazyEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(readerStartupLazyKey, value);
+      memoryReaderStartupLazy = value;
     },
 
     setNativeRowLazyEnabled(enabled) {

@@ -26,10 +26,11 @@ function startup(data) {
   }
 }
 
-function shutdown() {
+function shutdown(data, reason) {
   globalThis.ZoteroAnnotationMarkdownDiagnostics?.append("[annotation-markdown] bootstrap shutdown");
   unregisterPreferencePane();
-  ZoteroAnnotationMarkdownInstance?.shutdown();
+  // Zotero's APP_SHUTDOWN is 2. Preserve deferred session selection only on quit.
+  ZoteroAnnotationMarkdownInstance?.shutdown(reason === 2);
   ZoteroAnnotationMarkdownInstance = undefined;
 }
 

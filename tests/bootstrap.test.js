@@ -60,6 +60,16 @@ describe("bootstrap", () => {
     expect(files.get("/profile/annotation-markdown-debug.log")).toBe("small");
     expect(files.has("/profile/annotation-markdown-debug.log.1")).toBe(false);
   });
+
+  test("distinguishes application quit from disable and hot replacement", async () => {
+    const bootstrap=await loadBootstrapScript();
+    const calls=[];
+    for (const reason of [2,4,7,undefined]) {
+      bootstrap.ZoteroAnnotationMarkdownInstance={shutdown: value=>calls.push(value)};
+      bootstrap.shutdown({},reason);
+    }
+    expect(calls).toEqual([true,false,false,false]);
+  });
 });
 
 async function loadBootstrapScript() {

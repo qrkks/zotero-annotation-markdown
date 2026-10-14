@@ -3,6 +3,41 @@ import { describe, expect, test, vi } from "vitest";
 import { createPlugin } from "../src/plugin.ts";
 
 describe("createPlugin", () => {
+  test("installs the native load guard before deferred selection can request the same tab twice",async()=>{
+    const readers=[],opens=[];
+    const tabs={selectedID:"zotero-pane",_tabs:[{id:"zotero-pane",type:"library"},{id:"book",type:"reader-unloaded",data:{itemID:10}}]};
+    const win={Zotero_Tabs:tabs,setTimeout,clearTimeout,requestAnimationFrame:cb=>setTimeout(cb,0),cancelAnimationFrame:clearTimeout,addEventListener:vi.fn(),removeEventListener:vi.fn()};
+    const native=vi.fn(async(itemID,location,options)=>{await Promise.resolve();const reader={itemID,tabID:options.tabID,_window:win,_isTabClosed:false,_initPromise:Promise.resolve()};readers.push(reader);return reader;});
+    const Zotero={version:"10.0.6",Reader:{_readers:readers,open:native,registerEventListener:vi.fn()},Prefs:{get:key=>key==="extensions.annotationMarkdown.readerStartupLazy"?true:undefined},Profile:{dir:"C:\\QA"},File:{putContentsAsync:vi.fn()},Session:{state:{windows:[{type:"pane",tabs:[{type:"library",selected:true},{type:"reader",data:{itemID:10}}],annotationMarkdownStartupSelection:{version:1,itemID:10,readerIndex:1,libraryIndex:0,libraryHadSelected:false}}]}},getMainWindows:()=>[win],getMainWindow:()=>win};
+    tabs.select=vi.fn(()=>{for(let i=0;i<2;i++)opens.push(Zotero.Reader.open(10,undefined,{tabID:"book",allowDuplicate:true,preventJumpback:true}));});
+    const plugin=createPlugin({Zotero,registryFactory:()=>({register:vi.fn(),shutdown:vi.fn()})});
+    await plugin.startup();await Promise.all(opens);
+    expect(native).toHaveBeenCalledOnce();expect(readers).toHaveLength(1);plugin.shutdown(true);
+  });
+  test("installs the early Reader hook before selecting a deferred session tab",async()=>{
+    const readers=[];
+    const page={eval:vi.fn(()=>({stop:vi.fn(),status:()=>({active:true})}))};
+    const reader={_iframeWindow:page,_waitForReader:vi.fn(async()=>{})};
+    const tabs={selectedID:"zotero-pane",_tabs:[{id:"zotero-pane",type:"library"},{id:"book",type:"reader-unloaded",data:{itemID:10}}],select:vi.fn(()=>{
+      expect(Object.hasOwn(readers,"push")).toBe(true);
+      readers.push(reader);reader._waitForReader();
+    })};
+    const win={Zotero_Tabs:tabs,setTimeout,clearTimeout,requestAnimationFrame:cb=>setTimeout(cb,0),cancelAnimationFrame:clearTimeout,addEventListener:vi.fn(),removeEventListener:vi.fn()};
+    const Zotero={version:"10.0.6",Reader:{_readers:readers,registerEventListener:vi.fn()},Prefs:{get:key=>key==="extensions.annotationMarkdown.readerStartupLazy"?true:undefined},Profile:{dir:"C:\\QA"},File:{putContentsAsync:vi.fn()},Session:{state:{windows:[{type:"pane",tabs:[{type:"library",selected:true},{type:"reader",data:{itemID:10}}],annotationMarkdownStartupSelection:{version:1,itemID:10,readerIndex:1,libraryIndex:0,libraryHadSelected:false}}]}},getMainWindows:()=>[win]};
+    const plugin=createPlugin({Zotero,registryFactory:()=>({register:vi.fn(),shutdown:vi.fn()})});
+    await plugin.startup();await Promise.resolve();
+    expect(tabs.select).toHaveBeenCalledOnce();expect(page.eval).toHaveBeenCalledOnce();
+    plugin.shutdown(true);
+  });
+  test.each([[true,false],[false,true],[true,true],[false,false]])("startup=%s and tag-filter=%s select independent host hooks", async(startup,filter)=>{
+    const readers=[];
+    const Zotero={Reader:{_readers:readers,registerEventListener:vi.fn()},Prefs:{get:key=>key==="extensions.annotationMarkdown.readerStartupLazy"?startup:key==="extensions.annotationMarkdown.nativeRowLazy"?filter:undefined}};
+    const plugin=createPlugin({Zotero,registryFactory:()=>({register:vi.fn(),shutdown:vi.fn()})});
+    await plugin.startup();
+    expect(Object.hasOwn(readers,"push")).toBe(startup);
+    plugin.shutdown();
+    expect(Object.hasOwn(readers,"push")).toBe(false);
+  });
   test("registers and removes the saved-annotation todo observer", async () => {
     const unregisterObserver = vi.fn();
     const Zotero = {

@@ -12,6 +12,7 @@ pref("extensions.annotationMarkdown.performanceDiagnostics", false);
 pref("extensions.annotationMarkdown.lightweightMode", false);
 pref("extensions.annotationMarkdown.renderStrategy", "auto");
 pref("extensions.annotationMarkdown.nativeRowLazy", false);
+pref("extensions.annotationMarkdown.readerStartupLazy", false);
 pref("extensions.annotationMarkdown.outlineEnabled", true);
 pref("extensions.annotationMarkdown.outlineNumbering", false);
 pref("extensions.annotationMarkdown.outlineSmartNumbering", true);

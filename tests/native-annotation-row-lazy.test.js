@@ -10,6 +10,22 @@ import {
 afterEach(() => { vi.useRealTimers(); document.body.innerHTML = ""; });
 
 describe("createNativeAnnotationRowLazyController", () => {
+  test("never caches startup placeholder heights or retains geometry after placeholders return", () => {
+    const f = compatiblePageFixture(120);
+    document.body.insertAdjacentHTML("beforeend", '<div id="selector"><div class="tags"><button class="tag" role="checkbox" aria-checked="false"></button></div></div>');
+    f.rows[20].innerHTML = '<div data-annotation-markdown-startup-preview="true"></div>';
+    const runtime = vm.runInNewContext(NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE,f.pageWindow);
+    expect(runtime.start().active).toBe(true);
+    expect(runtime.status().cachedRows).toBe(0);
+    f.rows[20].innerHTML = "";
+    document.querySelector(".tag").click();
+    expect(runtime.status().cachedRows).toBe(120);
+    document.querySelector("#annotations").replaceChildren(...f.rows.slice(0,3));
+    f.rows[0].innerHTML = '<div data-annotation-markdown-startup-preview="true"></div>';
+    document.querySelector(".tag").click();
+    expect(runtime.status().cachedRows).toBe(0);
+    runtime.stop();
+  });
   test("stays inactive unless the experimental preference is enabled", () => {
     const pageWindow = { eval: vi.fn() };
     const controller = createNativeAnnotationRowLazyController({

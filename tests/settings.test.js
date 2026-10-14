@@ -299,6 +299,22 @@ describe("createSettings", () => {
     );
   });
 
+  test("startup acceleration and filter restoration are independent choices", () => {
+    const settings=createSettings();
+    expect(settings.isReaderStartupLazyEnabled()).toBe(false);
+    settings.setNativeRowLazyEnabled(true);
+    expect(settings.isReaderStartupLazyEnabled()).toBe(false);
+    settings.setReaderStartupLazyEnabled(true);
+    settings.setNativeRowLazyEnabled(false);
+    expect(settings.isReaderStartupLazyEnabled()).toBe(true);
+    expect(settings.isNativeRowLazyEnabled()).toBe(false);
+    const prefs={get:vi.fn(()=>undefined),set:vi.fn()};
+    const stored=createSettings({prefs});
+    expect(stored.isReaderStartupLazyEnabled()).toBe(false);
+    stored.setReaderStartupLazyEnabled(true);
+    expect(prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.readerStartupLazy",true);
+  });
+
   test("persists the floating outline expansion preference and defaults it closed", () => {
     const settings = createSettings();
     expect(settings.isOutlineExpanded()).toBe(false);

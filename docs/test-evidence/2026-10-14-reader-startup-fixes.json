@@ -1,0 +1,182 @@
+{
+  "date": "2026-10-14",
+  "decision": "hold-release",
+  "version": "0.14.3",
+  "sha256": "7BD52E3E0BFCA9F0CB8E5543919A4FDD4999329AF48D80EE106CFB64188CA67C",
+  "environment": {
+    "zotero": "10.0.6",
+    "react": "18.3.1",
+    "activeAddons": 12,
+    "weavero": "0.22.0",
+    "etherealStyle": "6.0.91",
+    "annotations": 423,
+    "pdfBytes": 84099141
+  },
+  "validation": {
+    "files": 39,
+    "tests": 1016,
+    "typecheck": true,
+    "bilingualDocs": true,
+    "buildAndPackage": true,
+    "installedPackageMatches": true,
+    "publishedMetadataUnchanged": true
+  },
+  "changes": {
+    "sameTabRestoreGuard": true,
+    "serializedSessionRestore": true,
+    "recoveryCommitLimit": 8,
+    "recoveryWaitsForCommit": true,
+    "recoveryUsesNativeScrollAnchoring": true,
+    "newDependencies": []
+  },
+  "coldRuns": [
+    {
+      "scenario": "cold-final-1",
+      "phase": "complete",
+      "bodyReadyMs": 38381.1,
+      "firstPreviewMs": 39305.2,
+      "maxHostGapMs": 1976.5,
+      "initialRows": 423,
+      "initialShells": 423,
+      "readerCount": 1,
+      "orderValid": true,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "captureBeforeReader": true,
+      "launchToCaptureMs": 1532,
+      "launchToBodyReadyMs": 39913.1
+    },
+    {
+      "scenario": "cold-final-2",
+      "phase": "complete",
+      "bodyReadyMs": 39256.8,
+      "firstPreviewMs": 40106.8,
+      "maxHostGapMs": 2004.7,
+      "initialRows": 423,
+      "initialShells": 423,
+      "readerCount": 1,
+      "orderValid": true,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "captureBeforeReader": true,
+      "launchToCaptureMs": 1499,
+      "launchToBodyReadyMs": 40755.8
+    },
+    {
+      "scenario": "cold-final-3",
+      "phase": "complete",
+      "bodyReadyMs": 39306.8,
+      "firstPreviewMs": 40228.9,
+      "maxHostGapMs": 1903.6,
+      "initialRows": 423,
+      "initialShells": 423,
+      "readerCount": 1,
+      "orderValid": true,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "captureBeforeReader": true,
+      "launchToCaptureMs": 1505,
+      "launchToBodyReadyMs": 40811.8
+    },
+    {
+      "scenario": "cold-final-collision",
+      "phase": "complete",
+      "bodyReadyMs": 37190.8,
+      "firstPreviewMs": 37927.5,
+      "maxHostGapMs": 1472.1,
+      "initialRows": 423,
+      "initialShells": 423,
+      "readerCount": 1,
+      "orderValid": true,
+      "sourceUnchanged": true,
+      "accessibility": false,
+      "captureBeforeReader": true,
+      "launchToCaptureMs": 1540,
+      "launchToBodyReadyMs": 38730.8,
+      "forcedDuplicate": {
+        "sameReader": true,
+        "beforeCount": 1,
+        "afterCount": 1
+      }
+    }
+  ],
+  "manualFinal": {
+    "phase": "complete",
+    "bodyReadyMs": 27776.4,
+    "firstPreviewMs": 28623.1,
+    "maxHostGapMs": 2347.4,
+    "initialRows": 423,
+    "initialShells": 423,
+    "orderValid": true,
+    "sourceUnchanged": true,
+    "accessibility": true
+  },
+  "lifecycle": {
+    "phase": "complete",
+    "cleanupMs": 54764.2,
+    "within60Seconds": true,
+    "maxHostGapMs": 2392.9,
+    "shellsBefore": 419,
+    "shellsAfterDisable": 0,
+    "nativeRowsAfterDisable": 423,
+    "runtimeRemoved": true,
+    "tabsPreserved": true,
+    "selectionPreserved": true,
+    "positionPreserved": true,
+    "markerBefore": true,
+    "markerAfterDisable": false,
+    "markerAfterEnable": true,
+    "enabled": true,
+    "hookAfterEnable": true,
+    "sourceUnchanged": true,
+    "restored": true
+  },
+  "rejectedExperiments": [
+    {
+      "sha256": "530215EB882AAD109C58A306F68DCC9172F28D60FF16C5F60EC933C5F717D225",
+      "variant": "transition-eight",
+      "phase": "failed",
+      "maxHostGapMs": 3205.8
+    },
+    {
+      "sha256": "ED3E7761ABEBE5FE3806252C86D65DE482A2E8A82191E601F14CE34315FB9344",
+      "variant": "transition-batched-32",
+      "phase": "failed",
+      "maxHostGapMs": 31275
+    }
+  ],
+  "restoration": {
+    "phase": "complete",
+    "tabOrderRestored": true,
+    "originalSelectionRestored": true,
+    "originalReaderBodyReady": true,
+    "originalReaderCount": 1,
+    "sidebarRestored": true,
+    "addonsRestored": true,
+    "preferencesRestored": true,
+    "sourceUnchanged": true,
+    "stressPageRestored": true,
+    "savedCoordinatesRestored": true,
+    "collectorsRemoved": true
+  },
+  "limits": [
+    "Readiness is a strict restored current-page gate, not early canvas appearance.",
+    "Host timer gaps are responsiveness proxies, not exact UI freeze durations.",
+    "Remote debugging and polling add overhead; restarts do not evict OS disk caches.",
+    "Manual/experimental warm runs included concurrent verification or source-inspection load and are not clean performance A/B controls.",
+    "The final cold/lifecycle runs ran after those verification and source-inspection processes had stopped.",
+    "Cold runs inherited the intermediate persisted page; the pre-test saved page and coordinates were restored at cleanup.",
+    "No version upgrade, commit, push, tag, or public release was performed."
+  ],
+  "diagnosticCleanup": {
+    "debugPreferencesRestored": true,
+    "selectedOriginalBook": true,
+    "liveReaders": 1,
+    "remainingStressReaders": 0,
+    "collectorsRemoved": true,
+    "listenersRemoved": true,
+    "debugUserPreferencesRemoved": true,
+    "userJsRestored": true,
+    "zoteroResponding": true
+  }
+}
