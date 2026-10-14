@@ -14,7 +14,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, and LaTeX math. Rendering preserves the original source stored by Zotero, so it stays editable.
+Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, LaTeX math, and experimental SVG diagrams. Rendering preserves the original source stored by Zotero, so it stays editable.
 
 > This project is actively maintained. If you encounter rendering or compatibility problems, or have a feature suggestion, please [open an issue](https://github.com/qrkks/zotero-annotation-markdown/issues). For bug reports, include your Zotero and plugin versions, steps to reproduce, and a minimal Markdown, LaTeX, or SVG example when relevant.
 
@@ -35,7 +35,11 @@ The Markdown, outline, and popup screenshots above use demonstration text in Zot
 
 **SVG diagrams:** edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
 
-SVG rendering is experimental and off by default. Enable **Render SVG diagrams (Experimental)** in Settings to try the [six fenced SVG samples](docs/examples/svg-samples.md) or [six raw SVG samples](docs/examples/svg-raw-samples.md). Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators. These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6. The source and sidebar previews were captured with Annotation Markdown v0.13.0; the larger-image viewer below uses v0.13.1.
+SVG rendering is experimental and off by default. Enable **Render SVG diagrams (Experimental)** in Settings to try the [six fenced SVG samples](docs/examples/svg-samples.md) or [six raw SVG samples](docs/examples/svg-raw-samples.md).
+
+SVG rendering can produce a complete preview, a compatibility preview with a persistent warning, or source fallback with a reason. Compatibility warnings also appear in the larger-image viewer, and the original source stays unchanged. See the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
+
+Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators. These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6. The source and sidebar previews were captured with Annotation Markdown v0.13.0; the larger-image viewer below uses v0.13.1.
 
 <details>
 <summary>See the SVG larger-image viewer</summary>
@@ -48,21 +52,27 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 
 ## Highlights
 
-- Markdown and LaTeX math previews in PDF and EPUB annotation sidebars.
-- Optional native MathML rendering. Select **Native MathML only** under **Math rendering** in Settings to reduce formula rendering cost; spacing and appearance may differ. Standard KaTeX rendering remains the default.
-- Optional static SVG diagrams from fenced `svg` code blocks, complete SVG documents in unlabeled code blocks, or complete raw SVGs on their own lines, with source editing and a larger-image viewer. Experimental and off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
-- Optional, off-by-default Markdown previews for page annotation popups, plus preference-controlled fast editing with a native fallback.
-- Highlight syntax from the markdown-it ecosystem: `==Highlighted text==` via [markdown-it-mark](https://github.com/markdown-it/markdown-it-mark), with optional color suffixes such as `==Highlighted text=={.red}` following the [markdown-it-attrs](https://github.com/arve0/markdown-it-attrs) convention and limited to safe preset colors.
-- Automatic links for bare URLs in rendered previews.
-- A persistent floating outline with adjustable text size and optional hierarchical numbers; a separate smart setting respects authored numbering throughout sibling groups and their descendants.
-- Optional automatic `todo` tags from `todo:` or `t:` lines in saved annotation comments.
-- [Fast source editing](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster) that remains responsive in books with many annotation tags.
-- Independent sidebar and page-popup rendering switches; enable either surface on its own, with shared font size and math settings.
-- Adjustable preview font size and rendering strategy.
-- Settings follow Zotero's interface language, with English and Simplified Chinese translations.
-- Off-by-default experimental acceleration when clearing tag filters in very large annotation lists, enabled when the Reader passes compatibility checks, with native fallback otherwise.
-- Sanitized output with a plain-text fallback on rendering failure.
-- Supports Zotero Desktop 9.0 and 10.0.x. Current release validation prioritizes Zotero 10; Zotero 9 retains an automatic native-editor fallback.
+### Reading previews
+
+- **Markdown and math:** render Markdown and LaTeX formulas in PDF and EPUB annotation sidebars.
+- **Highlights and links:** use `==Highlighted text==` or preset colors such as `==Highlighted text=={.red}`; bare URLs become clickable links.
+- **SVG diagrams (Experimental):** preview static SVGs from code blocks or standalone SVG source, with a larger-image viewer. Off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
+- **Page annotation popups:** optionally render popup comments as Markdown. Off by default.
+
+### Editing and navigation
+
+- **Floating outline:** navigate headings with adjustable outline text size and optional hierarchical numbers. Smart numbering skips any sibling group containing an already-numbered heading, along with its descendants.
+- **Fast source editing:** edit original Markdown with a [fast comment editor](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster), with a native-editor fallback when unavailable.
+- **Todo tags:** optionally add `todo` tags from `todo:` or `t:` lines in saved comments.
+- **Tag-filter acceleration (Experimental):** accelerate clearing tag filters in very large annotation lists when the Reader passes compatibility checks. Off by default, with native fallback otherwise.
+
+### Settings and compatibility
+
+- **Preview controls:** enable sidebar and popup rendering independently, and adjust preview font size and rendering strategy.
+- **Math output:** KaTeX HTML + MathML is the default. Optional native MathML can reduce formula rendering cost; spacing and appearance may differ.
+- **Interface language:** settings follow Zotero's language, with English and Simplified Chinese translations.
+- **Safe rendering:** previews are sanitized, stored source stays unchanged, and rendering failures fall back to plain text.
+- **Zotero support:** Zotero Desktop 9.0 and 10.0.x. Current validation prioritizes Zotero 10; see [compatibility details](docs/en/user-guide.md#compatibility).
 
 ## Installation
 
