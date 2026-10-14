@@ -1,4 +1,4 @@
-/** Restricted class rules are flattened into an isolated SVG preview copy. */
+/** Restricted type/class rules are flattened into an isolated SVG preview copy. */
 import { parseSvgFontShorthand } from "./svg-font-shorthand.js";
 import parse from "css-tree/parser";
 import walk from "css-tree/walker";
@@ -14,7 +14,8 @@ const PROPERTIES = new Set([
   "stop-color", "stop-opacity"
 ]);
 type Declaration = [name: string, value: string];
-type ClassRule = { classes: string[]; declarations: Declaration[] };
+type StyleSelector = { kind: "class" | "type"; name: string };
+type StyleRule = { selectors: StyleSelector[]; declarations: Declaration[] };
 
 export function parseSvgClassNames(value: string): string[] {
   const classes = value.split(/[\t\n\f\r ]+/).filter(Boolean);
@@ -27,10 +28,12 @@ export function parseSvgClassNames(value: string): string[] {
 export function createSvgClassStyles(
   normalizeFontStyles: (css: string) => string,
   validateDeclaration: (name: string, value: string, node?: Element) => void,
-  diagnostics: SvgDiagnostics
+  diagnostics: SvgDiagnostics,
+  elementNames: ReadonlySet<string>
 ): { normalize: (css: string) => string; apply: (nodes: Element[]) => void } {
-  const rules: ClassRule[] = [];
+  const rules: StyleRule[] = [];
   let declarationCount = 0;
+  let hasTypeSelectors = false;
   return {
     normalize(css) {
       css = removeComments(css);
@@ -66,56 +69,72 @@ export function createSvgClassStyles(
           continue;
         }
         if (rule.type !== "Rule" || rule.prelude?.type !== "SelectorList") {
-          throw new Error("SVG stylesheets support only simple .class selectors and comma groups.");
+          throw new Error("SVG stylesheets support only simple SVG element or .class selectors and comma groups.");
         }
-        const classes: string[] = [];
+        const selectors: StyleSelector[] = [];
         for (const selector of rule.prelude.children) {
-          if (selector.type !== "Selector") throw new Error("Unsupported SVG class selector.");
+          if (selector.type !== "Selector") throw new Error("Unsupported SVG style selector.");
           const parts = [...selector.children];
-          if (parts.length !== 1 || parts[0].type !== "ClassSelector" || !CLASS_NAME.test(parts[0].name)) {
-            throw new Error("SVG stylesheets support only simple .class selectors and comma groups.");
+          if (parts.length === 1 && parts[0].type === "ClassSelector" && CLASS_NAME.test(parts[0].name)) {
+            selectors.push({ kind: "class", name: parts[0].name });
+          } else if (parts.length === 1 && parts[0].type === "TypeSelector" && elementNames.has(parts[0].name)) {
+            // Use the renderer's exact, case-sensitive SVG element allowlist.
+            // Universal/namespace selectors and unsupported tags do not match.
+            selectors.push({ kind: "type", name: parts[0].name });
+            hasTypeSelectors = true;
+          } else {
+            throw new Error("SVG stylesheets support only simple SVG element or .class selectors and comma groups.");
           }
-          classes.push(parts[0].name);
         }
-        if (classes.length > SVG_CLASS_STYLE_LIMITS.selectorsPerRule) throw new SvgPolicyError("limits", "SVG exceeds 16 selectors per class rule.");
-        if (rules.length >= SVG_CLASS_STYLE_LIMITS.rules) throw new SvgPolicyError("limits", "SVG exceeds 256 class rules.");
+        if (selectors.length > SVG_CLASS_STYLE_LIMITS.selectorsPerRule) throw new SvgPolicyError("limits", "SVG exceeds 16 selectors per style rule.");
+        if (rules.length >= SVG_CLASS_STYLE_LIMITS.rules) throw new SvgPolicyError("limits", "SVG exceeds 256 style rules.");
         const declarations: Declaration[] = [];
         for (const declaration of rule.block.children) {
-          if (declaration.type !== "Declaration" || declaration.important) throw new Error("Unsupported SVG class declaration.");
+          if (declaration.type !== "Declaration" || declaration.important) throw new Error("Unsupported SVG style declaration.");
           const name = declaration.property.toLowerCase();
           const value = css.slice(declaration.value.loc!.start.offset, declaration.value.loc!.end.offset).trim();
-          if (!/^[a-z-]+$/.test(name) || !value || value.includes("!")) throw new Error("Unsupported SVG class declaration.");
+          if (!/^[a-z-]+$/.test(name) || !value || value.includes("!")) throw new Error("Unsupported SVG style declaration.");
           const expanded: Declaration[] = name === "font" ? parseSvgFontShorthand(value) : [[name, value]];
           // Count all original declarations, including omitted hints and four
           // expanded font longhands, before accepting any reduced preview.
           declarationCount += expanded.length;
-          if (declarationCount > SVG_CLASS_STYLE_LIMITS.declarations) throw new SvgPolicyError("limits", "SVG exceeds 1,024 class declarations.");
+          if (declarationCount > SVG_CLASS_STYLE_LIMITS.declarations) throw new SvgPolicyError("limits", "SVG exceeds 1,024 style declarations.");
           if (diagnostics.omitDisplayHint(name, value, "stylesheet")) continue;
           for (const [property, content] of expanded) {
-            if (!PROPERTIES.has(property)) throw new Error(`Unsupported SVG class property: ${property}.`);
+            if (!PROPERTIES.has(property)) throw new Error(`Unsupported SVG style property: ${property}.`);
             // Validate even unused or later overridden declarations.
             validateDeclaration(property, content);
             declarations.push([property, content]);
           }
         }
-        rules.push({ classes, declarations });
+        rules.push({ selectors, declarations });
       }
       return fonts;
     },
     apply(nodes) {
       for (const node of nodes) {
-        const value = node.getAttribute("class");
-        if (value === null) continue;
-        const classes = new Set(parseSvgClassNames(value));
-        const winners = new Map<string, string>();
-        // Every supported selector has the same specificity. Stylesheet order
-        // wins over presentation attributes, independently of class-list order.
+        const classValue = node.getAttribute("class");
+        // Keep attribute-only and class-only diagrams on their existing path.
+        if (classValue === null && !hasTypeSelectors) continue;
+        const classes = new Set(parseSvgClassNames(classValue ?? ""));
+        const winners = new Map<string, { value: string; specificity: number }>();
+        // A class outranks a type selector; ties follow stylesheet order. A
+        // comma group takes the highest specificity of its matching selectors.
+        // Both outrank presentation attributes, independent of class-list order.
         for (const rule of rules) {
-          if (rule.classes.some(name => classes.has(name))) {
-            for (const [name, value] of rule.declarations) winners.set(name, value);
+          let specificity = 0;
+          for (const selector of rule.selectors) {
+            if (selector.kind === "class" ? classes.has(selector.name) : node.localName === selector.name) {
+              specificity = Math.max(specificity, selector.kind === "class" ? 2 : 1);
+            }
+          }
+          if (specificity) {
+            for (const [name, value] of rule.declarations) {
+              if (specificity >= (winners.get(name)?.specificity ?? 0)) winners.set(name, { value, specificity });
+            }
           }
         }
-        for (const [name, value] of winners) {
+        for (const [name, { value }] of winners) {
           validateDeclaration(name, value, node);
           node.setAttribute(name, value);
         }

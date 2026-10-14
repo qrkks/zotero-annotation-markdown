@@ -50,6 +50,17 @@ describe("restricted embedded WOFF2 fonts", () => {
     expect(result.root.querySelector("code").textContent).toBe(`${source}\n`);
   });
 
+  test("combines restricted embedded fonts with simple element styles", () => {
+    const source = svg(face() + 'text{fill:red;font-size:18px}');
+    const result = render(source);
+    expect(result.clean).not.toBeNull();
+    expect(result.xml.querySelector("style").textContent).toContain(font);
+    expect(result.xml.querySelector("style").textContent).not.toContain('text{');
+    expect(result.xml.querySelector("text").getAttribute("fill")).toBe("red");
+    expect(result.xml.querySelector("text").getAttribute("font-size")).toBe("18px");
+    expect(result.root.querySelector("code").textContent).toBe(`${source}\n`);
+  });
+
   test.each([
     '@font-face{font-family:Cascadia;src:url(https://example.com/a.woff2)}',
     '@font-face{font-family:Cascadia;src:local(Cascadia)}',
@@ -64,7 +75,7 @@ describe("restricted embedded WOFF2 fonts", () => {
     face().replace('font-family:Cascadia;', 'font-family:"Cascadia; color:red";'),
     face().replace('font-family:Cascadia;', 'font-family:Cas\\63adia;'),
     face().replace(/src:([^;]+;base64,[^)]+\))/, '$& ,url(https://example.com/a.woff2)'),
-    face() + 'text{fill:red}',
+    face() + 'text.label{fill:red}',
     '@import url(https://example.com/a.css);' + face(),
     '@media all {' + face() + '}',
     face() + 'garbage',

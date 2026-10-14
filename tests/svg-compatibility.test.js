@@ -86,7 +86,7 @@ describe("real SVG samples and bounded export compatibility", () => {
     simple.replace('<path ', '<metadata>important data</metadata><path '),
     simple.replace('<path ', '<metadata onload="alert(1)"/><path '),
     simple.replace('<path ', '<style onload="alert(1)"/><path '),
-    simple.replace('<path ', '<style>path { fill: red; }</style><path '),
+    simple.replace('<path ', '<style>path.edge { fill: red; }</style><path '),
     simple.replace('<path ', '<mask><rect width="10" height="10"/></mask><path '),
     simple.replace('<path ', '<mask id="paint"/><path fill="url(#paint)" '),
     simple.replace('<path ', '<metadata id="same"/><path id="same" ')

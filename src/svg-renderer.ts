@@ -4,6 +4,7 @@ import { normalizeSvgMarkupWhitespace } from "./svg-markup.js";
 import { validateSvgPath } from "./svg-path.js";
 import { createSvgFontStyles } from "./svg-fonts.js";
 import { createSvgClassStyles, parseSvgClassNames } from "./svg-class-styles.js";
+import { createSvgAccessibility } from "./svg-accessibility.js";
 import { createSvgDiagnostics, SvgPolicyError, type SvgRenderResult, type SvgDiagnostics } from "./svg-diagnostics.js";
 
 export type { SvgRenderResult, SvgDiagnostic } from "./svg-diagnostics.js";
@@ -71,12 +72,13 @@ export function createSvgRenderer(windowRef: Window | null) {
       const nodes = [root, ...Array.from(root.querySelectorAll("*"))];
       if (nodes.length > SVG_LIMITS.elements) throw new SvgPolicyError("limits", "SVG exceeds 512 elements.");
       const ids = new Map<string, Element>();
+      const accessibility = createSvgAccessibility(root, ID);
       const references: Array<{ id: string; marker: boolean }> = [];
       const normalizeFontStyles = createSvgFontStyles(windowRef.atob.bind(windowRef));
       const classStyles = createSvgClassStyles(normalizeFontStyles, (name, value, node) => {
         const ref = validateDrawingAttribute(name, value, node);
         if (ref) references.push(ref);
-      }, diagnostics);
+      }, diagnostics, TAGS);
       const referencedIds = new Set(nodes.flatMap(node => Array.from(node.attributes)
         .map(attr => attr.value.trim().match(/^url\(#([A-Za-z_][\w.-]{0,63})\)$/)?.[1])
         .filter((id): id is string => Boolean(id))));
@@ -95,6 +97,7 @@ export function createSvgRenderer(windowRef: Window | null) {
         for (const attr of Array.from(node.attributes)) {
           const name = attr.name;
           const value = attr.value.trim();
+          if (accessibility.acceptAttribute(node, attr)) continue;
           if (node === root && !attr.namespaceURI && (name === "version" || (name === "style" && /^max-width\s*:\s*100%\s*;?$/i.test(value)))) {
             node.removeAttribute(name);
             continue;
@@ -130,6 +133,7 @@ export function createSvgRenderer(windowRef: Window | null) {
           throw new Error("SVG references must point to a local marker or gradient.");
         }
       }
+      const { label, description } = accessibility.finish(ids);
       const viewBox = root.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
       if (viewBox && (viewBox.length !== 4 || !viewBox.every(Number.isFinite) || !validDimension(viewBox[2]) || !validDimension(viewBox[3]))) {
         throw new SvgPolicyError("limits", "SVG needs a valid viewBox up to 4096 × 4096.");
@@ -148,9 +152,9 @@ export function createSvgRenderer(windowRef: Window | null) {
       });
       if (!clean || !clean.includes("<svg")) throw new SvgPolicyError("security", "SVG could not be sanitized.");
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clean)}`;
-      const title = root.querySelector("title")?.textContent?.trim().slice(0, 160) || "SVG diagram";
+      const imageDescription = description ? ` title="${escapeHtml(description)}"` : "";
       const warning = diagnostics.omittedCount ? `<p class="annotation-markdown-svg-warning" role="note">${escapeHtml(diagnostics.warningText())}</p>` : "";
-      const html = `<figure class="annotation-markdown-svg">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(title)}" width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
+      const html = `<figure class="annotation-markdown-svg">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(label)}"${imageDescription} width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
       return { status:diagnostics.omittedCount ? "degraded" : "complete", html, originalSource:source,
         omittedCount:diagnostics.omittedCount, diagnostics:diagnostics.diagnostics, reason:null };
     } catch (error) {

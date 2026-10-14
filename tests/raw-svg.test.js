@@ -163,7 +163,7 @@ describe("standalone raw SVG blocks", () => {
     simple.replace("<text", '<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">HTML</div></foreignObject><text'),
     simple.replace("<text ", '<text onload="alert(1)" '),
     simple.replace("<text", '<animate attributeName="x"/><text'),
-    simple.replace("<text", '<style>text{fill:red}</style><text'),
+    simple.replace("<text", '<style>text.label{fill:red}</style><text'),
     simple.replace("<text", '<![CDATA[literal </svg>]]><text'),
     simple.replace("</text>", "</g>"),
     simple.replace("http://www.w3.org/2000/svg", "http://www.w3.org/1999/xhtml"),

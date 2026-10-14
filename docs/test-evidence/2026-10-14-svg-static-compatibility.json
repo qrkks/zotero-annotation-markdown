@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-14",
+  "baseCommit": "abdf3293620e9cee0eb72a96c27e9ddf8d2c9d87",
+  "scope": {
+    "simpleSvgElementSelectors": true,
+    "classAndTypeSpecificity": true,
+    "rootAccessibilityMetadata": true,
+    "sourcePreserved": true,
+    "existingResourceAndComplexityLimits": true,
+    "newDependencies": false
+  },
+  "testArtifact": {
+    "name": "zotero-annotation-markdown-0.15.0-svg-compat-test.xpi",
+    "manifestVersion": "0.15.0",
+    "bytes": 1181698,
+    "sha256": "27bf33b23ae5d9d81e2e6f65337206655b3ef07daeb7bfb9911925f71b609c55",
+    "localOnly": true,
+    "publishedUpdateManifestRestored": true
+  },
+  "automatedVerification": {
+    "testFiles": 38,
+    "testsPassed": 1027,
+    "typecheck": "passed",
+    "bilingualDocumentation": "passed",
+    "build": "passed",
+    "packageContentsAndHash": "passed",
+    "fixture": "tests/fixtures/facit-cost-validation.svg",
+    "inputForms": ["svg-fence", "unlabeled-fence", "standalone-raw-svg"],
+    "coverage": [
+      "type/class specificity and mixed selector groups",
+      "equal-specificity stylesheet order and inheritance",
+      "element styles with font shorthand and embedded WOFF2",
+      "root label/description references and escaped image text",
+      "existing selector, resource and complexity restrictions",
+      "viewer, preference refresh, source preservation and cleanup"
+    ]
+  },
+  "nativeValidation": {
+    "source": "user report",
+    "result": "reported no issues after trying the provided test package",
+    "hostVersion": null,
+    "individualCheckResults": null
+  }
+}

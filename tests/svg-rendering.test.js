@@ -190,6 +190,29 @@ describe("SVG preview lifecycle", () => {
     return { source, settings, controller, adapter };
   }
 
+  test("keeps accessible image text through the viewer, preference changes and cleanup", async () => {
+    const source = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="label" aria-describedby="description"><title id="label">Accessible diagram</title><desc id="description">Accessible description</desc><style>text{font-size:18px}</style><text x="10" y="30">Label</text></svg>';
+    const f = await fixture({ markdown: `\`\`\`svg\n${source}\n\`\`\`` });
+    try {
+      const image = document.querySelector(".annotation-markdown-svg-image");
+      expect(image.alt).toBe("Accessible diagram");
+      expect(image.title).toBe("Accessible description");
+      image.click();
+      const frame = document.querySelector("[data-annotation-markdown-svg-viewer] iframe");
+      const large = frame.contentDocument.querySelector("img");
+      expect(large.alt).toBe(image.alt);
+      expect(large.title).toBe(image.title);
+      frame.contentDocument.querySelector("[aria-label='Close SVG diagram']").click();
+      f.settings.setSvgEnabled(false); f.controller.refresh();
+      expect(document.querySelector(".annotation-markdown-svg-image")).toBeNull();
+      f.settings.setSvgEnabled(true); f.controller.refresh();
+      expect(document.querySelector(".annotation-markdown-svg-image").title).toBe("Accessible description");
+      expect(f.adapter.getSourceText(document.querySelector(".comment"))).toBe(f.source);
+    } finally { f.controller.stop(); }
+    expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
+    expect(document.querySelector(".content").textContent).toBe(f.source);
+  });
+
   test.each(["auto", "eager", "lazy"])("refreshes live SVG choices even without a cache (%s)", async strategy => {
     const f = await fixture({ strategy, tinyCache: true });
     try {

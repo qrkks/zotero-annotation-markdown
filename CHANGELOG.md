@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### SVG compatibility
+
+- Support simple selectors for existing SVG elements, such as `text`, `tspan`, `rect` and `path`, alongside class rules and mixed comma groups. Class selectors outrank element selectors; ties follow stylesheet order. Existing declaration, resource and complexity checks still apply.
+- Accept root `role="img"`, `aria-label`, `aria-labelledby` and `aria-describedby`. Validate local references and transfer their plain text to the preview image's alternative text and description tooltip, including the larger-image viewer. Preserve the original SVG source.
+
+### SVG 兼容性
+
+- 在类规则和混合逗号分组之外，支持已有 SVG 元素的简单选择器，如 `text`、`tspan`、`rect` 和 `path`。类选择器优先于元素选择器，同级按样式表顺序处理；继续使用现有声明、资源与复杂度限制。
+- 接受根元素上的 `role="img"`、`aria-label`、`aria-labelledby` 和 `aria-describedby`，校验局部引用后把纯文本传递到预览图片的替代文本和描述工具提示，大图查看器也保留这些说明。原始 SVG 源码保持不变。
+
 ## 0.15.0 - 2026-10-14
 
 This release improves SVG preview compatibility and explains partial rendering,

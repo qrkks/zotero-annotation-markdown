@@ -86,7 +86,7 @@ describe("bounded SVG class styles", () => {
 
   test.each([
     ".node:hover{fill:red}", ".node.extra{fill:red}", ".outer .node{fill:red}",
-    "#node{fill:red}", "rect{fill:red}", ".node > path{fill:red}", "*{fill:red}",
+    "#node{fill:red}", "foreignObject{fill:red}", ".node > path{fill:red}", "*{fill:red}",
     "@import url(https://example.com/a.css);", "@media all{.node{fill:red}}",
     ".node{fill:red!important}", ".node{color:red}", ".node{font-size:var(--size)}",
     ".node{fill:url(https://example.com/a.svg#paint)}", ".node{fill:url(data:image/svg+xml,x)}",

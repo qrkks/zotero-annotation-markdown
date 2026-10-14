@@ -77,6 +77,7 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
       region = content.createElement("div"); region.className = "annotation-markdown-svg-viewer-region";
       region.tabIndex = 0; region.setAttribute("role", "region"); region.setAttribute("aria-label", "Diagram (wheel to zoom, drag to pan)");
       const large = content.createElement("img"); large.src = src; large.alt = image.alt;
+      if (image.hasAttribute("title")) large.title = image.title;
       // Numeric attributes retain intrinsic size, unlike a fitted sidebar image.
       large.width = Number(image.getAttribute("width")); large.height = Number(image.getAttribute("height")); large.draggable = false;
       const stage = content.createElement("div"); stage.className = "annotation-markdown-svg-viewer-stage";
