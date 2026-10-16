@@ -279,6 +279,68 @@ describe("createReaderController", () => {
     vi.useRealTimers();
   });
 
+  test.each([
+    ["eager", true, false], ["eager", false, false], ["lazy", true, false], ["lazy", false, false],
+    ["eager", true, true], ["eager", false, true], ["lazy", true, true], ["lazy", false, true]
+  ])("refreshes a restored sidebar after saving a popup with %s rendering (popup=%s, delayed source=%s)", async (strategy, popupEnabled, delayedSource) => {
+    document.body.innerHTML = `
+      <button id="outside">outside</button>
+      <div data-sidebar-annotation-id="a1" class="annotation">
+        <div class="comment"><div class="content">**old**</div></div>
+      </div>
+      <div class="annotation-popup"><div class="preview"><div class="comment"><div class="editor">
+        <div id="a1" class="content" contenteditable="true">**old**</div><div class="renderer"></div>
+      </div></div></div></div>`;
+    let visibilityCallback;
+    const IntersectionObserver = function (callback) {
+      visibilityCallback = callback;
+      return { observe() {}, unobserve() {}, disconnect() {} };
+    };
+    const sidebar = document.querySelector("[data-sidebar-annotation-id]");
+    const sidebarComment = sidebar.querySelector(".comment");
+    const popup = document.querySelector(".annotation-popup .comment");
+    const popupContent = popup.querySelector(".content");
+    const commitComment = vi.fn((_id, source) => {
+      popupContent.textContent = source;
+      return true;
+    });
+    const adapter = createAnnotationSidebarAdapter({ document, isFastEditorEnabled: () => true, commitComment });
+    const controller = createReaderController({ reader: { document }, adapter,
+      renderer: { render: source => `<p>${source}</p>` },
+      settings: { isEnabled: () => true, isPopupEnabled: () => popupEnabled, getRenderStrategy: () => strategy },
+      MutationObserver: window.MutationObserver, IntersectionObserver });
+    try {
+      await controller.start();
+      visibilityCallback([{ target: sidebarComment, isIntersecting: true }]);
+      expect(sidebarComment.querySelector(".annotation-markdown-rendered").innerHTML).toBe("<p>**old**</p>");
+
+      // The outline/tags tab hides the sidebar representation while a page
+      // popup edits the same annotation. Only the popup acknowledges the save.
+      sidebar.remove();
+      adapter.tryShowFastEditorForTarget(popupContent);
+      const textarea = popup.querySelector("textarea");
+      textarea.focus();
+      textarea.value = "**new**";
+      document.querySelector("#outside").focus();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(commitComment).toHaveBeenCalledExactlyOnceWith("a1", "**new**");
+      expect(adapter.getSourceText(popup)).toBe("**new**");
+
+      // React's native source effect catches up, but the old plugin preview
+      // and its cached source survive until the annotations tab returns.
+      if (!delayedSource) sidebarComment.querySelector(".content").textContent = "**new**";
+      document.body.append(sidebar);
+      if (delayedSource) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+        sidebarComment.querySelector(".content").textContent = "**new**";
+      }
+      await vi.waitFor(() => {
+        expect(sidebarComment.querySelector(".annotation-markdown-rendered").innerHTML).toBe("<p>**new**</p>");
+      });
+      expect(sidebarComment.getAttribute("data-annotation-markdown-source")).toBe("**new**");
+    } finally { controller.stop(); }
+  });
+
   test("turns a newly focused empty popup into a fast editor after the host layout settles", async () => {
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const callbacks = [];

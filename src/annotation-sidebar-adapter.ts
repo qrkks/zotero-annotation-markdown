@@ -228,13 +228,10 @@ export function createAnnotationSidebarAdapter({
         }
         return committedSource;
       }
-      // Zotero reuses the popup component for successive annotations. Its
-      // hidden native `.content` remains the live source of truth, while the
-      // comment-level attribute only describes the preview currently shown.
-      if (this.isPopupComment(node)) {
-        return source;
-      }
-      return node?.getAttribute(SOURCE_ATTRIBUTE) ?? source;
+      // Both popup reuse and sidebar tab changes can retain an old preview.
+      // Its source attribute describes that preview, not the current native
+      // content. Pending saves above bridge the host's delayed source update.
+      return source;
     },
 
     applyRenderedHtml(node: HTMLElement | null | undefined, html: string) {
@@ -243,9 +240,8 @@ export function createAnnotationSidebarAdapter({
       }
 
       // Keep Zotero's source DOM intact; the attribute is only a render cache.
-      if (!this.isRendered(node)) {
-        node.setAttribute(SOURCE_ATTRIBUTE, this.getSourceText(node));
-      }
+      const source = this.getSourceText(node);
+      if (node.getAttribute(SOURCE_ATTRIBUTE) !== source) node.setAttribute(SOURCE_ATTRIBUTE, source);
 
       const preview = getPreviewNode(node) ?? createPreviewNode(node, this);
 

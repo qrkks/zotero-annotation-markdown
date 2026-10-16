@@ -218,7 +218,7 @@ export function createReaderController({
   let addedCommentScanTimer: number | undefined;
   let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
   const renderCache = new Map<RenderCacheKey, CachedRender>();
-  const renderedMathSettings = new WeakMap<HTMLElement, Pick<CachedRender, "mathEnabled" | "mathOutput" | "svgEnabled">>();
+  const renderedState = new WeakMap<HTMLElement, Pick<CachedRender, "source" | "mathEnabled" | "mathOutput" | "svgEnabled">>();
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
   const renderedNodeWeights = new WeakMap<HTMLElement, number>();
@@ -322,7 +322,7 @@ export function createReaderController({
         renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
         const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
-        renderedMathSettings.set(node, { mathEnabled, mathOutput, svgEnabled });
+        renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled });
         if (diagnosticsEnabled) {
           domDurationMs = Math.max(0, nowRef() - domStartedAt);
           return createRenderDiagnosticSample();
@@ -338,7 +338,7 @@ export function createReaderController({
       setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, html });
       const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
-      renderedMathSettings.set(node, { mathEnabled, mathOutput, svgEnabled });
+      renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled });
       if (diagnosticsEnabled) {
         domDurationMs = Math.max(0, nowRef() - domStartedAt);
         return createRenderDiagnosticSample();
@@ -729,7 +729,7 @@ export function createReaderController({
           return;
         }
 
-        renderPopupCommentsFromMutations(mutations);
+        renderChangedCommentSourcesFromMutations(mutations);
         if (queueAddedCommentScans(mutations)) {
           return;
         }
@@ -778,21 +778,25 @@ export function createReaderController({
     }
   }
 
-  function renderPopupCommentsFromMutations(mutations: MutationRecord[]): void {
-    if (!isPopupRenderingEnabled()) return;
+  function renderChangedCommentSourcesFromMutations(mutations: MutationRecord[]): void {
     const comments = new Set<HTMLElement>();
     for (const mutation of mutations) {
       // Zotero updates a reused Content editor in a passive React effect.
       // Text-only child-list changes are deliberately ignored by the generic
       // plugin-mutation filter, but this native source change cannot wait for
-      // the sidebar safety scan. ID changes alone may still carry old text.
+      // the sidebar safety scan. A restored sidebar can also receive its new
+      // native source after the old preview has already been shown.
       if (mutation.type !== "childList") continue;
       const target = getElementTarget(mutation.target);
-      if (!target?.closest(".annotation-popup") || target.closest(
+      if (!target || target.closest(
         "[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-outline='true']"
       )) continue;
       const comment = adapter.getCommentNodeForTarget?.(target);
-      if (comment && !adapter.isEditable(comment) && !adapter.isSuppressed?.(comment)) {
+      if (!comment || !isCommentRenderingEnabled(comment)) continue;
+      if (!adapter.isPopupComment?.(comment) && (
+        !target.closest(".content") || !adapter.hasPreview?.(comment) || hasCurrentRenderedOutput(comment)
+      )) continue;
+      if (!adapter.isEditable(comment) && !adapter.isSuppressed?.(comment)) {
         comments.add(comment);
       }
     }
@@ -1415,6 +1419,16 @@ export function createReaderController({
       if (!observedComments.has(node)) {
         observedComments.add(node);
         visibilityObserverRef.observe(node);
+        handled += 1;
+      } else if (visibleComments.has(node) && !hasCurrentRenderedOutput(node)) {
+        // Restoring a cached sidebar row need not cross an intersection
+        // threshold, so its changed source cannot rely on another callback.
+        if (requestIdleCallbackRef) {
+          pendingRenderNodes.add(node);
+          scheduleQueuedRendering();
+        } else {
+          renderNode(node);
+        }
         handled += 1;
       }
     }
@@ -2241,10 +2255,11 @@ export function createReaderController({
 
   function hasCurrentRenderedOutput(node: HTMLElement): boolean {
     if (!adapter.isRendered(node)) return false;
-    // Mounted previews can outlive the HTML cache. Their math settings must
-    // still invalidate the lazy/eager scheduling shortcut after a live switch.
-    const rendered = renderedMathSettings.get(node);
-    return rendered?.mathEnabled === Boolean(settings.isMathEnabled?.() ?? true) &&
+    // Mounted previews can outlive both the HTML cache and a sidebar tab.
+    // Source changes must invalidate the scheduling shortcut as settings do.
+    const rendered = renderedState.get(node);
+    return rendered?.source === adapter.getSourceText(node) &&
+      rendered.mathEnabled === Boolean(settings.isMathEnabled?.() ?? true) &&
       rendered.mathOutput === (settings.getMathOutput?.() ?? "htmlAndMathml") &&
       rendered.svgEnabled === Boolean(settings.isSvgEnabled?.());
   }
