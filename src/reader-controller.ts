@@ -16,6 +16,7 @@ import { createAnnotationEscapeRecovery, type EscapeScrollRecovery } from "./ann
 import { trackAnnotationOutline, type AnnotationOutlineController } from "./annotation-outline.js";
 import { createNativeAnnotationRowLazyController } from "./native-annotation-row-lazy.js";
 import { createSvgPreviewViewer, isSvgPreviewControl, isSvgViewerTarget } from "./svg-preview-viewer.js";
+import { createSvgAnnotationBadges } from "./svg-annotation-badges.js";
 
 interface ReaderViewLike {
   _repositionPopups?(): void;
@@ -237,6 +238,26 @@ export function createReaderController({
     isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
     beforeOpen: () => adapter.closeActiveFastEditor?.() ?? true
   });
+  const svgBadgeCache = new Map<string, boolean>();
+  const svgBadges = createSvgAnnotationBadges({
+    reader,
+    document: documentRef,
+    MutationObserver: MutationObserverRef,
+    isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
+    hasRenderableSvg(source) {
+      const cached = svgBadgeCache.get(source);
+      if (cached !== undefined) return cached;
+      let value = false;
+      try {
+        value = renderer.render(source).includes('<figure class="annotation-markdown-svg">');
+      } catch {
+        // A bad comment must not interrupt page annotation discovery.
+      }
+      if (svgBadgeCache.size >= 256) svgBadgeCache.clear();
+      svgBadgeCache.set(source, value);
+      return value;
+    }
+  });
   const IntersectionObserverCtor = IntersectionObserverRef ?? windowRef?.IntersectionObserver ?? globalThis.IntersectionObserver;
   const requestIdleCallbackRef = requestIdleCallbackOverride ??
     windowRef.requestIdleCallback?.bind(windowRef) as RequestIdleCallbackLike | undefined;
@@ -386,6 +407,8 @@ export function createReaderController({
 
     refresh() {
       svgViewer.close(false);
+      svgBadgeCache.clear();
+      svgBadges.refresh();
       clearEscapeScrollRecovery();
       stopScrollTargetTracking?.();
       stopScrollTargetTracking = undefined;
@@ -410,6 +433,7 @@ export function createReaderController({
       preparePopupPositioning(root, { force: true });
       if (!isAnyRenderingEnabled()) {
         svgViewer.stop();
+        svgBadges.stop();
         nativeRowLazyController.refresh();
         outlineController?.stop();
         outlineController = undefined;
@@ -420,6 +444,7 @@ export function createReaderController({
         return;
       }
       svgViewer.start();
+      svgBadges.start();
       registerPasteHandler();
       registerAnnotationScrollbarHandlers();
       registerFastEditorHandlers();
@@ -435,6 +460,7 @@ export function createReaderController({
     stop() {
       shutdownCleanupFailures = [];
       runShutdownStep(() => svgViewer.stop());
+      runShutdownStep(() => svgBadges.stop());
       runShutdownStep(() => nativeRowLazyController.stop());
       runShutdownStep(clearEscapeScrollRecovery);
       runShutdownStep(() => outlineController?.stop());
@@ -634,6 +660,7 @@ export function createReaderController({
     }
     injectStyles();
     svgViewer.start();
+    svgBadges.start();
     syncPopupFeatureState();
     registerPasteHandler();
     registerAnnotationScrollbarHandlers();
@@ -692,6 +719,7 @@ export function createReaderController({
       observer = new MutationObserverRef((mutations) => {
         preparePopupPositioningFromMutations(mutations);
         recoverDetachedPopupEditing();
+        restoreSidebarSvgBadgesFromMutations(mutations);
         if (isRenderingPaused()) {
           recordPausedMutations(mutations);
           return;
@@ -719,6 +747,34 @@ export function createReaderController({
       if (pendingAddedCommentRoots.size > 0) {
         scheduleAddedCommentScan();
       }
+    }
+  }
+
+  function restoreSidebarSvgBadgesFromMutations(mutations: MutationRecord[]): void {
+    const rows = new Set<HTMLElement>();
+    for (const mutation of mutations) {
+      if (mutation.type !== "childList") continue;
+      const target = mutation.target.nodeType === 1
+        ? mutation.target as Element : mutation.target.parentElement;
+      const row = target?.closest<HTMLElement>("[data-sidebar-annotation-id]");
+      if (!row?.isConnected || (target !== row &&
+          !target?.matches("header, .end, .custom-sections, .preview") &&
+          !target?.closest("header"))) continue;
+      let removedBadge = false;
+      for (const node of mutation.removedNodes ?? []) {
+        if (node.nodeType !== 1) continue;
+        const element = node as Element;
+        if (element.matches("[data-annotation-markdown-svg-badge='sidebar']") ||
+            element.querySelector("[data-annotation-markdown-svg-badge='sidebar']")) {
+          removedBadge = true;
+          break;
+        }
+      }
+      if (!removedBadge) continue;
+      rows.add(row);
+    }
+    for (const row of rows) {
+      adapter.syncSvgBadge(row.querySelector<HTMLElement>(":scope > .preview > .comment"));
     }
   }
 
@@ -1995,6 +2051,7 @@ export function createReaderController({
     }
     const startedAt = isPerformanceDiagnosticsEnabled() ? nowRef() : 0;
     const result = handleCommentNodes(renderTargets, { force: true });
+    svgBadges.refresh();
     if (repositionPopupAfterRender) schedulePopupRepositionAfterRender(comment);
     if (escapeScrollRecovery?.comment === comment) escapeScrollRecovery.recovery.afterRender();
     if (isPerformanceDiagnosticsEnabled()) {

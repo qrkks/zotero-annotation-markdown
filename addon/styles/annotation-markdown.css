@@ -230,6 +230,22 @@
     min-width: 0;
 }
 
+.annotation-markdown-svg-badge {
+    align-self: center;
+    background: ButtonFace;
+    border: 1px solid ButtonBorder;
+    border-radius: 3px;
+    color: inherit;
+    flex: none;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    margin-inline-start: 0.4em;
+    padding: 0.13em 0.35em;
+    pointer-events: none;
+}
+
 .annotation-markdown-svg-image {
     display: block;
     max-width: 100%;

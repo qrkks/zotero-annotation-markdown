@@ -42,6 +42,7 @@ const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-clos
 const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
 const POPUP_KEYBOARD_SCOPE_ATTRIBUTE = "data-annotation-markdown-popup-keyboard-scope";
 const WEAVERO_LINK_COLORS_CLASS = "annotation-markdown-weavero-link-colors";
+const SVG_BADGE_ATTRIBUTE = "data-annotation-markdown-svg-badge";
 const POPUP_EDITOR_HEIGHT_PROPERTY = "--annotation-markdown-popup-editor-height";
 const OVERLAY_SCROLLBAR_HIT_WIDTH_PX = 16;
 export const FAST_EDITOR_CLOSED_EVENT = "annotation-markdown-fast-editor-closed";
@@ -72,6 +73,7 @@ export interface AnnotationSidebarAdapter {
   isPopupComment(node: HTMLElement | null | undefined): boolean;
   getSourceText(node: HTMLElement | null | undefined): string;
   applyRenderedHtml(node: HTMLElement | null | undefined, html: string): void;
+  syncSvgBadge(node: HTMLElement | null | undefined): void;
   releaseRenderedHtml(node: HTMLElement | null | undefined): boolean;
   suspendRenderedDom(node: HTMLElement | null | undefined): HTMLElement | null;
   restoreSuspendedRenderedDom(
@@ -124,6 +126,7 @@ export function createAnnotationSidebarAdapter({
 }: CreateAnnotationSidebarAdapterOptions = {}): AnnotationSidebarAdapter {
   const pendingCommittedSourceByAnnotationID = new Map<string, string>();
   const appliedHtmlByPreview = new WeakMap<HTMLElement, string>();
+  const svgComments = new WeakSet<HTMLElement>();
 
   return {
     findCommentNodes(root: Node | null = documentRef) {
@@ -263,9 +266,25 @@ export function createAnnotationSidebarAdapter({
         WEAVERO_LINK_COLORS_CLASS,
         safelyUseWeaveroLinkColors(useWeaveroLinkColors)
       );
+      this.syncSvgBadge(node);
       hideSourceNode(node);
       showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
+    },
+
+    syncSvgBadge(node: HTMLElement | null | undefined) {
+      if (!node) return;
+      const preview = getPreviewNode(node);
+      // Releasing an offscreen preview keeps its source in a placeholder.
+      // Header refreshes must retain the last validated SVG result there.
+      if (preview?.getAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE) !== "true") {
+        if (preview?.querySelector("figure.annotation-markdown-svg > img.annotation-markdown-svg-image")) {
+          svgComments.add(node);
+        } else {
+          svgComments.delete(node);
+        }
+      }
+      syncSidebarSvgBadge(node, svgComments.has(node));
     },
 
     releaseRenderedHtml(node: HTMLElement | null | undefined) {
@@ -318,6 +337,7 @@ export function createAnnotationSidebarAdapter({
 
       preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
       placeholder.replaceWith(preview);
+      this.syncSvgBadge(node);
       hideSourceNode(node);
       showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
@@ -371,6 +391,9 @@ export function createAnnotationSidebarAdapter({
       )) {
         appliedHtmlByPreview.delete(preview);
         preview.remove();
+      }
+      for (const badge of queryHtmlElements(queryRoot, `[${SVG_BADGE_ATTRIBUTE}='sidebar']`)) {
+        badge.remove();
       }
 
       for (const node of queryHtmlElements(
@@ -1353,6 +1376,28 @@ function isHTMLElement(value: unknown): value is HTMLElement {
   );
 }
 
+function syncSidebarSvgBadge(comment: HTMLElement, hasSvg: boolean): void {
+  if (comment.closest(ANNOTATION_POPUP_SELECTOR)) return;
+  const row = comment.closest<HTMLElement>("[data-sidebar-annotation-id]");
+  const header = row?.querySelector<HTMLElement>(":scope > .preview > header");
+  const container = header?.querySelector<HTMLElement>(":scope > .end");
+  const existing = header?.querySelector<HTMLElement>(`[${SVG_BADGE_ATTRIBUTE}='sidebar']`);
+  if (!hasSvg || !container) {
+    existing?.remove();
+    return;
+  }
+  if (existing?.parentElement === container) return;
+  existing?.remove();
+  const badge = comment.ownerDocument.createElement("span");
+  badge.className = "annotation-markdown-svg-badge";
+  badge.setAttribute(SVG_BADGE_ATTRIBUTE, "sidebar");
+  badge.setAttribute("title", "Contains an SVG diagram");
+  badge.setAttribute("aria-label", "Contains an SVG diagram");
+  badge.textContent = "SVG";
+  const more = container.querySelector<HTMLElement>(":scope > .more");
+  container.insertBefore(badge, more ?? null);
+}
+
 function createPreviewNode(
   sourceNode: HTMLElement,
   adapter: AnnotationSidebarAdapter
@@ -1640,6 +1685,7 @@ function restoreSourceDom(node: HTMLElement | null | undefined): void {
   showSourceNode(getSourceContainer(node, sourceNode));
   showSourceNode(sourceNode);
   getPreviewNode(node)?.remove();
+  syncSidebarSvgBadge(node, false);
   unwrapSourceNode(node);
   node.classList?.remove(EDITING_CLASS);
   node.classList?.remove(FAST_EDITING_CLASS);

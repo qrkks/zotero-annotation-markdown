@@ -17,6 +17,8 @@
 
 Enable **Render SVG diagrams (Experimental)** in Settings to preview static diagrams. The option is off by default and available when sidebar or page-popup Markdown rendering is enabled. Changes refresh open Readers. Zotero still saves the original Markdown and SVG text; no attachment or external image service is created.
 
+Annotations with a renderable SVG show a small **SVG** label beside their page annotation icon and in the sidebar annotation header. The label stays in the sidebar header when the comment expands. It disappears when the SVG is removed, rejected by validation, or SVG rendering is disabled; page popups do not add another label.
+
 When copying a whole AI reply, a diagram may arrive in a code block without a language label. Such blocks are also recognized when their entire contents form one complete SVG document, with optional whitespace, XML declaration and comments. The same SVG option and restrictions apply. Ordinary code, incomplete fragments, and blocks explicitly labeled `xml`, `html`, `text` or another language remain code. Use one of those labels when you want to display SVG source instead of a diagram.
 
 Since v0.14.2, a complete raw SVG can also occupy the entire comment or appear on its own line or lines between Markdown paragraphs. Code fences and blank separators are optional; multiple consecutive standalone SVGs are supported. Inline SVG, SVG inside lists or blockquotes, and HTML-wrapped SVG are outside this support scope. The same SVG validation, image rendering and setting apply. Temporary rendering boundaries never add code fences to the saved source. Incomplete fragments remain text and do not consume later Markdown.
