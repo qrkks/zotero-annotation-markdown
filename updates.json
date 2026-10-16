@@ -3,9 +3,9 @@
     "zotero-annotation-markdown@34028312.qq.com": {
       "updates": [
         {
-          "version": "0.15.0",
-          "update_link": "https://github.com/qrkks/zotero-annotation-markdown/releases/download/v0.15.0/zotero-annotation-markdown.xpi",
-          "update_hash": "sha256:8a549a1cccf5cf161b36a3c742542735d6fc1920751da2f0a93db48108c5bf68",
+          "version": "0.15.1",
+          "update_link": "https://github.com/qrkks/zotero-annotation-markdown/releases/download/v0.15.1/zotero-annotation-markdown.xpi",
+          "update_hash": "sha256:6573ab5a0804dc4d60314dac8f7ad8d1b4997a88688f10601ab5e9dffb3b98aa",
           "applications": {
             "zotero": {
               "strict_min_version": "9.0",

@@ -2,17 +2,33 @@
 
 ## Unreleased
 
-### SVG compatibility
+## 0.15.1 - 2026-10-16
 
-- Support simple selectors for existing SVG elements, such as `text`, `tspan`, `rect` and `path`, alongside class rules and mixed comma groups. Class selectors outrank element selectors; ties follow stylesheet order. Existing declaration, resource and complexity checks still apply.
-- Support bounded `rx` and `ry` geometry declarations in SVG class and element rules for `<rect>` elements, so common rounded-box diagrams render without broadening stylesheet support.
-- Accept root `role="img"`, `aria-label`, `aria-labelledby` and `aria-describedby`. Validate local references and transfer their plain text to the preview image's alternative text and description tooltip, including the larger-image viewer. Preserve the original SVG source.
+### Fixed
 
-### SVG 兼容性
+- Fix stale sidebar previews after editing a page popup while the sidebar shows the document outline or tags. Returning to annotations now refreshes the changed comment, including delayed native text updates and lazy rendering without another visibility callback.
 
-- 在类规则和混合逗号分组之外，支持已有 SVG 元素的简单选择器，如 `text`、`tspan`、`rect` 和 `path`。类选择器优先于元素选择器，同级按样式表顺序处理；继续使用现有声明、资源与复杂度限制。
-- 支持 `<rect>` 的类规则和元素规则设置受限的 `rx`、`ry` 圆角几何属性，使常见圆角框图可以渲染，同时不扩大其他样式表支持范围。
-- 接受根元素上的 `role="img"`、`aria-label`、`aria-labelledby` 和 `aria-describedby`，校验局部引用后把纯文本传递到预览图片的替代文本和描述工具提示，大图查看器也保留这些说明。原始 SVG 源码保持不变。
+### SVG previews
+
+- Render diagrams styled with simple element selectors such as `text`, `tspan`, `rect` and `path`, alongside class rules and mixed comma groups. Class selectors take precedence; existing resource and complexity limits still apply.
+- Support bounded `rx` and `ry` styles on rectangles so common rounded-box diagrams render correctly.
+- Use root `role="img"`, `aria-label`, `aria-labelledby` and `aria-describedby` metadata for preview alternative text and descriptions, including the larger-image viewer. References must remain local to the SVG.
+- Show a passive **SVG** marker beside supported page annotation icons and in sidebar annotation headers when a comment contains a renderable diagram. Markers follow comment changes and the SVG rendering setting; page popups do not add another marker.
+
+### 中文
+
+#### 修复
+
+- 修复侧栏处于目录或标签页时，在页面 popup 修改评论并保存后，切回标注页仍显示旧预览的问题。现在会刷新发生变化的评论，并处理原生文本延迟更新、惰性渲染未再次触发可见性回调的情况。
+
+#### SVG 预览
+
+- 在类规则和混合逗号分组之外，支持使用 `text`、`tspan`、`rect`、`path` 等简单元素选择器设置样式的图示。类选择器优先，继续沿用现有资源与复杂度限制。
+- 支持矩形上的受限 `rx`、`ry` 圆角样式，使常见圆角框图正确渲染。
+- 将根元素上的 `role="img"`、`aria-label`、`aria-labelledby`、`aria-describedby` 元数据用于预览图片的替代文本和描述，大图查看器也保留这些说明；引用必须位于同一 SVG 内。
+- 评论包含可渲染图示时，在受支持的页面标注图标旁及侧栏标注标题中显示不响应点击的 **SVG** 标记。标记跟随评论变化与 SVG 渲染开关更新，页面 popup 不重复添加标记。
+
+SVG rendering remains experimental and off by default; stored source is preserved. / SVG 渲染继续保持实验性、默认关闭，并保留保存的源码。See the [SVG user guide](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.15.1/docs/en/user-guide.md#svg-diagrams-experimental).
 
 ## 0.15.0 - 2026-10-14
 
