@@ -7,7 +7,7 @@ import { SvgPolicyError, type SvgDiagnostics } from "./svg-diagnostics.js";
 export const SVG_CLASS_STYLE_LIMITS = { rules: 256, declarations: 1024, selectorsPerRule: 16, classesPerElement: 16 } as const;
 const CLASS_NAME = /^[A-Za-z_][\w-]{0,63}$/;
 const PROPERTIES = new Set([
-  "fill", "stroke", "fill-opacity", "stroke-opacity", "opacity", "stroke-width", "stroke-linecap",
+  "fill", "stroke", "fill-opacity", "stroke-opacity", "opacity", "stroke-width", "stroke-linecap", "rx", "ry",
   "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset", "fill-rule", "clip-rule",
   "font-size", "font-family", "font-weight", "font-style", "text-anchor", "dominant-baseline",
   "alignment-baseline", "letter-spacing", "direction", "marker-start", "marker-mid", "marker-end",
@@ -135,6 +135,9 @@ export function createSvgClassStyles(
           }
         }
         for (const [name, { value }] of winners) {
+          if ((name === "rx" || name === "ry") && node.localName !== "rect") {
+            throw new Error("SVG rx and ry style properties are supported only on rect elements.");
+          }
           validateDeclaration(name, value, node);
           node.setAttribute(name, value);
         }
