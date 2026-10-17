@@ -31,20 +31,20 @@ Make Zotero annotation comments easier to read with Markdown headings, lists, co
 
 The Markdown, outline, and popup screenshots above use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
 
-![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a pelican diagram on the right](docs/images/svg-source-and-preview.webp)
+![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a singular value decomposition diagram on the right](docs/images/svg-source-and-preview.webp)
 
-**SVG diagrams:** edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
+**SVG diagrams:** illustrate mathematical ideas such as singular value decomposition directly in annotation comments. Edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
 
-SVG rendering is experimental and off by default. Enable **Render SVG diagrams (Experimental)** in Settings to try the [six fenced SVG samples](docs/examples/svg-samples.md) or [six raw SVG samples](docs/examples/svg-raw-samples.md).
+SVG rendering is experimental and off by default. Enable **Render SVG diagrams (Experimental)** in Settings to try the [SVD example](docs/examples/svd.md), [six fenced SVG samples](docs/examples/svg-samples.md), or [six raw SVG samples](docs/examples/svg-raw-samples.md).
 
 SVG rendering can produce a complete preview, a compatibility preview with a persistent warning, or source fallback with a reason. Compatibility warnings also appear in the larger-image viewer, and the original source stays unchanged. See the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 
-Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators. These SVG screenshots use the diagram from sample 5 with English demonstration text in Zotero 10.0.6. The source and sidebar previews were captured with Annotation Markdown v0.13.0; the larger-image viewer below uses v0.13.1.
+Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators. These SVD screenshots use English demonstration text in Zotero 10.0.6 with Annotation Markdown v0.15.1.
 
 <details>
 <summary>See the SVG larger-image viewer</summary>
 
-![The English SVG demonstration in the annotation sidebar on the left and the v0.13.1 larger-image viewer with zoom controls, a percentage indicator, and Fit on the right](docs/images/svg-preview-and-viewer-v0.13.1.webp)
+![The SVD annotation preview on the left and the larger-image viewer with zoom controls, a percentage indicator, and Fit on the right](docs/images/svg-preview-and-viewer.webp)
 
 Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1, use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
 

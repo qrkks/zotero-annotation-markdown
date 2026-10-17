@@ -31,20 +31,20 @@
 
 上面的 Markdown、大纲和弹窗截图使用演示文本，取自 Zotero 10.0.5 与 Annotation Markdown v0.11.0，预览字号设为 125%。
 
-![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的鹈鹕示意图](docs/images/svg-source-and-preview.webp)
+![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的奇异值分解示意图](docs/images/svg-source-and-preview.webp)
 
-**SVG 示意图**：编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
+**SVG 示意图**：在批注中展示奇异值分解（SVD）等数学图示。编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
 
-SVG 渲染是默认关闭的实验性功能。在设置中开启 **渲染 SVG 图示（实验性）**，即可尝试[六个围栏 SVG 样例](docs/examples/svg-samples.md)或[六个裸 SVG 样例](docs/examples/svg-raw-samples.md)。
+SVG 渲染是默认关闭的实验性功能。在设置中开启 **渲染 SVG 图示（实验性）**，即可尝试 [SVD 示例](docs/examples/svd.md)、[六个围栏 SVG 样例](docs/examples/svg-samples.md)或[六个裸 SVG 样例](docs/examples/svg-raw-samples.md)。
 
 SVG 渲染分为完整预览、带持续提示的兼容预览，以及带原因的源码回退。兼容提示在大图查看器中也会显示，原始源码保持不变。详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
 
-从 v0.14.2 起，完整 SVG 独立占一行或多行即可，不必添加围栏或空行。这些 SVG 截图使用样例 5 的图形和英文演示文字，取自 Zotero 10.0.6。源码和侧栏预览截图使用 Annotation Markdown v0.13.0；下方的大图查看器截图使用 v0.13.1。
+从 v0.14.2 起，完整 SVG 独立占一行或多行即可，不必添加围栏或空行。这些 SVD 截图使用英文演示文字，取自 Zotero 10.0.6 与 Annotation Markdown v0.15.1。
 
 <details>
 <summary>查看 SVG 大图查看器</summary>
 
-![左侧为采用英文演示文字的 SVG 标注预览，右侧为带缩放按钮、比例显示和 Fit 按钮的 v0.13.1 大图查看器](docs/images/svg-preview-and-viewer-v0.13.1.webp)
+![左侧为 SVD 标注预览，右侧为带缩放按钮、比例显示和 Fit 按钮的大图查看器](docs/images/svg-preview-and-viewer.webp)
 
 点击 SVG 图片或 **View larger** 查看图形细节。v0.13.1 支持用 **− / +** 或滚轮同时缩放图片和浮层，点击 **Fit** 恢复完整视图；图片超出 Reader 可用空间后可拖动平移。按 **Esc** 或点击 **Close** 返回标注。
 
