@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.15.2 - 2026-10-17
+
+### Fixed
+
+- Recognize consecutive sibling headings starting with `1 Title`, `2 Title` as authored numbering in smart outline numbering, avoiding duplicate prefixes in sidebar and popup outlines. Preserve group-wide suppression, original headings, and conservative handling of isolated numbers, years, decimals, code and formulas.
+
+### 修复
+
+- 智能大纲编号现在可识别同一父级下以 `1 标题`、`2 标题` 开始的连续同级编号，避免侧栏与 popup 大纲重复补号。沿用整组避让，保留原始标题，并继续保守处理孤立数字、年份、小数、代码和公式。
+
 ## 0.15.1 - 2026-10-16
 
 ### Fixed

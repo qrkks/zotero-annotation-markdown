@@ -25,6 +25,7 @@ const AUTHORED_HEADING_NUMBER = new RegExp(
   `\\(${ORDINAL_NUMBER}\\)|` +
   `(?:[0-9]+(?:\\.[0-9]+)*|${CHINESE_NUMBER})(?:、|\\)|\\.(?=\\s|$)))`
 );
+const BARE_HEADING_NUMBER = /^([1-9][0-9]*)\s+\S/;
 const HEADING_TOP_INSET_PX = 8;
 const VIEWPORT_INSET_PX = 8;
 const OUTSIDE_GAP_PX = 6;
@@ -667,8 +668,17 @@ function getKatexSource(math: HTMLElement): string {
 
 function hasAuthoredHeadingNumber(heading: HTMLElement, tooltip: string): boolean {
   // Normalize only for recognition, preserving the original fullwidth digits
-  // and punctuation. Bare numbers and decimal values remain ambiguous.
+  // and punctuation. Bare numbers need sibling context to disambiguate them.
   if (!AUTHORED_HEADING_NUMBER.test(tooltip.normalize("NFKC"))) return false;
+  return hasTextHeadingPrefix(heading);
+}
+
+function getBareHeadingNumber(heading: HTMLElement, tooltip: string): string | null {
+  const match = BARE_HEADING_NUMBER.exec(tooltip.normalize("NFKC"));
+  return match && hasTextHeadingPrefix(heading) ? match[1] : null;
+}
+
+function hasTextHeadingPrefix(heading: HTMLElement): boolean {
   const text = heading.ownerDocument.createTreeWalker(heading, 4 /* SHOW_TEXT */);
   let first = text.nextNode();
   while (first && !first.textContent?.trim()) first = text.nextNode();
@@ -679,12 +689,21 @@ function hasAuthoredHeadingNumber(heading: HTMLElement, tooltip: string): boolea
 function getAutomaticHeadingNumbers(headings: HTMLElement[], tooltips: string[]): string[] {
   const numbers = getHeadingNumbers(headings);
   const authoredGroups = new Set<string>();
+  const previousBareNumbers = new Map<string, string>();
   // Scan every sibling before deciding which prefixes to show, so a later
   // authored ordinal also suppresses earlier siblings and their descendants.
   headings.forEach((heading, index) => {
+    const parent = getHeadingNumberParent(numbers[index]);
     if (hasAuthoredHeadingNumber(heading, tooltips[index])) {
-      authoredGroups.add(getHeadingNumberParent(numbers[index]));
+      authoredGroups.add(parent);
     }
+    // A sibling pair starting at 1 establishes an authored sequence. Grouping
+    // by parent skips descendants without joining unrelated chapters; years,
+    // decimals, isolated numbers and nonconsecutive peers remain ambiguous.
+    const bare = getBareHeadingNumber(heading, tooltips[index]);
+    if (bare === "2" && previousBareNumbers.get(parent) === "1") authoredGroups.add(parent);
+    if (bare === null) previousBareNumbers.delete(parent);
+    else previousBareNumbers.set(parent, bare);
   });
   return numbers.map(number => {
     let parent = getHeadingNumberParent(number);

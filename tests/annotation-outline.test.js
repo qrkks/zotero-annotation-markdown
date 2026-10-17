@@ -311,6 +311,85 @@ test.each([
   expect(item.querySelector(".annotation-markdown-outline-number").textContent).toBe("1.1 ");
 });
 
+test.each(["sidebar", "popup"])("recognizes the reported consecutive numeric headings in the %s outline", context => {
+  const f = setup({ numbering: true, initialExpanded: true });
+  let preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  if (context === "popup") {
+    document.body.insertAdjacentHTML("beforeend", '<div class="annotation-popup" data-annotation-markdown-popup-ready="true"><div class="comment"><div class="annotation-markdown-rendered" data-annotation-markdown-preview="true" style="overflow-y:auto"></div></div></div>');
+    const popup = document.querySelector(".annotation-popup");
+    preview = popup.querySelector("[data-annotation-markdown-preview]");
+    popup.getBoundingClientRect = () => ({ left: 100, top: 90, right: 500, bottom: 390, width: 400, height: 300 });
+    preview.getBoundingClientRect = () => ({ left: 110, top: 100, right: 490, bottom: 300, width: 380, height: 200 });
+    Object.defineProperty(preview, "clientHeight", { configurable: true, value: 200 });
+    Object.defineProperty(preview, "scrollHeight", { configurable: true, value: 600 });
+  }
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window }).render(
+    "# 是的，cancer-specific 的含义\n\n## 1 核心区分（文中两类量表）\n\n## 2 原文佐证\n\n## 3 补充专业用法"
+  );
+  const originals = [...preview.querySelectorAll("h1,h2")].map(heading => heading.innerHTML);
+  controller.sync();
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  const items = [...outline.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(outline.dataset.context).toBe(context);
+  expect(items.map(item => item.textContent)).toEqual([
+    "1 是的，cancer-specific 的含义", "1 核心区分（文中两类量表）", "2 原文佐证", "3 补充专业用法"
+  ]);
+  items[2].focus();
+  f.setSmartNumbering(false);
+  expect(items[1].textContent).toBe("1.1 1 核心区分（文中两类量表）");
+  f.setSmartNumbering(true);
+  expect(items[1].textContent).toBe("1 核心区分（文中两类量表）");
+  expect(document.activeElement).toBe(items[2]);
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect([...preview.querySelectorAll("h1,h2")].map(heading => heading.innerHTML)).toEqual(originals);
+});
+
+test("applies consecutive numeric suppression to the whole sibling group and its descendants", () => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>研究</h1><h2>前言</h2><h3>背景</h3><h2><strong>１</strong>　方法</h2><h3>细节</h3><h2><a href="https://example.org">２</a>　结果</h2><h3>统计</h3><h2>讨论</h2><h1>补充</h1><h2>其他</h2>';
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["1 研究", "前言", "背景", "１　方法", "细节", "２　结果", "统计", "讨论", "2 补充", "2.1 其他"]);
+});
+
+test("suppresses the whole annotation for consecutive numeric root headings and recomputes after edits", () => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>1 方法</h1><h2>细节</h2><h1>2 结果</h1><h2>统计</h2>';
+  controller.sync();
+  expect(document.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(0);
+  preview.querySelectorAll("h1")[1].textContent = "3 结果";
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-item")].map(item => item.textContent))
+    .toEqual(["1 1 方法", "1.1 细节", "2 3 结果", "2.1 统计"]);
+});
+
+test.each([
+  ["2025 年的发展", "2026 年的发展"],
+  ["1.1 参数", "1.2 参数"],
+  ["1 标题", "3 标题"],
+  ["2 标题", "3 标题"],
+  ["01 标题", "02 标题"],
+  ["<code>1</code> 方法", "2 结果"],
+  ["1 方法", "<code>2</code> 结果"]
+])("does not infer a consecutive sequence from ambiguous peers (%s, %s)", (first, second) => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = `<h1>研究</h1><h2>${first}</h2><h2>${second}</h2>`;
+  controller.sync();
+  expect([...document.querySelectorAll(".annotation-markdown-outline-number")].map(number => number.textContent))
+    .toEqual(["1 ", "1.1 ", "1.2 "]);
+});
+
+test("does not combine bare numbers across parents or across an intervening unnumbered peer", () => {
+  setup({ numbering: true });
+  const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
+  preview.innerHTML = '<h1>第一组</h1><h2>1 方法</h2><h1>第二组</h1><h2>2 结果</h2><h1>第三组</h1><h2>1 方法</h2><h2>说明</h2><h2>2 结果</h2>';
+  controller.sync();
+  expect(document.querySelectorAll(".annotation-markdown-outline-number")).toHaveLength(8);
+});
+
 test("keeps a top-level authored group and its descendants unnumbered during toggles", () => {
   const f = setup({ numbering: true, initialExpanded: true });
   const preview = document.querySelector(".annotation.selected [data-annotation-markdown-preview]");
