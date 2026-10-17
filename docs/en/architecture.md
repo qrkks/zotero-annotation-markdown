@@ -134,7 +134,7 @@ The current Weavero bridge is explicit and has independent fallbacks:
 | --- | --- |
 | Source ownership | Zotero's `.content` remains intact as the shared source boundary. Neither plugin should inject formatted link spans into it. |
 | Preview ownership | This plugin owns `[data-annotation-markdown-preview="true"]`; Weavero owns `.wv-md-preview`. Cleanup must remain scoped to those owned nodes. |
-| Zotero link behavior | Supported `zotero://select`, `zotero://open`, `zotero://open-pdf`, and `zotero://note` links prefer `Zotero.Weavero.plugin.handleZoteroURI()` when available, then fall back to `Zotero.launchURL()`. |
+| Zotero link behavior | Supported `zotero://select`, `zotero://open`, `zotero://open-pdf`, and `zotero://note` links prefer `Zotero.Weavero.plugin.handleZoteroURI()` when available, then use `Zotero.getMainWindow().ZoteroPane.loadURI()` for internal navigation. If either handler is unavailable or throws synchronously, the next route is tried; `Zotero.launchURL()` remains the final fallback. Web and other supported external links keep using `Zotero.launchURL()`. Sidebar and page-popup previews share this routing. |
 | Link color | When Weavero is available and its `recolorAmLinks` preference is enabled, this plugin's preview consumes `--wv-link-http`, `--wv-link-zotero`, and `--wv-link-app` for HTTP(S), Zotero, and other links respectively. When the preference is disabled, links use Zotero's `LinkText`; missing Weavero variables also fall back to `LinkText`. |
 | Event ordering | Primary pointer/mouse events on rendered links are stopped before Zotero's row-selection path can replace the preview or enter editing. Other plugins should use an explicit behavior bridge rather than depend on observer timing. |
 

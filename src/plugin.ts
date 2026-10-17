@@ -103,6 +103,9 @@ interface ZoteroApi extends ZoteroTagApi {
     } | null;
   };
   debug?(message: string): void;
+  getMainWindow?(): {
+    ZoteroPane?: { loadURI?(url: string): void } | null;
+  } | null;
   launchURL?(url: string): void;
 }
 
@@ -338,25 +341,35 @@ function getReaderReadyPromise(reader: ReaderLike): PromiseLike<void> | null {
 }
 
 function openReaderLink(Zotero: ZoteroApi, url: string): void {
-  const weaveroPlugin = Zotero.Weavero?.plugin;
-  const handleZoteroURI = weaveroPlugin?.handleZoteroURI;
-  if (
-    isWeaveroZoteroURI(url) &&
-    typeof handleZoteroURI === "function"
-  ) {
+  if (isSupportedZoteroURI(url)) {
+    const weaveroPlugin = Zotero.Weavero?.plugin;
+    const handleZoteroURI = weaveroPlugin?.handleZoteroURI;
+    if (typeof handleZoteroURI === "function") {
+      try {
+        handleZoteroURI.call(weaveroPlugin, url);
+        return;
+      } catch {
+        // A partially initialized Weavero must not block the native route.
+      }
+    }
+
     try {
-      handleZoteroURI.call(weaveroPlugin, url);
-      return;
+      const pane = Zotero.getMainWindow?.()?.ZoteroPane;
+      if (typeof pane?.loadURI === "function") {
+        // launchURL uses the OS protocol handler, which can fail to route a
+        // zotero:// link back into the running app on Windows (issue #4).
+        pane.loadURI(url);
+        return;
+      }
     } catch {
-      // A partially initialized Weavero must not leave an otherwise usable
-      // rendered link inert. Zotero's normal launcher remains the fallback.
+      // Retain the external fallback if the main pane is not ready.
     }
   }
 
   Zotero.launchURL?.call(Zotero, url);
 }
 
-function isWeaveroZoteroURI(url: string): boolean {
+function isSupportedZoteroURI(url: string): boolean {
   return /^zotero:\/\/(?:select|open(?:-pdf)?|note)\//i.test(url);
 }
 

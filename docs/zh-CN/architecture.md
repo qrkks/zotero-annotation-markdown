@@ -134,7 +134,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 | --- | --- |
 | 源码所有权 | Zotero 的 `.content` 始终作为共享源码边界保留；两个插件都不应向其中注入格式化链接节点。 |
 | 预览所有权 | 本插件拥有 `[data-annotation-markdown-preview="true"]`；Weavero 拥有 `.wv-md-preview`。清理必须限制在各自拥有的节点内。 |
-| Zotero 链接行为 | 支持的 `zotero://select`、`zotero://open`、`zotero://open-pdf` 和 `zotero://note` 链接，在能力可用时优先调用 `Zotero.Weavero.plugin.handleZoteroURI()`，否则回退 `Zotero.launchURL()`。 |
+| Zotero 链接行为 | 支持的 `zotero://select`、`zotero://open`、`zotero://open-pdf` 和 `zotero://note` 链接，在能力可用时优先调用 `Zotero.Weavero.plugin.handleZoteroURI()`，随后使用 `Zotero.getMainWindow().ZoteroPane.loadURI()` 进行内部跳转。任一处理入口不可用或同步抛错时尝试下一条路径，最终回退到 `Zotero.launchURL()`。网页及其他受支持的外部链接继续使用 `Zotero.launchURL()`。侧栏与页面批注弹窗共用这套分发逻辑。 |
 | 链接颜色 | Weavero 可用且其 `recolorAmLinks` 颜色设置开启时，本插件预览分别用 `--wv-link-http`、`--wv-link-zotero` 和 `--wv-link-app` 为 HTTP(S)、Zotero 与其他链接配色。关闭该设置后，链接使用 Zotero 的 `LinkText`；缺少 Weavero 变量时也会回退到 `LinkText`。 |
 | 事件顺序 | 渲染链接的主指针/鼠标事件会在 Zotero 的标注行选择路径替换预览或进入编辑前停止。其他插件应使用明确的行为桥接，而不是依赖观察器时序。 |
 
