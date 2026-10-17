@@ -6,6 +6,7 @@
  */
 import { createAnnotationSidebarAdapter } from "./annotation-sidebar-adapter.js";
 import { createMarkdownRenderer } from "./markdown-renderer.js";
+import { createLinkedImageFetcher, type ImageHttpApi } from "./linked-image-loader.js";
 import { createReaderController } from "./reader-controller.js";
 import { createReaderRegistry } from "./reader-registry.js";
 import { registerAutoTodoTagger, type ZoteroTagApi } from "./auto-todo-tag.js";
@@ -92,6 +93,8 @@ interface ZoteroPrefsApi {
 
 interface ZoteroApi extends ZoteroTagApi {
   version?: string;
+  locale?: string;
+  HTTP?: ImageHttpApi;
   Reader?: ZoteroReaderApi;
   Prefs?: ZoteroPrefsApi;
   Weavero?: {
@@ -179,6 +182,7 @@ export function createPlugin({
             reader,
             adapter: createAnnotationSidebarAdapter({
               document: readerDocument,
+              getLocale: () => Zotero?.locale,
               isFastEditorEnabled: () => (
                 settings.isFastEditorEnabled() && canUseReaderFastEditor(reader)
               ),
@@ -195,11 +199,16 @@ export function createPlugin({
               isMathEnabled: () => settings.isMathEnabled(),
               getMathOutput: () => settings.getMathOutput(),
               isSvgEnabled: () => settings.isSvgEnabled(),
+              deferLinkedImages: Boolean(Zotero?.HTTP),
               windowRef: readerWindow
             }),
             settings,
             MutationObserver: readerWindow?.MutationObserver,
             hostVersion: Zotero?.version,
+            getLocale: () => Zotero?.locale,
+            loadLinkedImage: Zotero?.HTTP && readerWindow
+              ? createLinkedImageFetcher(Zotero.HTTP, binary => readerWindow.btoa(binary))
+              : undefined,
             readerReady: true,
             styleText,
             logger: diagnosticsLogger

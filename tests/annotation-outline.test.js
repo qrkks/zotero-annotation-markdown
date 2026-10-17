@@ -166,6 +166,145 @@ test("creates a collapsed outline only for one selected preview with multiple he
   expect(outline.style.getPropertyValue("--annotation-markdown-outline-font-size")).toBe("0.85em");
 });
 
+const svgFence = '```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40"><rect width="80" height="40"/></svg>\n```';
+
+test("counts regular, deferred and failed linked images separately from SVG in their direct section", async () => {
+  const { rows } = setup({ initialExpanded: true });
+  const preview = rows[0].querySelector("[data-annotation-markdown-preview]");
+  const source = ['![Before](https://example.org/before.png)', '# Parent', '## Mixed',
+    '![Photo](https://example.org/photo.png)', '[Link](https://example.org/linked.jpg)', svgFence,
+    '### Child', '> ![Child](https://example.org/child.png)', '## Empty',
+    '```text\n![Example](https://example.org/example.png)\n```'].join("\n\n");
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window, isSvgEnabled: () => true, deferLinkedImages: true }).render(source);
+  await flushMutations();
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  const labels = () => items.map(item => item.querySelector(".annotation-markdown-outline-svg-badge")?.textContent ?? "");
+  expect(labels()).toEqual(["", "IMG · SVG", "IMG", ""]);
+  expect(items[1].title).toBe("Mixed\n本节含 2 张图片、1 个 SVG 图");
+  expect(items[2].getAttribute("aria-label")).toBe("Child · 本节含 1 张图片");
+  const badge = items[1].querySelector(".annotation-markdown-outline-svg-badge");
+  preview.querySelector(".annotation-markdown-linked-image-target").hidden = true;
+  preview.querySelector(".annotation-markdown-linked-image-content").setAttribute("data-annotation-markdown-image-state", "failed");
+  await flushMutations();
+  expect(items[1].title).toBe("Mixed\n本节含 2 张图片、1 个 SVG 图");
+  expect(items[1].querySelector(".annotation-markdown-outline-svg-badge")).toBe(badge);
+  document.documentElement.lang = "en-US";
+  controller.sync();
+  expect(items[1].title).toBe("Mixed\nThis section contains 2 images and 1 SVG diagram");
+  preview.querySelector(".annotation-markdown-svg").remove();
+  await flushMutations();
+  expect(labels()).toEqual(["", "IMG", "IMG", ""]);
+  expect(items[1].querySelector(".annotation-markdown-outline-svg-badge")).toBe(badge);
+});
+
+test.each(["sidebar", "popup"])("marks only the nearest preceding heading for rendered SVGs in the %s, including nested content", async context => {
+  const { rows } = setup({ initialExpanded: true });
+  let preview = rows[0].querySelector("[data-annotation-markdown-preview]");
+  if (context === "popup") {
+    const popup = document.createElement("div");
+    popup.className = "annotation-popup";
+    popup.setAttribute("data-annotation-markdown-popup-ready", "true");
+    preview = preview.cloneNode(false);
+    Object.defineProperties(preview, {
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 600 }
+    });
+    preview.getBoundingClientRect = () => ({ left: 110, top: 100, right: 490, bottom: 300, width: 380, height: 200 });
+    popup.append(preview);
+    document.body.append(popup);
+  }
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window, isSvgEnabled: () => true }).render([
+    svgFence, "# 模型", "## 路径", svgFence, svgFence,
+    "### 参数", "> " + svgFence.replaceAll("\n", "\n> "), "## 讨论", "无图"
+  ].join("\n\n"));
+  const original = preview.innerHTML;
+  await flushMutations();
+
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items[0].closest("[data-annotation-markdown-outline]").dataset.context).toBe(context);
+  expect(items.map(item => Boolean(item.querySelector(".annotation-markdown-outline-svg-badge"))))
+    .toEqual([false, true, true, false]);
+  expect(items[1].title).toBe("路径\n本节含 2 个 SVG 图");
+  expect(items[2].title).toBe("参数\n本节含 1 个 SVG 图");
+  expect(items[1].getAttribute("aria-label")).toBe("路径 · 本节含 2 个 SVG 图");
+  const badge = items[1].querySelector(".annotation-markdown-outline-svg-badge");
+  expect(badge.textContent).toBe("SVG");
+  expect(badge.title).toBe("本节含 2 个 SVG 图");
+  expect(badge.getAttribute("aria-hidden")).toBe("true");
+  expect(preview.innerHTML.replaceAll(/ data-annotation-markdown-outline-target="\d+"/g, ""))
+    .toBe(original.replaceAll(/ data-annotation-markdown-outline-target="\d+"/g, ""));
+  expect(rows[0].querySelector(".content").textContent).toBe("source a");
+});
+
+test("updates SVG counts in place after insertion, removal, load failure and equivalent DOM replacement", async () => {
+  const f = setup({ initialExpanded: true, numbering: true });
+  const preview = f.rows[0].querySelector("[data-annotation-markdown-preview]");
+  const outline = document.querySelector("[data-annotation-markdown-outline='true']");
+  const item = outline.querySelectorAll(".annotation-markdown-outline-item")[1];
+  item.focus();
+  const renderer = createMarkdownRenderer({ windowRef: window, isSvgEnabled: () => true });
+  preview.insertAdjacentHTML("beforeend", renderer.render(svgFence));
+  await flushMutations();
+  const badge = item.querySelector(".annotation-markdown-outline-svg-badge");
+  expect(badge).not.toBeNull();
+  expect(item.title).toBe("1.1 细节\n本节含 1 个 SVG 图");
+  preview.insertAdjacentHTML("beforeend", renderer.render(svgFence));
+  await flushMutations();
+  expect(item.title).toBe("1.1 细节\n本节含 2 个 SVG 图");
+  expect(item.querySelector(".annotation-markdown-outline-svg-badge")).toBe(badge);
+
+  preview.querySelector(".annotation-markdown-svg-image").hidden = true;
+  await flushMutations();
+  expect(item.title).toBe("1.1 细节\n本节含 1 个 SVG 图");
+  const replacement = preview.cloneNode(true);
+  preview.replaceWith(replacement);
+  await flushMutations();
+  f.setNumbering(false);
+  expect(item.title).toBe("细节\n本节含 1 个 SVG 图");
+  expect(item.querySelectorAll(".annotation-markdown-outline-svg-badge")).toHaveLength(1);
+  expect(item.querySelector(".annotation-markdown-outline-svg-badge")).toBe(badge);
+  for (const figure of replacement.querySelectorAll(".annotation-markdown-svg")) figure.remove();
+  await flushMutations();
+  expect(item.querySelector(".annotation-markdown-outline-svg-badge")).toBeNull();
+  expect(item.title).toBe("细节");
+  expect(item.getAttribute("aria-label")).toBe("细节");
+  expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBe(outline);
+  expect(document.activeElement).toBe(item);
+  expect(f.getExpanded()).toBe(true);
+});
+
+test("does not mark SVG source examples, rejected SVGs or disabled previews", async () => {
+  const { rows } = setup();
+  const preview = rows[0].querySelector("[data-annotation-markdown-preview]");
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window, isSvgEnabled: () => true })
+    .render('# 源码\n\n```text\n<svg></svg>\n```\n\n## 无效图\n\n```svg\ninvalid\n```');
+  await flushMutations();
+  expect(document.querySelector(".annotation-markdown-outline-svg-badge")).toBeNull();
+  preview.innerHTML = createMarkdownRenderer({ windowRef: window, isSvgEnabled: () => false })
+    .render("# 关闭预览\n\n## 图\n\n" + svgFence);
+  await flushMutations();
+  expect(document.querySelector(".annotation-markdown-outline-svg-badge")).toBeNull();
+});
+
+test("keeps SVG badge clicks navigating the heading and localizes the count in English", async () => {
+  const { rows, scroller } = setup({ initialExpanded: true });
+  document.documentElement.lang = "en-US";
+  const preview = rows[0].querySelector("[data-annotation-markdown-preview]");
+  preview.insertAdjacentHTML("beforeend", createMarkdownRenderer({ windowRef: window, isSvgEnabled: () => true }).render(svgFence));
+  await flushMutations();
+  const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+  expect(item.title).toBe("细节\nThis section contains 1 SVG diagram");
+  Object.defineProperty(scroller, "scrollTop", { configurable: true, value: 100 });
+  scroller.getBoundingClientRect = () => ({ top: 20 });
+  scroller.scrollTo = vi.fn();
+  preview.querySelector("h2").getBoundingClientRect = () => ({ top: 220 });
+  item.querySelector(".annotation-markdown-outline-svg-badge").click();
+  expect(scroller.scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 292, behavior: "smooth" });
+  expect(item.getAttribute("aria-current")).toBe("location");
+  controller.stop();
+  expect(document.querySelector(".annotation-markdown-outline-svg-badge")).toBeNull();
+});
+
 test("toggles hierarchy numbers in place without changing headings, focus or expansion", () => {
   const f = setup({ initialExpanded: true });
   const outline = document.querySelector("[data-annotation-markdown-outline='true']");

@@ -377,6 +377,48 @@ describe("createPlugin", () => {
     expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
   });
 
+  test.each([
+    ["zh-CN", "en-US", "大纲", "本节含 2 个 SVG 图"],
+    ["en-US", "zh-CN", "Outline", "This section contains 2 SVG diagrams"],
+    ["fr-FR", "zh-CN", "Outline", "This section contains 2 SVG diagrams"]
+  ])("uses Zotero's %s interface locale for outline controls and SVG hints despite a %s Reader document", async (locale, readerLanguage, outlineLabel, hint) => {
+    const originalLanguage = document.documentElement.lang;
+    document.documentElement.lang = readerLanguage;
+    document.body.innerHTML = `
+      <div id="annotations" style="overflow-y:auto">
+        <div data-sidebar-annotation-id="a1" class="annotation selected">
+          <div class="comment"><div class="content"></div></div>
+        </div>
+      </div>`;
+    const source = document.querySelector(".content");
+    const svg = '```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40"><rect width="80" height="40"/></svg>\n```';
+    source.textContent = ["# One", "## Two", svg, svg].join("\n\n");
+    const originalSource = source.innerHTML;
+    document.querySelector("#annotations").getBoundingClientRect = () => ({
+      left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600
+    });
+    const plugin = createPlugin({
+      Zotero: {
+        locale,
+        Reader: { _readers: [{ document }], registerEventListener: vi.fn() },
+        Prefs: { get: key => key === "extensions.annotationMarkdown.svgEnabled" ? true : undefined }
+      }
+    });
+    try {
+      await plugin.startup();
+      const toggle = document.querySelector(".annotation-markdown-outline-toggle");
+      const item = document.querySelectorAll(".annotation-markdown-outline-item")[1];
+      expect(toggle.textContent).toBe(`${outlineLabel} · 2`);
+      expect(item.title).toBe(`Two\n${hint}`);
+      expect(item.getAttribute("aria-label")).toBe(`Two · ${hint}`);
+      expect(item.querySelector(".annotation-markdown-outline-svg-badge").title).toBe(hint);
+      expect(source.innerHTML).toBe(originalSource);
+    } finally {
+      plugin.shutdown();
+      document.documentElement.lang = originalLanguage;
+    }
+  });
+
   test.each([["One", "1 One", "1.1 Two"], ["三、One", "三、One", "Two"]])("refreshes live outline numbering through preferences without rebuilding the preview (%s)", async (firstHeading, numberedHeading, numberedChild) => {
     document.body.innerHTML = `
       <div id="annotations" style="overflow-y:auto">

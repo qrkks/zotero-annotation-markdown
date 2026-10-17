@@ -147,7 +147,7 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain(".annotation-markdown-rendered pre code");
     const codeRules = addonCss.match(/\.annotation-markdown-rendered pre(?: code)?\s*\{[^}]*\}/g).join("\n");
     expect(codeRules).not.toContain("overflow-x: auto");
-    expect(addonCss).not.toContain("white-space: pre;");
+    expect(codeRules).not.toContain("white-space: pre;");
   });
 
   test("contains horizontal overflow within each display equation without changing inline math", async () => {

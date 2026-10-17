@@ -1,4 +1,5 @@
 /** A small outline for the active sidebar or page-popup Markdown preview. */
+import { imageKind, imageBadgeLabel, imageCountHint, imageLocale, type ImageCounts } from "./image-counts.js";
 const PREVIEW = "[data-annotation-markdown-preview='true'].annotation-markdown-rendered:not([data-annotation-markdown-placeholder='true'])";
 const READY_POPUP = ".annotation-popup[data-annotation-markdown-popup-ready='true']";
 const SELECTED = [
@@ -62,6 +63,7 @@ interface AnnotationOutlineOptions {
   isExpanded(): boolean;
   setExpanded(expanded: boolean): void;
   getFontScale?(): number;
+  getLocale?(): string | undefined;
 }
 
 export function trackAnnotationOutline({
@@ -73,7 +75,8 @@ export function trackAnnotationOutline({
   isSmartNumberingEnabled = () => true,
   isExpanded,
   setExpanded,
-  getFontScale = () => 1
+  getFontScale = () => 1,
+  getLocale
 }: AnnotationOutlineOptions): AnnotationOutlineController {
   const win = doc.defaultView;
   let active = true;
@@ -85,6 +88,7 @@ export function trackAnnotationOutline({
   let panel: HTMLElement | null = null;
   let toggle: HTMLButtonElement | null = null;
   let headings: HTMLElement[] = [];
+  let imageCounts: ImageCounts[] = [];
   let buttons: HTMLButtonElement[] = [];
   let signature = "";
   let scroller: HTMLElement | null = null;
@@ -126,6 +130,7 @@ export function trackAnnotationOutline({
       clearCurrent();
       return;
     }
+    const nextImageCounts = countSectionImages(nextPreview, nextHeadings);
     if (
       context === nextTarget.context &&
       mount === nextTarget.mount &&
@@ -139,7 +144,8 @@ export function trackAnnotationOutline({
       // so a hover tooltip or pointer gesture is not interrupted midway, and
       // only redirect navigation to the replacement headings/scroller.
       rebindTarget(nextTarget, nextHeadings, nextSignature);
-      applyNumbering();
+      imageCounts = nextImageCounts;
+      applyItemLabels();
       applyFontScale();
       applyExpandedState();
       const wasHidden = outline.hidden;
@@ -159,13 +165,14 @@ export function trackAnnotationOutline({
     preview = nextPreview;
     scroller = nextTarget.scroller;
     headings = nextHeadings;
+    imageCounts = nextImageCounts;
     signature = nextSignature;
     mountOutline();
   }
 
   function mountOutline(): void {
     if (!preview || !doc.body) return;
-    const labels = getLabels(doc);
+    const labels = getLabels(doc, getLocale?.());
     const nav = doc.createElement("nav");
     nav.className = "annotation-markdown-outline";
     nav.dataset.context = context ?? "sidebar";
@@ -214,7 +221,7 @@ export function trackAnnotationOutline({
       });
       return item;
     });
-    applyNumbering();
+    applyItemLabels();
     list.append(...buttons);
     menu.append(list);
     surface.append(button, menu);
@@ -259,7 +266,7 @@ export function trackAnnotationOutline({
     return isExpanded();
   }
 
-  function applyNumbering(): void {
+  function applyItemLabels(): void {
     const headingLabels = headings.map(getHeadingLabel);
     const headingTooltips = headings.map(getHeadingTooltip);
     const numbers = !isNumberingEnabled() ? []
@@ -278,8 +285,22 @@ export function trackAnnotationOutline({
         }
         if (label.textContent !== prefix) label.textContent = prefix;
       } else label?.remove();
-      const accessibleLabel = prefix + headingLabels[index];
-      const tooltip = prefix + headingTooltips[index];
+      const counts = imageCounts[index] ?? { img: 0, svg: 0 };
+      const hint = imageCountHint(counts, "section", imageLocale(doc, getLocale?.()));
+      let badge = button.querySelector<HTMLElement>(".annotation-markdown-outline-svg-badge");
+      if (hint) {
+        if (!badge) {
+          badge = doc.createElement("span");
+          badge.className = "annotation-markdown-outline-svg-badge";
+          badge.setAttribute("aria-hidden", "true");
+          button.append(badge);
+        }
+        const badgeLabel = imageBadgeLabel(counts);
+        if (badge.textContent !== badgeLabel) badge.textContent = badgeLabel;
+        if (badge.title !== hint) badge.title = hint;
+      } else badge?.remove();
+      const accessibleLabel = prefix + headingLabels[index] + (hint ? ` · ${hint}` : "");
+      const tooltip = prefix + headingTooltips[index] + (hint ? `\n${hint}` : "");
       if (button.getAttribute("aria-label") !== accessibleLabel) button.setAttribute("aria-label", accessibleLabel);
       if (button.title !== tooltip) button.title = tooltip;
     });
@@ -475,6 +496,7 @@ export function trackAnnotationOutline({
     panel = null;
     toggle = null;
     headings = [];
+    imageCounts = [];
     buttons = [];
     signature = "";
     scroller = null;
@@ -628,6 +650,23 @@ function collectHeadings(preview: HTMLElement): HTMLElement[] {
     .filter(heading => getHeadingLabel(heading).length > 0);
 }
 
+function countSectionImages(preview: HTMLElement, headings: HTMLElement[]): ImageCounts[] {
+  const counts = headings.map(() => ({ img: 0, svg: 0 }));
+  const indices = new Map(headings.map((heading, index) => [heading, index]));
+  let current = -1;
+  // Document order also handles figures inside quotes or lists. Each heading
+  // starts a new direct section, without propagating counts to its ancestors.
+  for (const node of preview.querySelectorAll<HTMLElement>(`${HEADING_SELECTOR},img`)) {
+    if (node.matches(HEADING_SELECTOR)) {
+      current = indices.get(node) ?? -1;
+    } else if (current >= 0) {
+      const kind = imageKind(node, preview);
+      if (kind) counts[current][kind]++;
+    }
+  }
+  return counts;
+}
+
 function getHeadingLabel(heading: HTMLElement): string {
   if (!heading.querySelector(".katex")) return normalizeHeadingText(heading.textContent);
   const copy = heading.cloneNode(true) as HTMLElement;
@@ -740,7 +779,8 @@ function getHeadingNumbers(headings: HTMLElement[]): string[] {
 
 function appendHeadingContent(target: HTMLElement, heading: HTMLElement): void {
   const doc = target.ownerDocument;
-  const content = doc.createDocumentFragment();
+  const content = doc.createElement("span");
+  content.className = "annotation-markdown-outline-text";
 
   function appendNode(source: Node, parent: ParentNode): void {
     if (source.nodeType === 3) {
@@ -789,8 +829,9 @@ function findScroller(target: HTMLElement): HTMLElement | null {
   return null;
 }
 
-function getLabels(doc: Document): { outline: string; toggle: string } {
-  const language = doc.documentElement.lang || doc.defaultView?.navigator.language || "en";
+function getLabels(doc: Document, locale?: string): { outline: string; toggle: string } {
+  // Reader iframe language can differ from the application's selected locale.
+  const language = locale || doc.documentElement.lang || doc.defaultView?.navigator.language || "en";
   return language.toLowerCase().startsWith("zh")
     ? { outline: "大纲", toggle: "展开或收起大纲" }
     : { outline: "Outline", toggle: "Expand or collapse outline" };

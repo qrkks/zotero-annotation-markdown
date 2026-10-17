@@ -13,11 +13,25 @@
 - Raw HTML is not trusted; rendered output is sanitized.
 - Rendering failures leave the original plain text visible.
 
+### Image links
+
+A paragraph consisting only of a Markdown link, reference-style link, or bare URL previews the image when its HTTP(S) path ends in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.avif`, or `.bmp`. HTTPS links under `images.openai.com/static-rsc/` and versioned paths such as `/static-rsc-4/` are also recognized without a file extension. Sentence links, headings, tight list items, code examples, and other web links keep their normal layout.
+
+Images load lazily and fit the annotation preview width. The original link and its formatted caption remain below the image; choosing the image or caption opens the original URL through the existing link handler. If the image cannot load, only its caption link remains. This applies to sidebar and page-popup Markdown previews without changing the stored Markdown. Explicit `![description](https://example.org/photo.jpg)` images keep their existing behavior.
+
+Image data is fetched when a preview approaches the viewport and kept only in a bounded memory cache; repeated links reuse it and no attachment is created. Responses must be a supported raster image up to 8 MiB, with a 15-second request timeout. Unsupported or unavailable responses keep their original caption link.
+
+Standalone Google source-icon links under `https://www.google.com/s2/favicons` or `https://google.com/s2/favicons`, with a valid `domain` or `domain_url` parameter, appear as 16-pixel favicon links. A following short plain-text site name (up to 100 characters, with optional bold or emphasis) is shown on the same line; headings, multiline prose, sentences ending in punctuation, and other links remain separate. Icons load lazily through the same bounded host cache. If fetching or decoding fails, the original link text remains available alongside the site name. The stored Markdown is unchanged. These source icons do not contribute to annotation or section image counts.
+
+Ordinary Markdown images and recognized image-link previews show an **IMG** label beside the PDF or EPUB page annotation icon and in the sidebar header. SVG-only annotations show **SVG**; mixed annotations use one **IMG · SVG** label. Hover briefly over a page or sidebar label to see separate totals, such as “This annotation contains 2 images and 1 SVG diagram”. Hints follow Zotero's interface language (Chinese or English, with English fallback). Labels and hints let mouse input pass through to Zotero, and page popups do not add a duplicate label. Hints close on pointer leave, scrolling, key input, or window blur.
+
+Counts describe image items in the rendered content. Deferred and failed image-link previews still count; discovering labels never downloads images. SVG counts include validated previews only, and omit source examples and rejected diagrams. Disabling SVG rendering leaves ordinary image labels available. Counts update after edits; outline labels report each section's own counts.
+
 ### SVG diagrams (Experimental)
 
 Enable **Render SVG diagrams (Experimental)** in Settings to preview static diagrams. The option is off by default and available when sidebar or page-popup Markdown rendering is enabled. Changes refresh open Readers. Zotero still saves the original Markdown and SVG text; no attachment or external image service is created.
 
-Annotations with a renderable SVG show a small **SVG** label beside their page annotation icon and in the sidebar annotation header. The label stays in the sidebar header when the comment expands. It disappears when the SVG is removed, rejected by validation, or SVG rendering is disabled; page popups do not add another label.
+SVG diagrams participate in the image labels described above. The sidebar label stays in the header when the comment expands; removing or disabling SVG previews updates the label to match the remaining image content.
 
 When copying a whole AI reply, a diagram may arrive in a code block without a language label. Such blocks are also recognized when their entire contents form one complete SVG document, with optional whitespace, XML declaration and comments. The same SVG option and restrictions apply. Ordinary code, incomplete fragments, and blocks explicitly labeled `xml`, `html`, `text` or another language remain code. Use one of those labels when you want to display SVG source instead of a diagram.
 
@@ -127,6 +141,10 @@ Both options are in the **Annotation Tags** settings group. Automatic cleanup is
 ## Floating outline
 
 When the selected annotation contains at least two Markdown headings, a compact **Outline** button stays fixed beside the annotation-sidebar viewport, so it remains available after the start of a long annotation has scrolled away. It prefers the open space to the right of the sidebar and scrollbar; at narrow widths it moves inside and opens to the left. The outline includes `H1` through `H6`, preserves their hierarchy, and highlights the section nearest the top of the annotation sidebar. Choosing an entry smoothly scrolls only that sidebar to its heading; it does not enter comment editing or change the selected annotation.
+
+Sections containing images show a small `IMG`, `SVG`, or combined `IMG · SVG` badge after their outline title. Hover over the badge or entry to see separate image and SVG counts. Each image belongs only to its nearest preceding heading; parent headings do not inherit badges, and images before the first heading are not assigned to a section. Deferred or failed image-link previews still count; code examples and SVGs that fall back to code do not count. Badges update when the preview changes, in both the sidebar and page annotation popups. Clicking a badge still navigates to the section heading. Long titles truncate before the badge, keeping it visible; the Markdown source and body headings remain unchanged.
+
+Outline controls and image count hints follow Zotero's interface language: Chinese and English are included, with English fallback for other languages. The `IMG` and `SVG` abbreviations are language-neutral.
 
 The outline is enabled by default and can be disabled with **Show a floating outline for annotations with multiple headings** in the **Floating Outline** settings group. **Outline font size** ranges from 80% to 200%, with 100% preserving the previous size. It is separate from Markdown preview font size and updates open Readers immediately. The panel widens when the text is enlarged, as space allows. The outline starts closed for new installations. Opening or closing it is remembered independently across annotations, Reader tabs, and Zotero restarts, so disabling and later re-enabling the feature preserves that choice. An annotation with fewer than two headings has no outline. Entering comment editing hides the outline temporarily, then restores the remembered state when the rendered preview returns.
 

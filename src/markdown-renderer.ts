@@ -13,6 +13,8 @@ import markdownItTexmath from "markdown-it-texmath";
 import markdownItMarkColors from "./markdown-it-mark-colors.js";
 import { createSvgRenderer } from "./svg-renderer.js";
 import { createRawSvgBlockProtector } from "./raw-svg-blocks.js";
+import { installLinkedImagePreviews } from "./linked-image-preview.js";
+import { installSourceFavicons } from "./source-favicon.js";
 import type { MarkdownRenderer } from "./types.js";
 import type { MathOutput } from "./settings.js";
 
@@ -35,6 +37,7 @@ interface CreateMarkdownRendererOptions {
   mathPluginOptions?: MathPluginOptions;
   isMathEnabled?: () => boolean;
   isSvgEnabled?: () => boolean;
+  deferLinkedImages?: boolean;
   getMathOutput?: () => MathOutput;
   windowRef?: Window | null;
 }
@@ -64,15 +67,16 @@ export function createMarkdownRenderer({
   getMathOutput = () => mathPluginOptions?.katexOptions?.output ?? "htmlAndMathml",
   isMathEnabled = () => true,
   isSvgEnabled = () => false,
+  deferLinkedImages = false,
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
   const renderSvg = createSvgRenderer(windowRef);
   const protectRawSvgBlocks = createRawSvgBlockProtector();
-  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg);
+  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages);
   // Separate default engines let math be disabled again after the plugin has
   // been loaded without leaving texmath rules attached to the plain renderer.
   const mathCapableMarkdown = mathMarkdown ?? (
-    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg)
+    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages)
   );
   const purifier = createPurifier(windowRef);
   // texmath retains this options object, so live switches do not rebuild its rules.
@@ -92,8 +96,9 @@ export function createMarkdownRenderer({
         return purifier
           ? purifier.sanitize(html, {
             ALLOWED_URI_REGEXP: SAFE_URI_PATTERN,
+            ADD_ATTR: ["referrerpolicy", ...(mathmlOnly ? ["encoding"] : [])],
             // Native MathML needs semantics intact; unwrapping annotation exposes TeX.
-            ...(mathmlOnly ? { ADD_TAGS: ["semantics", "annotation"], ADD_ATTR: ["encoding"] } : {})
+            ...(mathmlOnly ? { ADD_TAGS: ["semantics", "annotation"] } : {})
           })
           : html;
       } catch {
@@ -131,11 +136,13 @@ function wrapMathmlDisplayMath(html: string): string {
   );
 }
 
-function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: ReturnType<typeof createSvgRenderer>): MarkdownIt {
+function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: ReturnType<typeof createSvgRenderer>, deferLinkedImages: boolean): MarkdownIt {
   const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
   markdown.use(markdownItCjkFriendly);
   markdown.use(markdownItMark);
   markdown.use(markdownItMarkColors);
+  installLinkedImagePreviews(markdown, deferLinkedImages);
+  installSourceFavicons(markdown, deferLinkedImages);
   markdown.linkify.add("zotero:", "http:");
   const originalFence = markdown.renderer.rules.fence!;
   markdown.renderer.rules.fence = (tokens, index, options, env, self) => {

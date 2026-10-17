@@ -17,6 +17,8 @@ import { trackAnnotationOutline, type AnnotationOutlineController } from "./anno
 import { createNativeAnnotationRowLazyController } from "./native-annotation-row-lazy.js";
 import { createSvgPreviewViewer, isSvgPreviewControl, isSvgViewerTarget } from "./svg-preview-viewer.js";
 import { createSvgAnnotationBadges } from "./svg-annotation-badges.js";
+import { createLinkedImageLoader } from "./linked-image-loader.js";
+import { countRenderedImages, type ImageCounts } from "./image-counts.js";
 
 interface ReaderViewLike {
   _repositionPopups?(): void;
@@ -125,6 +127,8 @@ interface CreateReaderControllerOptions {
   renderCacheMaxBytes?: number;
   offscreenRenderMaxBytes?: number;
   hostVersion?: string;
+  getLocale?(): string | undefined;
+  loadLinkedImage?(url: string): PromiseLike<string>;
   readerReady?: boolean;
 }
 
@@ -164,6 +168,8 @@ export function createReaderController({
   adapter,
   renderer,
   settings,
+  getLocale,
+  loadLinkedImage,
   MutationObserver: MutationObserverRef = globalThis.MutationObserver,
   IntersectionObserver: IntersectionObserverRef,
   styleText = "",
@@ -232,29 +238,37 @@ export function createReaderController({
   const root = getReaderRoot(reader);
   const documentRef = root?.ownerDocument ?? reader.document ?? globalThis.document;
   const windowRef = documentRef.defaultView ?? globalThis.window;
+  const linkedImages = loadLinkedImage ? createLinkedImageLoader({
+    load: loadLinkedImage, IntersectionObserver: windowRef?.IntersectionObserver
+  }) : undefined;
   const svgViewer = createSvgPreviewViewer({
     document: documentRef,
     styleText,
     isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
     beforeOpen: () => adapter.closeActiveFastEditor?.() ?? true
   });
-  const svgBadgeCache = new Map<string, boolean>();
+  const imageBadgeCache = new Map<string, ImageCounts>();
   const svgBadges = createSvgAnnotationBadges({
     reader,
     document: documentRef,
     MutationObserver: MutationObserverRef,
-    isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
-    hasRenderableSvg(source) {
-      const cached = svgBadgeCache.get(source);
+    isEnabled: isAnyRenderingEnabled,
+    getLocale,
+    getImageCounts(source) {
+      const cached = imageBadgeCache.get(source);
       if (cached !== undefined) return cached;
-      let value = false;
+      let value: ImageCounts = { img: 0, svg: 0 };
       try {
-        value = renderer.render(source).includes('<figure class="annotation-markdown-svg">');
+        // Template content is inert, including image URLs. Badge discovery
+        // must never fetch offscreen images or wait for their load outcome.
+        const template = documentRef.createElement("template");
+        template.innerHTML = renderer.render(source);
+        value = countRenderedImages(template.content);
       } catch {
         // A bad comment must not interrupt page annotation discovery.
       }
-      if (svgBadgeCache.size >= 256) svgBadgeCache.clear();
-      svgBadgeCache.set(source, value);
+      if (imageBadgeCache.size >= 256) imageBadgeCache.clear();
+      imageBadgeCache.set(source, value);
       return value;
     }
   });
@@ -322,6 +336,7 @@ export function createReaderController({
         renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
         const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
+        linkedImages?.observe(node);
         renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled });
         if (diagnosticsEnabled) {
           domDurationMs = Math.max(0, nowRef() - domStartedAt);
@@ -338,6 +353,7 @@ export function createReaderController({
       setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, html });
       const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
+      linkedImages?.observe(node);
       renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled });
       if (diagnosticsEnabled) {
         domDurationMs = Math.max(0, nowRef() - domStartedAt);
@@ -407,7 +423,7 @@ export function createReaderController({
 
     refresh() {
       svgViewer.close(false);
-      svgBadgeCache.clear();
+      imageBadgeCache.clear();
       svgBadges.refresh();
       clearEscapeScrollRecovery();
       stopScrollTargetTracking?.();
@@ -460,6 +476,7 @@ export function createReaderController({
     stop() {
       shutdownCleanupFailures = [];
       runShutdownStep(() => svgViewer.stop());
+      runShutdownStep(() => linkedImages?.stop());
       runShutdownStep(() => svgBadges.stop());
       runShutdownStep(() => nativeRowLazyController.stop());
       runShutdownStep(clearEscapeScrollRecovery);
@@ -685,7 +702,8 @@ export function createReaderController({
       isSmartNumberingEnabled: () => settings.isOutlineSmartNumberingEnabled?.() ?? true,
       isExpanded: () => settings.isOutlineExpanded?.() ?? false,
       setExpanded: expanded => settings.setOutlineExpanded?.(expanded),
-      getFontScale: () => settings.getOutlineFontScale?.() ?? 1
+      getFontScale: () => settings.getOutlineFontScale?.() ?? 1,
+      getLocale
     });
   }
 
@@ -774,7 +792,7 @@ export function createReaderController({
       rows.add(row);
     }
     for (const row of rows) {
-      adapter.syncSvgBadge(row.querySelector<HTMLElement>(":scope > .preview > .comment"));
+      adapter.syncImageBadge(row.querySelector<HTMLElement>(":scope > .preview > .comment"));
     }
   }
 
@@ -2947,8 +2965,9 @@ function isPluginOwnedNode(node: Node | null): boolean {
     element?.getAttribute("data-annotation-markdown-preview") === "true" ||
     element?.getAttribute("data-annotation-markdown-fast-editor") === "true" ||
     element?.getAttribute("data-annotation-markdown-outline") === "true" ||
+    element?.getAttribute("data-annotation-markdown-svg-page-tooltip") === "true" ||
     element?.getAttribute("data-annotation-markdown-source-node") === "true" ||
-    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-outline='true'], [data-annotation-markdown-source-node='true']")
+    element?.closest("[data-annotation-markdown-preview='true'], [data-annotation-markdown-fast-editor='true'], [data-annotation-markdown-outline='true'], [data-annotation-markdown-svg-page-tooltip='true'], [data-annotation-markdown-source-node='true']")
   );
 }
 

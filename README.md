@@ -56,12 +56,13 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 
 - **Markdown and math:** render Markdown and LaTeX formulas in PDF and EPUB annotation sidebars.
 - **Highlights and links:** use `==Highlighted text==` or preset colors such as `==Highlighted text=={.red}`; bare URLs become clickable links.
+- **Image links:** preview standalone image URLs, including OpenAI image links without a file extension, while retaining their caption and original link. Pasted Google favicon links appear as small source icons beside short site names and stay outside image counts. Failed images fall back to the link.
 - **SVG diagrams (Experimental):** preview static SVGs from code blocks or standalone SVG source, with a larger-image viewer. Off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 - **Page annotation popups:** optionally render popup comments as Markdown. Off by default.
 
 ### Editing and navigation
 
-- **Floating outline:** navigate headings with adjustable outline text size and optional hierarchical numbers. Smart numbering skips any sibling group containing an already-numbered heading, along with its descendants.
+- **Floating outline:** navigate headings with adjustable outline text size and optional hierarchical numbers. Image sections show `IMG`, `SVG`, or `IMG · SVG` with separate counts on hover; matching page and sidebar labels report annotation totals. Smart numbering skips any sibling group containing an already-numbered heading, along with its descendants.
 - **Fast source editing:** edit original Markdown with a [fast comment editor](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster), with a native-editor fallback when unavailable.
 - **Todo tags:** optionally add `todo` tags from `todo:` or `t:` lines in saved comments.
 - **Tag-filter acceleration (Experimental):** accelerate clearing tag filters in very large annotation lists when the Reader passes compatibility checks. Off by default, with native fallback otherwise.

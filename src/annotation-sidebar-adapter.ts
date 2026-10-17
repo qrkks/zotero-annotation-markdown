@@ -5,6 +5,8 @@
  * nodes while preserving Zotero's original source and native editor structure.
  */
 import { isSvgPreviewControl } from "./svg-preview-viewer.js";
+import { handleLinkedImageError } from "./linked-image-preview.js";
+import { countRenderedImages, imageBadgeLabel, imageCountHint, imageLocale, type ImageCounts } from "./image-counts.js";
 
 const COMMENT_SELECTORS: string[] = [
   "[data-annotation-comment]",
@@ -62,6 +64,7 @@ interface CreateAnnotationSidebarAdapterOptions {
   commitComment?(annotationID: string, comment: string): boolean;
   beginFastEditorKeyboardGuard?(): (() => void) | void;
   useWeaveroLinkColors?(): boolean;
+  getLocale?(): string | undefined;
 }
 
 /** Operations the controller may perform without knowing Zotero's DOM shape. */
@@ -73,7 +76,7 @@ export interface AnnotationSidebarAdapter {
   isPopupComment(node: HTMLElement | null | undefined): boolean;
   getSourceText(node: HTMLElement | null | undefined): string;
   applyRenderedHtml(node: HTMLElement | null | undefined, html: string): void;
-  syncSvgBadge(node: HTMLElement | null | undefined): void;
+  syncImageBadge(node: HTMLElement | null | undefined): void;
   releaseRenderedHtml(node: HTMLElement | null | undefined): boolean;
   suspendRenderedDom(node: HTMLElement | null | undefined): HTMLElement | null;
   restoreSuspendedRenderedDom(
@@ -122,11 +125,12 @@ export function createAnnotationSidebarAdapter({
   isFastEditorEnabled = () => false,
   commitComment,
   beginFastEditorKeyboardGuard,
-  useWeaveroLinkColors = () => false
+  useWeaveroLinkColors = () => false,
+  getLocale
 }: CreateAnnotationSidebarAdapterOptions = {}): AnnotationSidebarAdapter {
   const pendingCommittedSourceByAnnotationID = new Map<string, string>();
   const appliedHtmlByPreview = new WeakMap<HTMLElement, string>();
-  const svgComments = new WeakSet<HTMLElement>();
+  const imageCounts = new WeakMap<HTMLElement, ImageCounts>();
 
   return {
     findCommentNodes(root: Node | null = documentRef) {
@@ -262,25 +266,21 @@ export function createAnnotationSidebarAdapter({
         WEAVERO_LINK_COLORS_CLASS,
         safelyUseWeaveroLinkColors(useWeaveroLinkColors)
       );
-      this.syncSvgBadge(node);
+      this.syncImageBadge(node);
       hideSourceNode(node);
       showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
     },
 
-    syncSvgBadge(node: HTMLElement | null | undefined) {
+    syncImageBadge(node: HTMLElement | null | undefined) {
       if (!node) return;
       const preview = getPreviewNode(node);
       // Releasing an offscreen preview keeps its source in a placeholder.
-      // Header refreshes must retain the last validated SVG result there.
+      // Header refreshes must retain the last validated image counts there.
       if (preview?.getAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE) !== "true") {
-        if (preview?.querySelector("figure.annotation-markdown-svg > img.annotation-markdown-svg-image")) {
-          svgComments.add(node);
-        } else {
-          svgComments.delete(node);
-        }
+        imageCounts.set(node, preview ? countRenderedImages(preview) : { img: 0, svg: 0 });
       }
-      syncSidebarSvgBadge(node, svgComments.has(node));
+      syncSidebarImageBadge(node, imageCounts.get(node) ?? { img: 0, svg: 0 }, getLocale?.());
     },
 
     releaseRenderedHtml(node: HTMLElement | null | undefined) {
@@ -333,7 +333,7 @@ export function createAnnotationSidebarAdapter({
 
       preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
       placeholder.replaceWith(preview);
-      this.syncSvgBadge(node);
+      this.syncImageBadge(node);
       hideSourceNode(node);
       showPreviewNode(preview);
       node.setAttribute(RENDERED_ATTRIBUTE, "true");
@@ -1372,26 +1372,30 @@ function isHTMLElement(value: unknown): value is HTMLElement {
   );
 }
 
-function syncSidebarSvgBadge(comment: HTMLElement, hasSvg: boolean): void {
+function syncSidebarImageBadge(comment: HTMLElement, counts: ImageCounts, locale?: string): void {
   if (comment.closest(ANNOTATION_POPUP_SELECTOR)) return;
   const row = comment.closest<HTMLElement>("[data-sidebar-annotation-id]");
   const header = row?.querySelector<HTMLElement>(":scope > .preview > header");
   const container = header?.querySelector<HTMLElement>(":scope > .end");
   const existing = header?.querySelector<HTMLElement>(`[${SVG_BADGE_ATTRIBUTE}='sidebar']`);
-  if (!hasSvg || !container) {
+  const label = imageBadgeLabel(counts);
+  if (!label || !container) {
     existing?.remove();
     return;
   }
-  if (existing?.parentElement === container) return;
-  existing?.remove();
-  const badge = comment.ownerDocument.createElement("span");
-  badge.className = "annotation-markdown-svg-badge";
-  badge.setAttribute(SVG_BADGE_ATTRIBUTE, "sidebar");
-  badge.setAttribute("title", "Contains an SVG diagram");
-  badge.setAttribute("aria-label", "Contains an SVG diagram");
-  badge.textContent = "SVG";
-  const more = container.querySelector<HTMLElement>(":scope > .more");
-  container.insertBefore(badge, more ?? null);
+  const badge = existing ?? comment.ownerDocument.createElement("span");
+  if (!existing) {
+    badge.className = "annotation-markdown-svg-badge";
+    badge.setAttribute(SVG_BADGE_ATTRIBUTE, "sidebar");
+  }
+  const hint = imageCountHint(counts, "annotation", imageLocale(comment.ownerDocument, locale));
+  if (badge.title !== hint) badge.title = hint;
+  if (badge.getAttribute("aria-label") !== hint) badge.setAttribute("aria-label", hint);
+  if (badge.textContent !== label) badge.textContent = label;
+  if (badge.parentElement !== container) {
+    const more = container.querySelector<HTMLElement>(":scope > .more");
+    container.insertBefore(badge, more ?? null);
+  }
 }
 
 function createPreviewNode(
@@ -1401,6 +1405,7 @@ function createPreviewNode(
   const preview = sourceNode.ownerDocument.createElement("div");
   preview.className = "annotation-markdown-rendered";
   preview.setAttribute(PREVIEW_ATTRIBUTE, "true");
+  preview.addEventListener("error", handleLinkedImageError, true);
   preview.addEventListener("pointerdown", (event) => {
     if (isSvgPreviewControl(event.target)) {
       if (event.button === 0) event.stopPropagation();
@@ -1681,7 +1686,7 @@ function restoreSourceDom(node: HTMLElement | null | undefined): void {
   showSourceNode(getSourceContainer(node, sourceNode));
   showSourceNode(sourceNode);
   getPreviewNode(node)?.remove();
-  syncSidebarSvgBadge(node, false);
+  syncSidebarImageBadge(node, { img: 0, svg: 0 });
   unwrapSourceNode(node);
   node.classList?.remove(EDITING_CLASS);
   node.classList?.remove(FAST_EDITING_CLASS);

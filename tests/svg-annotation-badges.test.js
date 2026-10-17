@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { createAnnotationSidebarAdapter } from "../src/annotation-sidebar-adapter.ts";
 import { createMarkdownRenderer } from "../src/markdown-renderer.ts";
 import { createReaderController } from "../src/reader-controller.ts";
@@ -93,7 +93,7 @@ describe("SVG annotation badges", () => {
     adapter.applyRenderedHtml(comment, renderer.render(source));
     expect(adapter.releaseRenderedHtml(comment)).toBe(true);
     document.querySelector("header > .end").replaceChildren();
-    adapter.syncSvgBadge(comment);
+    adapter.syncImageBadge(comment);
     expect(document.querySelectorAll("[data-annotation-markdown-svg-badge='sidebar']")).toHaveLength(1);
     adapter.applyRenderedHtml(comment, "<p>Ordinary text</p>");
     expect(document.querySelector("[data-annotation-markdown-svg-badge]")).toBeNull();
@@ -110,7 +110,7 @@ describe("SVG annotation badges", () => {
       _pages: [{ _pageIndex: 0, _originalPage: { div, viewport: { transform: [2, 0, 0, -2, 0, 200] } } }] };
     const reader = { _internalReader: { _views: [view] } };
     const badges = createSvgAnnotationBadges({ reader, document, isEnabled: () => true,
-      hasRenderableSvg: text => renderer.render(text).includes('<figure class="annotation-markdown-svg">') });
+      getImageCounts: text => ({ img: 0, svg: renderer.render(text).match(/<figure class="annotation-markdown-svg">/g)?.length ?? 0 }) });
     badges.start();
     expect(div.querySelectorAll("[data-annotation-markdown-svg-page-badge]")).toHaveLength(1);
     const badge = div.querySelector("[data-annotation-markdown-svg-page-badge]");
@@ -142,7 +142,7 @@ describe("SVG annotation badges", () => {
     const view = { _iframeWindow: { document }, _annotations: annotations,
       _pages: [{ _pageIndex: 0, _originalPage: { div, viewport: { transform: [1, 0, 0, -1, 0, 200] } } }] };
     const badges = createSvgAnnotationBadges({ reader: { _internalReader: { _views: [view] } },
-      document, isEnabled: () => true, hasRenderableSvg: () => true });
+      document, isEnabled: () => true, getImageCounts: () => ({ img: 0, svg: 1 }) });
     badges.start();
     const first = div.querySelector('[data-annotation-markdown-svg-page-badge="a1"]');
     const second = div.querySelector('[data-annotation-markdown-svg-page-badge="a2"]');
@@ -152,6 +152,92 @@ describe("SVG annotation badges", () => {
     const yGap = Math.abs(Number.parseInt(first.style.top) - Number.parseInt(second.style.top));
     expect(xGap >= 28 || yGap >= 16).toBe(true);
     badges.stop();
+  });
+
+  test.each([
+    ["zh-CN", "本条批注含 2 个 SVG 图", "本条批注含 1 个 SVG 图"],
+    ["en-US", "This annotation contains 2 SVG diagrams", "This annotation contains 1 SVG diagram"],
+    ["fr-FR", "This annotation contains 2 SVG diagrams", "This annotation contains 1 SVG diagram"]
+  ])("shows localized counts on passive PDF badges without intercepting native input (%s)", (locale, plural, singular) => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div class="page"><span id="native-target">Native PDF annotation</span></div>';
+    const page = document.querySelector(".page");
+    const native = document.querySelector("#native-target");
+    const annotation = { id: "a1", type: "note", comment: `${source}\n\n${source}`,
+      position: { pageIndex: 0, rects: [[80, 100, 100, 120]] } };
+    const view = { _iframeDocument: document, _annotations: [annotation],
+      _pages: [{ _pageIndex: 0, _originalPage: { div: page, viewport: { transform: [1, 0, 0, -1, 0, 200] } } }] };
+    const count = vi.fn(text => ({ img: 0, svg: renderer.render(text).match(/<figure class="annotation-markdown-svg">/g)?.length ?? 0 }));
+    const badges = createSvgAnnotationBadges({ reader: { _internalReader: { _views: [view] } },
+      document, isEnabled: () => true, getImageCounts: count, getLocale: () => locale });
+    try {
+      badges.start();
+      const badge = page.querySelector("[data-annotation-markdown-svg-page-badge]");
+      expect(badge.title).toBe(plural);
+      expect(badge.style.pointerEvents).toBe("none");
+      expect(badge.hasAttribute("tabindex")).toBe(false);
+      badge.getBoundingClientRect = () => ({ left: 10, top: 10, right: 38, bottom: 26, width: 28, height: 16 });
+      count.mockClear();
+      const move = new MouseEvent("pointermove", { bubbles: true, clientX: 20, clientY: 15 });
+      // Gecko exposes an Xray Document through currentTarget while the Reader
+      // supplies a waived wrapper. They refer to the same DOM but differ by ===.
+      Object.defineProperty(move, "currentTarget", { value: new Proxy(document, {}) });
+      native.dispatchEvent(move);
+      expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]")).toBeNull();
+      vi.advanceTimersByTime(500);
+      const tooltip = document.querySelector("[data-annotation-markdown-svg-page-tooltip]");
+      expect(tooltip?.textContent).toBe(plural);
+      expect(tooltip?.style.pointerEvents).toBe("none");
+      expect(count).not.toHaveBeenCalled();
+      document.body.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 20, clientY: 15 }));
+      expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]")).toBeNull();
+      native.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 20, clientY: 15 }));
+      vi.advanceTimersByTime(500);
+      annotation.comment = source;
+      badges.refresh();
+      expect(page.querySelector("[data-annotation-markdown-svg-page-badge]")).toBe(badge);
+      expect(badge.title).toBe(singular);
+      expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]").textContent).toBe(singular);
+
+      const nativeClick = vi.fn();
+      native.addEventListener("click", nativeClick);
+      const down = new MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+      native.dispatchEvent(down);
+      native.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      expect(down.defaultPrevented).toBe(false);
+      expect(nativeClick).toHaveBeenCalledOnce();
+      expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]")).toBeNull();
+      native.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 20, clientY: 15 }));
+      vi.advanceTimersByTime(500);
+      native.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 70, clientY: 70 }));
+      expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]")).toBeNull();
+      native.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 20, clientY: 15 }));
+      badges.stop();
+      vi.advanceTimersByTime(500);
+      expect(document.querySelector("[data-annotation-markdown-svg-page-badge], [data-annotation-markdown-svg-page-tooltip]")).toBeNull();
+    } finally { badges.stop(); vi.useRealTimers(); }
+  });
+
+  test("counts only rendered diagrams and reuses the per-source cache across page annotations", async () => {
+    document.body.innerHTML = '<div class="page"></div>';
+    const mixed = [source, source, '```text\n' + svg + '\n```', '```svg\n<svg><script/></svg>\n```'].join("\n\n");
+    const annotations = ["a1", "a2"].map(id => ({ id, type: "note", comment: mixed,
+      position: { pageIndex: 0, rects: [[80, 100, 100, 120]] } }));
+    const view = { _iframeDocument: document, _annotations: annotations,
+      _pages: [{ _pageIndex: 0, _originalPage: { div: document.querySelector(".page"),
+        viewport: { transform: [1, 0, 0, -1, 0, 200] } } }] };
+    const render = vi.fn(text => renderer.render(text));
+    const controller = createReaderController({ reader: { document, _internalReader: { _views: [view] } },
+      adapter: createAnnotationSidebarAdapter({ document }), renderer: { render }, getLocale: () => "zh-CN",
+      settings: { isEnabled: () => true, isSvgEnabled: () => true },
+      MutationObserver: null, IntersectionObserver: null });
+    try {
+      await controller.start();
+      const badges = [...document.querySelectorAll("[data-annotation-markdown-svg-page-badge]")];
+      expect(badges).toHaveLength(2);
+      expect(badges.map(badge => badge.title)).toEqual(["本条批注含 2 个 SVG 图", "本条批注含 2 个 SVG 图"]);
+      expect(render.mock.calls.filter(([text]) => text === mixed)).toHaveLength(1);
+    } finally { controller.stop(); }
   });
 
   test("refreshes page badges after a text-only native comment update", async () => {
@@ -164,7 +250,7 @@ describe("SVG annotation badges", () => {
     const view = { _iframeWindow: { document }, _annotations: [annotation],
       _pages: [{ _pageIndex: 0, _originalPage: { div, viewport: { transform: [1, 0, 0, -1, 0, 200] } } }] };
     const badges = createSvgAnnotationBadges({ reader: { _internalReader: { _views: [view] } },
-      document, isEnabled: () => true, hasRenderableSvg: () => true });
+      document, isEnabled: () => true, getImageCounts: () => ({ img: 0, svg: 1 }) });
     try {
       badges.start();
       expect(div.querySelector("[data-annotation-markdown-svg-page-badge]")).not.toBeNull();
@@ -176,7 +262,8 @@ describe("SVG annotation badges", () => {
     } finally { badges.stop(); }
   });
 
-  test("matches the EPUB annotation id inside its shadow overlay", () => {
+  test("matches the EPUB annotation id and shows its count hint through the shadow overlay", () => {
+    vi.useFakeTimers();
     const host = document.createElement("div");
     document.body.append(host);
     const shadow = host.attachShadow({ mode: "open" });
@@ -189,12 +276,25 @@ describe("SVG annotation badges", () => {
     const view = { _iframeDocument: document, _annotationRenderRootEl: root,
       _annotations: [{ id: "a1", type: "highlight", comment: source }] };
     const badges = createSvgAnnotationBadges({ reader: { _internalReader: { _views: [view] } },
-      document, isEnabled: () => true, hasRenderableSvg: () => true });
-    badges.start();
-    const badge = shadow.querySelector("[data-annotation-markdown-svg-page-badge]");
-    expect(badge?.textContent).toBe("SVG");
-    expect(badge?.style.position).toBe("fixed");
-    badges.stop();
+      document, isEnabled: () => true, getImageCounts: () => ({ img: 0, svg: 2 }), getLocale: () => "en-US" });
+    try {
+      badges.start();
+      const badge = shadow.querySelector("[data-annotation-markdown-svg-page-badge]");
+      expect(badge?.textContent).toBe("SVG");
+      expect(badge?.title).toBe("This annotation contains 2 SVG diagrams");
+      expect(badge?.style.position).toBe("fixed");
+      badge.getBoundingClientRect = () => ({ left: 30, top: 25, right: 58, bottom: 41, width: 28, height: 16 });
+      for (const dismiss of [() => window.dispatchEvent(new Event("blur")),
+        () => root.dispatchEvent(new Event("scroll")),
+        () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))]) {
+        group.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, composed: true, clientX: 40, clientY: 30 }));
+        vi.advanceTimersByTime(500);
+        expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]")?.textContent)
+          .toBe("This annotation contains 2 SVG diagrams");
+        dismiss();
+        expect(document.querySelector("[data-annotation-markdown-svg-page-tooltip]")).toBeNull();
+      }
+    } finally { badges.stop(); vi.useRealTimers(); }
     expect(shadow.querySelector("[data-annotation-markdown-svg-page-badge]")).toBeNull();
   });
 

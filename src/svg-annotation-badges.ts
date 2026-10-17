@@ -1,4 +1,6 @@
-/** Small, noninteractive SVG markers beside Reader page annotations. */
+/** Small, noninteractive image markers beside Reader page annotations. */
+import { createSvgBadgeTooltip, SVG_BADGE_TOOLTIP } from "./svg-badge-tooltip.js";
+import { imageBadgeLabel, imageCountHint, imageLocale, type ImageCounts } from "./image-counts.js";
 
 type Annotation = {
   id: string;
@@ -32,8 +34,10 @@ type InternalReader = {
 };
 
 type Rect = { left: number; top: number; right: number; bottom: number };
+type BadgeEntry = { x: number; y: number; container: Element; counts: ImageCounts; width: number };
 
 const BADGE_WIDTH = 28;
+const MIXED_BADGE_WIDTH = 60;
 const BADGE_HEIGHT = 16;
 const BADGE_GAP = 2;
 
@@ -41,13 +45,14 @@ const BADGE = "data-annotation-markdown-svg-page-badge";
 const SIDEBAR_BADGE = "data-annotation-markdown-svg-badge";
 
 export function createSvgAnnotationBadges({
-  reader, document: readerDocument, isEnabled, hasRenderableSvg,
+  reader, document: readerDocument, isEnabled, getImageCounts, getLocale,
   MutationObserver: MutationObserverRef = globalThis.MutationObserver
 }: {
   reader: Reader;
   document: Document;
   isEnabled(): boolean;
-  hasRenderableSvg(source: string): boolean;
+  getImageCounts(source: string): ImageCounts;
+  getLocale?(): string | undefined;
   MutationObserver?: typeof MutationObserver | null;
 }) {
   let active = false;
@@ -61,6 +66,7 @@ export function createSvgAnnotationBadges({
   const pageResizeObservers = new Map<Document, ResizeObserver>();
   const pageWindows = new Set<Window>();
   const visitedRoots = new Set<Document | ShadowRoot>();
+  const tooltip = createSvgBadgeTooltip();
   const pdfTextBoundsCache = new WeakMap<HTMLElement, {
     layer: Element | null; signature: string; bounds: Rect[];
   }>();
@@ -107,7 +113,7 @@ export function createSvgAnnotationBadges({
 
   function sync(): void {
     if (!active) return;
-    const desired = new Map<Document | ShadowRoot, Map<string, { x: number; y: number; container: Element }>>();
+    const desired = new Map<Document | ShadowRoot, Map<string, BadgeEntry>>();
     if (isEnabled()) for (const view of views()) {
       const doc = viewDocument(view);
       if (!doc) continue;
@@ -136,14 +142,16 @@ export function createSvgAnnotationBadges({
           const placed: Rect[] = [];
           const pageRect = div.getBoundingClientRect();
           for (const annotation of annotations) {
-            if (!annotation.comment?.includes("<svg") || !iconBounds.has(annotation.id) ||
-                !hasRenderableSvg(annotation.comment)) continue;
+            if (!mayContainImages(annotation.comment) || !iconBounds.has(annotation.id)) continue;
+            const counts = getImageCounts(annotation.comment!);
+            if (!imageBadgeLabel(counts)) continue;
+            const width = counts.img > 0 && counts.svg > 0 ? MIXED_BADGE_WIDTH : BADGE_WIDTH;
             const textBounds = pdfTextBounds(div, pageRect, transform, pdfTextBoundsCache);
             const marker = choosePdfBadgePosition(iconBounds.get(annotation.id)!, icons, placed, textBounds,
-              pageRect.width, pageRect.height);
+              pageRect.width, pageRect.height, width);
             placed.push({ left: marker.x, top: marker.y,
-              right: marker.x + BADGE_WIDTH, bottom: marker.y + BADGE_HEIGHT });
-            entries.set(annotation.id, { ...marker, container: div });
+              right: marker.x + width, bottom: marker.y + BADGE_HEIGHT });
+            entries.set(annotation.id, { ...marker, container: div, counts, width });
           }
         }
       } else if (view._annotationRenderRootEl?.isConnected) {
@@ -167,19 +175,23 @@ export function createSvgAnnotationBadges({
         desired.set(shadow, entries);
         for (const annotation of annotations) {
           if (!["highlight", "underline", "note"].includes(annotation.type) ||
-              !annotation.comment?.includes("<svg") || !hasRenderableSvg(annotation.comment)) continue;
+              !mayContainImages(annotation.comment)) continue;
+          const counts = getImageCounts(annotation.comment!);
+          if (!imageBadgeLabel(counts)) continue;
           const target = Array.from(view._annotationRenderRootEl.querySelectorAll<Element>("[data-annotation-id]"))
             .find(element => element.getAttribute("data-annotation-id") === annotation.id &&
               (element.localName === "g" || element.localName === "svg"));
           const rect = target?.getBoundingClientRect();
           if (rect?.width && rect?.height) {
-            entries.set(annotation.id, { x: rect.left + 10, y: rect.top - 5, container: view._annotationRenderRootEl });
+            const width = counts.img > 0 && counts.svg > 0 ? MIXED_BADGE_WIDTH : BADGE_WIDTH;
+            entries.set(annotation.id, { x: rect.left + 10, y: rect.top - 5, container: view._annotationRenderRootEl, counts, width });
           }
         }
       }
     }
+    const currentBadges: HTMLElement[] = [];
     for (const root of visitedRoots) {
-      const entries: Map<string, { x: number; y: number; container: Element }> = desired.get(root) ?? new Map();
+      const entries: Map<string, BadgeEntry> = desired.get(root) ?? new Map();
       const existing = Array.from(root.querySelectorAll<HTMLElement>(`[${BADGE}]`));
       for (const badge of existing) {
         const entry = entries.get(badge.getAttribute(BADGE) ?? "");
@@ -189,6 +201,13 @@ export function createSvgAnnotationBadges({
         const badge = Array.from(entry.container.children as HTMLCollectionOf<Element>).find(node => node.getAttribute(BADGE) === id) as HTMLElement | undefined
           ?? makeBadge(entry.container.ownerDocument, id);
         if (!badge.isConnected) entry.container.append(badge);
+        const hint = imageCountHint(entry.counts, "annotation", imageLocale(readerDocument, getLocale?.()));
+        const label = imageBadgeLabel(entry.counts);
+        if (badge.textContent !== label) badge.textContent = label;
+        if (badge.title !== hint) badge.title = hint;
+        const width = `${entry.width}px`;
+        if (badge.style.width !== width) badge.style.width = width;
+        currentBadges.push(badge);
         const position = isShadowRoot(entry.container.getRootNode()) ? "fixed" : "absolute";
         const left = `${Math.round(entry.x)}px`, top = `${Math.round(entry.y)}px`;
         if (badge.style.position !== position) badge.style.position = position;
@@ -196,10 +215,14 @@ export function createSvgAnnotationBadges({
         if (badge.style.top !== top) badge.style.top = top;
       }
     }
+    // Sidebar labels also pass mouse input through to the native header.
+    // Reuse the same document listeners to make their count hints hoverable.
+    tooltip.sync(currentBadges.concat(Array.from(readerDocument.querySelectorAll<HTMLElement>(`[${SIDEBAR_BADGE}='sidebar']`))));
   }
 
   function stop(): void {
     active = false;
+    tooltip.stop();
     if (frame !== undefined) readerDocument.defaultView?.cancelAnimationFrame?.(frame);
     frame = undefined;
     if (startRetry !== undefined) readerDocument.defaultView?.clearTimeout(startRetry);
@@ -239,8 +262,14 @@ export function createSvgAnnotationBadges({
         for (const mutation of mutations) {
           const target = mutation.target.nodeType === 1 ? mutation.target as Element : mutation.target.parentElement;
           const changedNodes = Array.from(mutation.addedNodes ?? []).concat(Array.from(mutation.removedNodes ?? []));
+          if (target?.closest(`[${SIDEBAR_BADGE}]`) || changedNodes.some(node =>
+            node?.nodeType === 1 && (node as Element).hasAttribute(SIDEBAR_BADGE))) {
+            queue();
+            break;
+          }
           const changed = changedNodes
             .filter(node => node?.nodeType === 1 && !(node as Element).hasAttribute(BADGE) &&
+              !(node as Element).hasAttribute(SVG_BADGE_TOOLTIP) &&
               !(node as Element).hasAttribute(SIDEBAR_BADGE)) as Element[];
           const sourceTextChanged = Boolean(target?.closest(".comment .content")) &&
             changedNodes.some(node => node?.nodeType === 3);
@@ -274,12 +303,17 @@ function isShadowRoot(root: Node): root is ShadowRoot {
   return root.nodeType === 11 && "host" in root;
 }
 
+function mayContainImages(source?: string): boolean {
+  return Boolean(source && /<svg\b|!\[|https?:\/\//i.test(source));
+}
+
 function hasNonBadgeChildChange(mutations: MutationRecord[]): boolean {
   for (const mutation of mutations) {
     for (const nodes of [mutation.addedNodes, mutation.removedNodes]) {
       for (let index = 0; index < nodes.length; index++) {
         const node = nodes[index];
-        if (node?.nodeType === 1 && !(node as Element).hasAttribute(BADGE)) return true;
+        if (node?.nodeType === 1 && !(node as Element).hasAttribute(BADGE) &&
+            !(node as Element).hasAttribute(SVG_BADGE_TOOLTIP)) return true;
       }
     }
   }
@@ -361,25 +395,25 @@ function pdfTextBounds(
 }
 
 function choosePdfBadgePosition(
-  icon: Rect, icons: Rect[], placed: Rect[], text: Rect[], pageWidth: number, pageHeight: number
+  icon: Rect, icons: Rect[], placed: Rect[], text: Rect[], pageWidth: number, pageHeight: number, width: number
 ): { x: number; y: number } {
   const gap = BADGE_GAP;
   const candidates = [
     { x: icon.right + gap, y: icon.top - 1 },
-    { x: icon.left - BADGE_WIDTH - gap, y: icon.top - 1 },
+    { x: icon.left - width - gap, y: icon.top - 1 },
     { x: icon.right + gap, y: icon.top - BADGE_HEIGHT - gap },
-    { x: icon.left - BADGE_WIDTH - gap, y: icon.top - BADGE_HEIGHT - gap },
+    { x: icon.left - width - gap, y: icon.top - BADGE_HEIGHT - gap },
     { x: icon.right + gap, y: icon.bottom + gap },
-    { x: icon.left - BADGE_WIDTH - gap, y: icon.bottom + gap }
+    { x: icon.left - width - gap, y: icon.bottom + gap }
   ];
   let best = candidates[0], bestScore = Infinity;
   for (let index = 0; index < candidates.length; index++) {
     const candidate = candidates[index];
     const box = { left: candidate.x, top: candidate.y,
-      right: candidate.x + BADGE_WIDTH, bottom: candidate.y + BADGE_HEIGHT };
+      right: candidate.x + width, bottom: candidate.y + BADGE_HEIGHT };
     let score = index / 100;
     if (pageWidth > 0 && pageHeight > 0) {
-      score += 1000 * (BADGE_WIDTH * BADGE_HEIGHT - overlapArea(box, {
+      score += 1000 * (width * BADGE_HEIGHT - overlapArea(box, {
         left: 0, top: 0, right: pageWidth, bottom: pageHeight
       }));
     }
@@ -399,7 +433,6 @@ function overlapArea(a: Rect, b: Rect): number {
 function makeBadge(doc: Document, id: string): HTMLElement {
   const badge = doc.createElement("span");
   badge.setAttribute(BADGE, id);
-  badge.textContent = "SVG";
   badge.setAttribute("aria-hidden", "true");
   badge.style.position = "absolute";
   badge.style.zIndex = "4";
@@ -407,6 +440,9 @@ function makeBadge(doc: Document, id: string): HTMLElement {
   badge.style.userSelect = "none";
   badge.style.whiteSpace = "nowrap";
   badge.style.padding = "1px 3px";
+  badge.style.boxSizing = "border-box";
+  badge.style.height = `${BADGE_HEIGHT}px`;
+  badge.style.textAlign = "center";
   badge.style.border = "1px solid #9ca3af";
   badge.style.borderRadius = "3px";
   badge.style.background = "#fff";

@@ -109,8 +109,10 @@
 }
 
 .annotation-markdown-outline-item {
+    align-items: baseline;
     border: 0;
     border-radius: 4px;
+    display: flex;
     overflow: hidden;
     padding: 0.34em 0.5em;
     text-align: start;
@@ -120,7 +122,29 @@
 }
 
 .annotation-markdown-outline-item[data-level="2"] { padding-inline-start: 1.15em; }
-.annotation-markdown-outline-number { font-variant-numeric: tabular-nums; }
+.annotation-markdown-outline-number {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    white-space: pre;
+}
+.annotation-markdown-outline-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.annotation-markdown-outline-svg-badge {
+    align-self: center;
+    border: 1px solid currentColor;
+    border-radius: 0.25em;
+    flex: none;
+    font-size: 0.7em;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-inline-start: 0.5em;
+    opacity: 0.75;
+    padding: 0.05em 0.3em;
+    white-space: nowrap;
+}
 .annotation-markdown-outline-item[data-level="3"] { padding-inline-start: 1.8em; }
 .annotation-markdown-outline-item[data-level="4"],
 .annotation-markdown-outline-item[data-level="5"],
@@ -244,6 +268,7 @@
     margin-inline-start: 0.4em;
     padding: 0.13em 0.35em;
     pointer-events: none;
+    white-space: nowrap;
 }
 
 .annotation-markdown-svg-image {
@@ -253,6 +278,57 @@
     background: #fff;
     border-radius: 4px;
     cursor: zoom-in;
+}
+
+.annotation-markdown-rendered .annotation-markdown-linked-image {
+    margin: 0.4em 0;
+    max-width: 100%;
+}
+
+.annotation-markdown-linked-image-target,
+.annotation-markdown-linked-image-content {
+    display: block;
+    max-width: 100%;
+}
+
+.annotation-markdown-linked-image-target[hidden] {
+    display: none;
+}
+
+.annotation-markdown-linked-image-content:not([src]) {
+    display: none;
+}
+
+.annotation-markdown-linked-image-content {
+    height: auto;
+}
+
+.annotation-markdown-linked-image > figcaption {
+    font-size: 0.9em;
+    margin-top: 0.25em;
+    overflow-wrap: anywhere;
+}
+
+.annotation-markdown-favicon-link {
+    display: inline;
+    margin-inline-end: 0.25em;
+}
+
+.annotation-markdown-rendered img.annotation-markdown-favicon-image {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    vertical-align: -0.15em;
+}
+
+.annotation-markdown-rendered img.annotation-markdown-favicon-image:not([src]),
+.annotation-markdown-rendered img.annotation-markdown-favicon-image[hidden] {
+    display: none;
+}
+
+.annotation-markdown-favicon-image[src]:not([hidden]) + .annotation-markdown-favicon-fallback {
+    display: none;
 }
 
 .annotation-markdown-svg-open,
