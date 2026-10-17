@@ -31,7 +31,7 @@
 
 上面的 Markdown、大纲和弹窗截图使用演示文本，取自 Zotero 10.0.5 与 Annotation Markdown v0.11.0，预览字号设为 125%。
 
-![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的奇异值分解示意图](docs/images/svg-source-and-preview.webp)
+![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的奇异值分解示意图](docs/images/svd-source-and-preview-7e2b47b8.webp)
 
 **SVG 示意图**：在批注中展示奇异值分解（SVD）等数学图示。编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
 

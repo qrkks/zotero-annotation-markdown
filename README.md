@@ -31,7 +31,7 @@ Make Zotero annotation comments easier to read with Markdown headings, lists, co
 
 The Markdown, outline, and popup screenshots above use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
 
-![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a singular value decomposition diagram on the right](docs/images/svg-source-and-preview.webp)
+![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a singular value decomposition diagram on the right](docs/images/svd-source-and-preview-7e2b47b8.webp)
 
 **SVG diagrams:** illustrate mathematical ideas such as singular value decomposition directly in annotation comments. Edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
 
