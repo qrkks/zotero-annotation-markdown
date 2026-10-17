@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## 0.15.3 - 2026-10-17
+
+### Fixed
+
+- Open supported `zotero://` links from sidebar and page-popup Markdown previews through Zotero's internal navigation when Weavero is unavailable or throws synchronously. This avoids the external protocol path that can fail to locate PDF annotations on Windows. Keep Weavero priority, external-link behavior, and the launcher fallback when the internal entry point is unavailable or throws synchronously. ([#4](https://github.com/qrkks/zotero-annotation-markdown/issues/4))
+
+### Added
+
+- Preview standalone image links in sidebar and page-popup comments, including supported raster image extensions and OpenAI `static-rsc` image URLs. Keep the original caption link, load images lazily through a bounded memory cache, and retain the link when loading fails. Stored Markdown is unchanged and no attachment is created.
+- Render supported Google source-icon links as compact favicons, with a following short source name on the same line. Failed icons retain their original link text.
+- Show **IMG**, **SVG**, or **IMG · SVG** labels beside supported page annotation icons and in sidebar headers, with Chinese/English hover hints for separate image and SVG totals. Outline labels count each section's own images. Labels preserve native pointer behavior, and source icons do not contribute to counts.
+- Refresh the SVG documentation with an SVD example and updated screenshots.
+
+### 修复
+
+- 侧栏和页面批注弹窗的 Markdown 预览中，受支持的 `zotero://` 链接在 Weavero 不可用或同步抛错时改用 Zotero 内部入口跳转，避开 Windows 下可能无法定位 PDF 批注的外部协议路径。保留 Weavero 优先级、外部链接行为，以及内部入口不可用或同步抛错时的启动器回退。([#4](https://github.com/qrkks/zotero-annotation-markdown/issues/4))
+
+### 新增
+
+- 侧栏和页面批注弹窗现在可预览独占段落的图片链接，包括受支持的位图扩展名和 OpenAI `static-rsc` 图片地址。保留原始说明链接，通过有容量限制的内存缓存惰性加载，加载失败时仍保留链接。保存的 Markdown 不变，也不创建附件。
+- 将受支持的 Google 来源图标链接显示为紧凑的站点图标，后续简短来源名称可显示在同一行；图标加载失败时保留原始链接文字。
+- 在受支持的页面批注图标旁和侧栏标题中显示 **IMG**、**SVG** 或 **IMG · SVG** 标记，悬停时按界面语言分别提示图片与 SVG 数量。大纲标记统计各节自身的图片。标记保留原生指针行为，来源站点图标不计入数量。
+- 用 SVD 示例和新截图更新 SVG 使用文档。
+
 ## 0.15.2 - 2026-10-17
 
 ### Fixed
