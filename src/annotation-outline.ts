@@ -231,7 +231,9 @@ export function trackAnnotationOutline({
     button.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
-      const expanded = !getCurrentExpanded();
+      // Another Reader may have changed the shared preference since this
+      // panel was displayed. Toggle what the user currently sees.
+      const expanded = button.getAttribute("aria-expanded") !== "true";
       setExpanded(expanded);
       applyExpandedState(expanded);
       if (expanded) scheduleViewportUpdate();

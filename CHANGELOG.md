@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.15.4 - 2026-10-18
+
+### Fixed
+
+- Stop the previous plugin runtime before repeated initialization, preventing overlapping sidebar/popup outlines and duplicate Reader listeners and observers. Preserve saved outline expansion and annotation source.
+- Toggle the outline's visible state when another Reader has changed the shared expansion preference, so the first click always opens or closes the current panel.
+- Record the plugin version, lifecycle reason and whether an existing runtime was replaced in startup diagnostics. Add regression coverage for repeated initialization before and after Reader startup completes, with the outline initially open or closed.
+
+If the outline is already stuck open, restart Zotero once after updating to clear duplicate runtimes left by an earlier version.
+
+### 修复
+
+- 重复初始化前先停止旧插件实例，避免侧栏和页面批注弹窗的大纲重叠，以及 Reader 监听器、观察器重复注册。保留记忆的大纲展开状态和批注源码。
+- 其他 Reader 改变共享展开偏好后，仍按当前面板的显示状态切换大纲，确保首次点击即可展开或收起。
+- 启动诊断日志记录插件版本、生命周期原因，以及是否替换已有实例。新增回归测试，覆盖 Reader 启动完成前后重复初始化、大纲初始展开或关闭的情况。
+
+如果大纲已出现无法收起的情况，更新后请重启一次 Zotero，清除旧版本残留的重复实例。
+
 ## 0.15.3 - 2026-10-17
 
 ### Fixed

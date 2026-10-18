@@ -779,6 +779,20 @@ test("keeps the portal mounted at the sidebar viewport while the selected row sc
   expect(outline.querySelector(".annotation-markdown-outline-panel").hidden).toBe(false);
 });
 
+test.each([false, true])("toggles the visible outline when another Reader changes the saved expansion (initially %s)", initialExpanded => {
+  const { setExpanded } = setup({ initialExpanded });
+  const toggle = document.querySelector(".annotation-markdown-outline-toggle");
+  // Another Reader updates the shared preference without changing this panel.
+  setExpanded(!initialExpanded);
+  setExpanded.mockClear();
+
+  toggle.click();
+
+  expect(setExpanded).toHaveBeenCalledExactlyOnceWith(!initialExpanded);
+  expect(toggle.getAttribute("aria-expanded")).toBe(String(!initialExpanded));
+  expect(document.querySelector(".annotation-markdown-outline-panel").hidden).toBe(initialExpanded);
+});
+
 test("persists explicit open and close choices across selected annotations", async () => {
   const { rows, setExpanded, getExpanded } = setup();
   document.querySelector(".annotation-markdown-outline-toggle").click();

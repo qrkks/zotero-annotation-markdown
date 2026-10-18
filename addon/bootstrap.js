@@ -3,10 +3,23 @@ var ZoteroAnnotationMarkdownPreferencePaneID;
 var ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG = "annotation-markdown-debug.log";
 var ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_BACKUP = "annotation-markdown-debug.log.1";
 var ANNOTATION_MARKDOWN_DIAGNOSTIC_LOG_MAX_BYTES = 5 * 1024 * 1024;
+var ANNOTATION_MARKDOWN_LIFECYCLE_REASONS = [
+  "UNKNOWN", "APP_STARTUP", "APP_SHUTDOWN", "ADDON_ENABLE", "ADDON_DISABLE",
+  "ADDON_INSTALL", "ADDON_UNINSTALL", "ADDON_UPGRADE", "ADDON_DOWNGRADE",
+  "MAIN_WINDOW_LOAD", "MAIN_WINDOW_UNLOAD"
+];
 
-function startup(data) {
+function startup(data, reason) {
+  // Startup can be repeated in a new bootstrap scope without a prior shutdown.
+  // Keep ownership on the shared host so old Reader controllers cannot survive.
+  const previousRuntime = Zotero.AnnotationMarkdownRuntime;
+  previousRuntime?.shutdown();
   globalThis.ZoteroAnnotationMarkdownDiagnostics = createDiagnostics();
-  globalThis.ZoteroAnnotationMarkdownDiagnostics.append("[annotation-markdown] bootstrap startup");
+  const reasonName = ANNOTATION_MARKDOWN_LIFECYCLE_REASONS[reason] || "UNKNOWN";
+  globalThis.ZoteroAnnotationMarkdownDiagnostics.append(
+    `[annotation-markdown] bootstrap startup version=${data.version ?? "unknown"}` +
+    ` reason=${reasonName}(${reason ?? "unknown"}) replacedRuntime=${Boolean(previousRuntime)}`
+  );
 
   try {
     Services.scriptloader.loadSubScript(`${data.rootURI}plugin.js`, globalThis);
@@ -16,6 +29,7 @@ function startup(data) {
       styleText: readStyleTextFromURI(`${data.rootURI}styles/annotation-markdown.css`, data.rootURI),
       diagnostics: globalThis.ZoteroAnnotationMarkdownDiagnostics
     });
+    Zotero.AnnotationMarkdownRuntime = { instance: ZoteroAnnotationMarkdownInstance, shutdown };
     ZoteroAnnotationMarkdownInstance.startup();
     registerPreferencePane(data);
   } catch (error) {
@@ -30,6 +44,9 @@ function shutdown() {
   globalThis.ZoteroAnnotationMarkdownDiagnostics?.append("[annotation-markdown] bootstrap shutdown");
   unregisterPreferencePane();
   ZoteroAnnotationMarkdownInstance?.shutdown();
+  if (Zotero.AnnotationMarkdownRuntime?.instance === ZoteroAnnotationMarkdownInstance) {
+    delete Zotero.AnnotationMarkdownRuntime;
+  }
   ZoteroAnnotationMarkdownInstance = undefined;
 }
 

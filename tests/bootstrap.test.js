@@ -2,9 +2,101 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
 
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
+
+import { createPlugin } from "../src/plugin.ts";
+
+const runningBootstraps = [];
+afterEach(() => {
+  for (const bootstrap of runningBootstraps.splice(0)) bootstrap.shutdown();
+  document.body.replaceChildren();
+});
 
 describe("bootstrap", () => {
+  test.each([[false, true], [true, true], [false, false], [true, false]])(
+    "keeps one working outline after duplicate startup (expanded %s, first startup settled %s)", async (initialExpanded, firstStartupSettled) => {
+    document.body.innerHTML = `<div id="annotations" style="overflow-y:auto">
+      <div data-sidebar-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content"># One\n\n## Two</div></div>
+      </div>
+    </div>`;
+    document.querySelector("#annotations").getBoundingClientRect = () => ({
+      left: 20, top: 60, right: 320, bottom: 660, width: 300, height: 600
+    });
+    const key = "extensions.annotationMarkdown.outlineExpanded";
+    const values = new Map([[key, initialExpanded]]);
+    const listeners = new Set();
+    const Zotero = {
+      debug: vi.fn(),
+      Reader: {
+        _readers: [{ document }],
+        registerEventListener: (type, handler) => listeners.add(handler),
+        unregisterEventListener: (type, handler) => listeners.delete(handler)
+      },
+      Prefs: {
+        get: key => values.get(key),
+        set: (key, value) => values.set(key, value)
+      },
+      PreferencePanes: { register: vi.fn(() => "pane"), unregister: vi.fn() }
+    };
+    const pending = [];
+    const diagnosticLines = [];
+    const prepare = async () => {
+      const bootstrap = await loadBootstrapScript();
+      Object.assign(bootstrap, {
+        Zotero,
+        Services: { scriptloader: { loadSubScript() {} } },
+        ZoteroAnnotationMarkdown: {
+          createPlugin(options) {
+            const plugin = createPlugin(options);
+            const startup = plugin.startup.bind(plugin);
+            plugin.startup = () => {
+              const result = startup();
+              pending.push(result);
+              return result;
+            };
+            return plugin;
+          }
+        },
+        createDiagnostics: () => ({ append: line => diagnosticLines.push(line) }),
+        readStyleTextFromURI: () => ""
+      });
+      runningBootstraps.push(bootstrap);
+      return bootstrap;
+    };
+    const data = { id: "annotation-markdown", version: "test-version", rootURI: "test://addon/" };
+    const first = await prepare();
+    first.startup(data, 1);
+    if (firstStartupSettled) await Promise.all(pending);
+    // Zotero can invoke startup again from another bootstrap scope before a
+    // shutdown. Both scopes still share the same host Zotero object.
+    const second = await prepare();
+    second.startup(data, 3);
+    await Promise.all(pending);
+
+    expect(diagnosticLines.filter(line => line.includes("bootstrap startup"))).toEqual([
+      "[annotation-markdown] bootstrap startup version=test-version reason=APP_STARTUP(1) replacedRuntime=false",
+      "[annotation-markdown] bootstrap startup version=test-version reason=ADDON_ENABLE(3) replacedRuntime=true"
+    ]);
+    expect(listeners.size).toBe(1);
+    expect(document.querySelectorAll("[data-annotation-markdown-outline='true']")).toHaveLength(1);
+    const toggle = document.querySelector(".annotation-markdown-outline-toggle");
+    for (const expanded of [!initialExpanded, initialExpanded, !initialExpanded]) {
+      toggle.click();
+      expect(values.get(key)).toBe(expanded);
+      expect(document.querySelectorAll("[data-annotation-markdown-outline='true']")).toHaveLength(1);
+      expect(document.querySelector(".annotation-markdown-outline-panel").hidden).toBe(!expanded);
+    }
+
+    first.shutdown();
+    expect(Zotero.AnnotationMarkdownRuntime?.instance).toBe(second.ZoteroAnnotationMarkdownInstance);
+    expect(listeners.size).toBe(1);
+    second.shutdown();
+    expect(listeners.size).toBe(0);
+    expect(Zotero.AnnotationMarkdownRuntime).toBeUndefined();
+    expect(document.querySelector("[data-annotation-markdown-outline='true']")).toBeNull();
+  });
+
   test("does not reference a bare window global", async () => {
     const source = await readFile(path.join(process.cwd(), "addon", "bootstrap.js"), "utf8");
 
