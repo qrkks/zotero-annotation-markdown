@@ -9,7 +9,7 @@
   <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="最新版下载量" src="https://img.shields.io/github/downloads/qrkks/zotero-annotation-markdown/latest/total?label=latest%20downloads"></a>
   <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="docs/zh-CN/user-guide.md#兼容性"><img alt="Zotero 9 和 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
-  <a href="LICENSE"><img alt="MIT 协议" src="https://img.shields.io/github/license/qrkks/zotero-annotation-markdown?label=license"></a>
+  <a href="LICENSE"><img alt="许可证：AGPL-3.0-or-later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue"></a>
 </p>
 
 [English](README.md) | 简体中文
@@ -103,4 +103,8 @@ pnpm run package
 
 ## 许可证
 
-[MIT](LICENSE)
+Copyright (c) 2026 qrkks。本项目采用 [GNU Affero 通用公共许可证第 3 版或任何后续版本](LICENSE)（`AGPL-3.0-or-later`）。项目授权声明见 [NOTICE](NOTICE)。
+
+已发布的 v0.15.4 及更早版本采用 MIT 许可证，已授予的权限继续有效；这些代码的[原始 MIT 声明](licenses/MIT-legacy.txt)予以保留。这不代表当前修订版提供 MIT 作为 AGPL 之外的可选许可证。
+
+第三方组件保留各自的许可证。此后打包的每个 XPI 均包含项目许可证、第三方许可声明，以及用于本次构建的项目与依赖源码快照，详见 XPI 内的 `SOURCE.txt`。除非另有明确说明，对当前项目的贡献按 `AGPL-3.0-or-later` 接受。

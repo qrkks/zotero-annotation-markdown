@@ -9,7 +9,7 @@
   <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="Latest release downloads" src="https://img.shields.io/github/downloads/qrkks/zotero-annotation-markdown/latest/total?label=latest%20downloads"></a>
   <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="docs/en/user-guide.md#compatibility"><img alt="Zotero 9 and 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/github/license/qrkks/zotero-annotation-markdown?label=license"></a>
+  <a href="LICENSE"><img alt="License: AGPL-3.0-or-later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue"></a>
 </p>
 
 English | [简体中文](README.zh-CN.md)
@@ -103,4 +103,8 @@ The packaged add-on is generated at `dist/zotero-annotation-markdown.xpi`.
 
 ## License
 
-[MIT](LICENSE)
+Copyright (c) 2026 qrkks. Licensed under the [GNU Affero General Public License, version 3 or any later version](LICENSE) (`AGPL-3.0-or-later`). See [NOTICE](NOTICE) for the project license notice.
+
+Published releases up to and including v0.15.4 were distributed under MIT. Those existing grants remain valid; the [original MIT notice](licenses/MIT-legacy.txt) is retained for that code. This does not offer the current revision under MIT as an alternative to AGPL.
+
+Third-party components retain their own licenses. Each newly packaged XPI includes the project license, third-party notices, and the project and dependency source snapshot used for that build; see `SOURCE.txt` inside the XPI. Contributions to the current project are accepted under `AGPL-3.0-or-later` unless explicitly stated otherwise.

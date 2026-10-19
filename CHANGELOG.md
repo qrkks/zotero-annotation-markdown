@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- License the current project under GNU AGPL version 3 or any later version (`AGPL-3.0-or-later`). Preserve the MIT grants for previously published releases through v0.15.4. Include license notices and the matching project and dependency source snapshot in newly built XPI packages.
+
+### 变更
+
+- 当前项目改用 GNU AGPL 第 3 版或任何后续版本（`AGPL-3.0-or-later`）。保留已发布的 v0.15.4 及更早版本的 MIT 授权。此后构建的 XPI 包含许可声明及对应的项目与依赖源码快照。
+
 ## 0.15.4 - 2026-10-18
 
 ### Fixed

@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { build } from "esbuild";
 import { inlineKatexWoff2Fonts } from "./katex-assets.mjs";
+import { packageLicensing } from "./package-licensing.mjs";
 
 const root = process.cwd();
 const distAddon = path.join(root, "dist", "addon");
@@ -13,7 +14,7 @@ await mkdir(distAddon, { recursive: true });
 await cp(path.join(root, "addon"), distAddon, { recursive: true });
 await appendKatexAssets();
 
-await build({
+const result = await build({
   entryPoints: [path.join(root, "src", "plugin.ts")],
   bundle: true,
   format: "iife",
@@ -21,7 +22,18 @@ await build({
   outfile: path.join(distAddon, "plugin.js"),
   platform: "browser",
   target: ["firefox102"],
-  sourcemap: false
+  sourcemap: false,
+  metafile: true
+});
+
+await packageLicensing({
+  root,
+  distAddon,
+  inputs: [
+    ...Object.keys(result.metafile.inputs),
+    "node_modules/katex/dist/katex.min.css",
+    "node_modules/markdown-it-texmath/css/texmath.css"
+  ]
 });
 
 async function appendKatexAssets() {

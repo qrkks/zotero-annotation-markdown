@@ -1,0 +1,29 @@
+Zotero Annotation Markdown
+Copyright (c) 2026 qrkks
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+License history
+---------------
+Published releases up to and including v0.15.4 were distributed under MIT.
+Those existing grants remain valid. Their original copyright and permission
+notice is preserved in licenses/MIT-legacy.txt. The current project as a
+whole is licensed under AGPL-3.0-or-later; this historical notice does not
+offer the current revision under MIT as an alternative license.
+
+Third-party components retain their respective licenses. Packaged builds
+include THIRD-PARTY-NOTICES.txt and a source snapshot described in SOURCE.txt.
+
+Project: https://github.com/qrkks/zotero-annotation-markdown
