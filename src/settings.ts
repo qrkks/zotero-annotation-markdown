@@ -13,6 +13,7 @@ export const FAST_EDITOR_PREF_KEY = "extensions.annotationMarkdown.fastEditor";
 export const MATH_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mathEnabled";
 export const MATH_OUTPUT_PREF_KEY = "extensions.annotationMarkdown.mathOutput";
 export const SVG_ENABLED_PREF_KEY = "extensions.annotationMarkdown.svgEnabled";
+export const MERMAID_ENABLED_PREF_KEY = "extensions.annotationMarkdown.mermaidEnabled";
 export type MathOutput = "htmlAndMathml" | "mathml";
 export const PERFORMANCE_DIAGNOSTICS_PREF_KEY = "extensions.annotationMarkdown.performanceDiagnostics";
 export const LIGHTWEIGHT_MODE_PREF_KEY = "extensions.annotationMarkdown.lightweightMode";
@@ -47,6 +48,8 @@ export interface Settings {
   setMathOutput(output: MathOutput): void;
   isSvgEnabled(): boolean;
   setSvgEnabled(enabled: boolean): void;
+  isMermaidEnabled(): boolean;
+  setMermaidEnabled(enabled: boolean): void;
   isPerformanceDiagnosticsEnabled(): boolean;
   setPerformanceDiagnosticsEnabled(enabled: boolean): void;
   isLightweightModeEnabled(): boolean;
@@ -81,6 +84,7 @@ interface CreateSettingsOptions {
   mathEnabledKey?: string;
   mathOutputKey?: string;
   svgEnabledKey?: string;
+  mermaidEnabledKey?: string;
   performanceDiagnosticsKey?: string;
   lightweightModeKey?: string;
   renderStrategyKey?: string;
@@ -113,6 +117,7 @@ export function createSettings({
   mathEnabledKey = MATH_ENABLED_PREF_KEY,
   mathOutputKey = MATH_OUTPUT_PREF_KEY,
   svgEnabledKey = SVG_ENABLED_PREF_KEY,
+  mermaidEnabledKey = MERMAID_ENABLED_PREF_KEY,
   performanceDiagnosticsKey = PERFORMANCE_DIAGNOSTICS_PREF_KEY,
   lightweightModeKey = LIGHTWEIGHT_MODE_PREF_KEY,
   renderStrategyKey = RENDER_STRATEGY_PREF_KEY,
@@ -133,6 +138,7 @@ export function createSettings({
   let memoryMathEnabled = true;
   let memoryMathOutput: MathOutput = "htmlAndMathml";
   let memorySvgEnabled = false;
+  let memoryMermaidEnabled = false;
   let memoryPerformanceDiagnostics = false;
   let memoryLightweightMode = false;
   let memoryRenderStrategy: RenderStrategy = "auto";
@@ -274,6 +280,16 @@ export function createSettings({
       const value = Boolean(enabled);
       prefs?.set?.(svgEnabledKey, value);
       memorySvgEnabled = value;
+    },
+
+    isMermaidEnabled() {
+      return prefs?.get ? prefs.get(mermaidEnabledKey, false) === true : memoryMermaidEnabled;
+    },
+
+    setMermaidEnabled(enabled) {
+      const value = Boolean(enabled);
+      prefs?.set?.(mermaidEnabledKey, value);
+      memoryMermaidEnabled = value;
     },
 
     isPerformanceDiagnosticsEnabled() {

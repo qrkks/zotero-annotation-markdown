@@ -29,6 +29,9 @@ importers:
       markdown-it-texmath:
         specifier: ^1.0.0
         version: 1.0.0
+      pele:
+        specifier: 1.7.0
+        version: 1.7.0
     devDependencies:
       '@fluent/bundle':
         specifier: 0.19.1
@@ -907,6 +910,10 @@ packages:
     resolution: {tarball: https://codeload.github.com/zotero-plugin-dev/zotero-pdfjs-types/tar.gz/6fb504f2d970ffa91bbaed38231a62df6b00f48e}
     version: 0.0.0
     engines: {node: '>=18'}
+
+  pele@1.7.0:
+    resolution: {integrity: sha512-nkYb5VnxsTgwD4NThF6j4pJEC4AhGLJ9ptiL4q/vIzGr9q6ZtoRE3hFr94LgHpZ/xy56d1pw42UAQGaZkjM5XA==}
+    engines: {node: '>=20'}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -1814,6 +1821,8 @@ snapshots:
   pathe@2.0.3: {}
 
   pdfjs-dist@https://codeload.github.com/zotero-plugin-dev/zotero-pdfjs-types/tar.gz/6fb504f2d970ffa91bbaed38231a62df6b00f48e: {}
+
+  pele@1.7.0: {}
 
   picocolors@1.1.1: {}
 

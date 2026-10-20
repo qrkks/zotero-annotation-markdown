@@ -12,13 +12,14 @@ pnpm run build
 pnpm run package
 ```
 
-The packaged add-on is generated at:
+Packaging generates two artifacts:
 
 ```text
 dist/zotero-annotation-markdown.xpi
+dist/zotero-annotation-markdown-source.zip
 ```
 
-Install it through Zotero's plugin manager for real-reader validation.
+Install the XPI through Zotero's plugin manager for real-reader validation. It contains the runtime and license notices. The separate source ZIP contains the matching project and dependency snapshots for inspection and rebuilding; it is not needed to install or run the add-on. `SOURCE.txt` inside the XPI records the source archive's SHA-256. Distribute both artifacts together at the same download location.
 
 `pnpm-workspace.yaml` fixes `virtualStoreDirMaxLength` at 60 on every platform. pnpm's Windows and Linux defaults otherwise produce different dependency directory names, which esbuild embeds in the bundle and can change the XPI hash. Keep this setting when comparing local and CI release artifacts. Manual runs of the Release workflow report packaged-file digests to help locate differences.
 
@@ -32,7 +33,7 @@ Run the complete local verification pipeline before a release:
 pnpm run verify
 ```
 
-This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI. All modules under `src/` use strict TypeScript; JavaScript under `addon/` remains where Zotero executes files directly, and `scripts/*.mjs` remains Node tooling. See the [architecture and file map](architecture.md) for ownership and runtime boundaries. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
+This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI and matching source ZIP. All modules under `src/` use strict TypeScript; JavaScript under `addon/` remains where Zotero executes files directly, and `scripts/*.mjs` remains Node tooling. See the [architecture and file map](architecture.md) for ownership and runtime boundaries. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
 
 The [SVG sample guide](../examples/svg-samples.md) is generated from the regression fixtures. After changing a fixture, run `node scripts/svg-samples.mjs`. The documentation check verifies that all six published copy blocks still match their source fixtures. Run the SVG regressions with `pnpm exec vitest run tests/svg-rendering.test.js tests/svg-compatibility.test.js tests/svg-fonts.test.js`; saved native-host results are in the [SVG validation report](../test-evidence/2026-10-10-svg-mvp.md).
 
@@ -64,7 +65,7 @@ This release line prioritizes real-host validation on the latest Zotero 10 versi
 3. Run `pnpm run verify`, `pnpm audit --prod`, `pnpm run release:verify v<version>`, and `git diff --check`.
 4. Complete the real-Zotero smoke test against the exact XPI produced by that checkout.
 5. Commit the version files, affected documentation, and generated `updates.json`. Confirm `git diff --exit-code -- updates.json`, then push the release commit and wait for the normal CI workflow to pass.
-6. Create an annotated `v<version>` tag on that commit and push the tag. The tag-triggered `Release` workflow repeats all verification, creates the GitHub Release, uploads the XPI, and verifies the published asset digest.
+6. Create an annotated `v<version>` tag on that commit and push the tag. The tag-triggered `Release` workflow repeats all verification, creates the GitHub Release, uploads the XPI and matching source ZIP, and verifies both published asset digests.
 
 Do not run `gh release create` manually during the normal release path. A manually dispatched dry run validates the current checkout without publishing:
 

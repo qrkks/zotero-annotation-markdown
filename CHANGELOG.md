@@ -2,13 +2,29 @@
 
 ## Unreleased
 
+## 0.16.0 - 2026-10-20
+
+### Added
+
+- Add opt-in experimental Mermaid code-block previews using Pele 1.7.0. Support flowchart, sequence, state, class, entity relationship, pie and mindmap diagrams as isolated static SVG images with the existing larger-image viewer. Preserve annotation source and fall back to code on unsupported syntax or resource limits. Include English and Simplified Chinese settings.
+- Center diagrams without enlarging small images, and keep their larger-image buttons aligned with annotation text. Distinguish Mermaid source with MERMAID labels and counts in sidebar headers, PDF/EPUB pages and outlines; combine mixed image types without counting generated Mermaid again as SVG.
+
+Enable **Render Mermaid diagrams (Experimental)** in the add-on's settings to try it. Mermaid preview is off by default and independent of raw SVG support. See the [supported Mermaid subset and limits](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.16.0/docs/en/user-guide.md#mermaid-diagrams-experimental).
+
+### 新增
+
+- 新增默认关闭的 Mermaid 代码块实验预览，使用 Pele 1.7.0。流程图、时序图、状态图、类图、实体关系图、饼图和思维导图以隔离的静态 SVG 图片显示，复用现有大图查看器。保留批注源码，不支持的语法或超出资源限制时回退代码。设置包含英文和简体中文。
+- 图表居中，小图保持生成尺寸，大图按钮与批注正文左边缘对齐。在侧栏标题、PDF/EPUB 页面和大纲中以 MERMAID 标签与计数区分 Mermaid 源码；多种图片类型合并显示，不把生成的 Mermaid 重复计入 SVG。
+
+在插件设置中开启 **渲染 Mermaid 图表（实验性）** 即可试用。Mermaid 预览默认关闭，与原始 SVG 支持独立控制。详见 [Mermaid 支持范围与限制](https://github.com/qrkks/zotero-annotation-markdown/blob/v0.16.0/docs/en/user-guide.md#mermaid-diagrams-experimental)。
+
 ### Changed
 
-- License the current project under GNU AGPL version 3 or any later version (`AGPL-3.0-or-later`). Preserve the MIT grants for previously published releases through v0.15.4. Include license notices and the matching project and dependency source snapshot in newly built XPI packages.
+- License the current project under GNU AGPL version 3 or any later version (`AGPL-3.0-or-later`). Preserve the MIT grants for previously published releases through v0.15.4. Keep license notices in newly built XPI packages and distribute the matching project and dependency source snapshot as a separate ZIP alongside the XPI, identified by SHA-256 in `SOURCE.txt`.
 
 ### 变更
 
-- 当前项目改用 GNU AGPL 第 3 版或任何后续版本（`AGPL-3.0-or-later`）。保留已发布的 v0.15.4 及更早版本的 MIT 授权。此后构建的 XPI 包含许可声明及对应的项目与依赖源码快照。
+- 当前项目改用 GNU AGPL 第 3 版或任何后续版本（`AGPL-3.0-or-later`）。保留已发布的 v0.15.4 及更早版本的 MIT 授权。此后构建的 XPI 保留许可声明，对应的项目与依赖源码快照作为独立 ZIP 与 XPI 一起提供，由 `SOURCE.txt` 中的 SHA-256 标识。
 
 ## 0.15.4 - 2026-10-18
 

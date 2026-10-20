@@ -273,6 +273,7 @@
 
 .annotation-markdown-svg-image {
     display: block;
+    margin-inline: auto;
     max-width: 100%;
     height: auto;
     background: #fff;

@@ -12,13 +12,14 @@ pnpm run build
 pnpm run package
 ```
 
-打包后的插件位于：
+打包会生成两个文件：
 
 ```text
 dist/zotero-annotation-markdown.xpi
+dist/zotero-annotation-markdown-source.zip
 ```
 
-通过 Zotero 插件管理器安装该文件，在真实阅读器中进行验证。
+通过 Zotero 插件管理器安装 XPI，在真实阅读器中进行验证。XPI 包含运行文件与许可声明。独立源码 ZIP 包含对应的项目和依赖快照，供查阅及重建，安装和运行插件时无需下载。XPI 内的 `SOURCE.txt` 记录源码包的 SHA-256。分发时应在同一下载位置一起提供这两个文件。
 
 `pnpm-workspace.yaml` 在所有平台上将 `virtualStoreDirMaxLength` 固定为 60。否则，pnpm 的 Windows 与 Linux 默认值会生成不同的依赖目录名，esbuild 将这些路径写入构建文件后会改变 XPI 哈希。比较本地与 CI 发布产物时应保留此设置。手动运行 Release 工作流会输出各打包文件的哈希，便于定位差异。
 
@@ -32,7 +33,7 @@ Fluent 资源布局、新增语言的方法及翻译专项检查，参见[本地
 pnpm run verify
 ```
 
-该命令会运行自动化测试和 TypeScript 检查、构建插件并打包 XPI。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
+该命令会运行自动化测试和 TypeScript 检查、构建插件，并打包 XPI 与对应的源码 ZIP。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
 
 [SVG 样例指南](../examples/svg-samples.md)从回归样例生成。修改样例后运行 `node scripts/svg-samples.mjs`；文档检查会确认六个公开复制块仍与原始样例一致。运行 `pnpm exec vitest run tests/svg-rendering.test.js tests/svg-compatibility.test.js tests/svg-fonts.test.js` 可复跑 SVG 回归，真实宿主的已保存结果见 [SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。
 
@@ -64,7 +65,7 @@ pnpm run verify
 3. 运行 `pnpm run verify`、`pnpm audit --prod`、`pnpm run release:verify v<version>` 和 `git diff --check`。
 4. 使用该检出生成的准确 XPI 完成真实 Zotero 冒烟测试。
 5. 提交版本文件、受影响的文档与生成的 `updates.json`。确认 `git diff --exit-code -- updates.json`，然后推送发布提交，并等待常规 CI 工作流通过。
-6. 在该提交上创建带注释的 `v<version>` 标签并推送。标签触发的 `Release` 工作流会重新执行全部验证、创建 GitHub Release、上传 XPI，并核对线上资产摘要。
+6. 在该提交上创建带注释的 `v<version>` 标签并推送。标签触发的 `Release` 工作流会重新执行全部验证、创建 GitHub Release、上传 XPI 与对应的源码 ZIP，并核对两个线上资产的摘要。
 
 正常发布流程中不要手工运行 `gh release create`。可手工触发 dry-run，只验证当前检出内容而不发布：
 

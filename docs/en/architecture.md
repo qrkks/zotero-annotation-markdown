@@ -2,6 +2,8 @@
 
 [简体中文](../zh-CN/architecture.md)
 
+Experimental Mermaid fences use `src/mermaid-renderer.ts`, a synchronous Pele 1.7.0 adapter registering seven common diagram types. It measures text on a detached Reader canvas, resolves generated theme variables to static values, flattens inline presentation styles and removes Pele metadata before the unchanged static SVG validator and DOMPurify. A fixed light background makes images self-contained across host themes. No Pele DOM mounting, links, image resources or callbacks are enabled. The independent `mermaidEnabled` preference invalidates both HTML caches and mounted-preview shortcuts; images reuse the existing viewer and cleanup, with centered previews and separate MERMAID labels and counts. A preview-only source-kind class distinguishes generated Mermaid from authored SVG; PDF/EPUB badge discovery recognizes Mermaid fences and reserves room for mixed labels. Original Mermaid source is retained for editing and all fallback paths.
+
 This page describes the current repository and its active development boundaries.
 
 ## Runtime flow

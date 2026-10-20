@@ -2,6 +2,8 @@
 
 [English](../en/architecture.md)
 
+实验性 Mermaid 围栏由 `src/mermaid-renderer.ts` 处理，使用同步的 Pele 1.7.0 适配层，注册七类常用图表。在 Reader 文档的离屏 Canvas 中测量文字，把生成的主题变量解析为静态值，展开内联呈现样式并移除 Pele 元数据，再进入保持原有规则的静态 SVG 校验器与 DOMPurify。固定浅色背景让图片在宿主深浅主题中均自包含。不使用 Pele DOM 挂载，不启用链接、图片资源或回调。独立的 `mermaidEnabled` 偏好同时使 HTML 缓存和已挂载预览快捷判断失效；图片复用现有查看器和清理逻辑，预览居中，并显示独立的 MERMAID 标签与计数。仅存在于预览中的来源类名区分 Mermaid 生成结果和手写 SVG；PDF/EPUB 标记检测识别 Mermaid 围栏，并为组合标签预留宽度。编辑及所有回退路径均保留原始 Mermaid 源码。
+
 本文说明仓库的当前结构和仍在使用的开发边界。
 
 ## 运行流程

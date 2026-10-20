@@ -73,6 +73,7 @@ interface CachedRender {
   mathEnabled: boolean;
   mathOutput: string;
   svgEnabled: boolean;
+  mermaidEnabled: boolean;
   html: string;
   sizeBytes?: number;
 }
@@ -224,7 +225,7 @@ export function createReaderController({
   let addedCommentScanTimer: number | undefined;
   let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
   const renderCache = new Map<RenderCacheKey, CachedRender>();
-  const renderedState = new WeakMap<HTMLElement, Pick<CachedRender, "source" | "mathEnabled" | "mathOutput" | "svgEnabled">>();
+  const renderedState = new WeakMap<HTMLElement, Pick<CachedRender, "source" | "mathEnabled" | "mathOutput" | "svgEnabled" | "mermaidEnabled">>();
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
   const renderedNodeWeights = new WeakMap<HTMLElement, number>();
@@ -244,7 +245,7 @@ export function createReaderController({
   const svgViewer = createSvgPreviewViewer({
     document: documentRef,
     styleText,
-    isEnabled: () => Boolean(settings.isSvgEnabled?.()) && isAnyRenderingEnabled(),
+    isEnabled: () => Boolean(settings.isSvgEnabled?.() || settings.isMermaidEnabled?.()) && isAnyRenderingEnabled(),
     beforeOpen: () => adapter.closeActiveFastEditor?.() ?? true
   });
   const imageBadgeCache = new Map<string, ImageCounts>();
@@ -330,14 +331,15 @@ export function createReaderController({
       const mathEnabled = Boolean(settings.isMathEnabled?.() ?? true);
       const mathOutput = settings.getMathOutput?.() ?? "htmlAndMathml";
       const svgEnabled = Boolean(settings.isSvgEnabled?.());
+      const mermaidEnabled = Boolean(settings.isMermaidEnabled?.());
       const cached = getCachedRender(node);
-      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput && cached?.svgEnabled === svgEnabled) {
+      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput && cached?.svgEnabled === svgEnabled && cached?.mermaidEnabled === mermaidEnabled) {
         cachedRender = true;
         renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
         const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
         linkedImages?.observe(node);
-        renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled });
+        renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled });
         if (diagnosticsEnabled) {
           domDurationMs = Math.max(0, nowRef() - domStartedAt);
           return createRenderDiagnosticSample();
@@ -350,11 +352,11 @@ export function createReaderController({
       if (diagnosticsEnabled) {
         markdownDurationMs = Math.max(0, nowRef() - markdownStartedAt);
       }
-      setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, html });
+      setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled, html });
       const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
       linkedImages?.observe(node);
-      renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled });
+      renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled });
       if (diagnosticsEnabled) {
         domDurationMs = Math.max(0, nowRef() - domStartedAt);
         return createRenderDiagnosticSample();
@@ -2279,7 +2281,8 @@ export function createReaderController({
     return rendered?.source === adapter.getSourceText(node) &&
       rendered.mathEnabled === Boolean(settings.isMathEnabled?.() ?? true) &&
       rendered.mathOutput === (settings.getMathOutput?.() ?? "htmlAndMathml") &&
-      rendered.svgEnabled === Boolean(settings.isSvgEnabled?.());
+      rendered.svgEnabled === Boolean(settings.isSvgEnabled?.()) &&
+      rendered.mermaidEnabled === Boolean(settings.isMermaidEnabled?.());
   }
 
   function getCachedRender(node: HTMLElement): CachedRender | undefined {

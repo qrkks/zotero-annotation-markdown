@@ -1,4 +1,5 @@
 export const releaseAssetName = "zotero-annotation-markdown.xpi";
+export const sourceAssetName = "zotero-annotation-markdown-source.zip";
 export const releaseRepository = "qrkks/zotero-annotation-markdown";
 export const updateManifestUrl =
   `https://raw.githubusercontent.com/${releaseRepository}/main/updates.json`;

@@ -7,6 +7,7 @@ Zotero.AnnotationMarkdownPreferences = {
   mathEnabledKey: "extensions.annotationMarkdown.mathEnabled",
   mathOutputKey: "extensions.annotationMarkdown.mathOutput",
   svgEnabledKey: "extensions.annotationMarkdown.svgEnabled",
+  mermaidEnabledKey: "extensions.annotationMarkdown.mermaidEnabled",
   outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
   outlineNumberingKey: "extensions.annotationMarkdown.outlineNumbering",
   outlineSmartNumberingKey: "extensions.annotationMarkdown.outlineSmartNumbering",
@@ -27,6 +28,7 @@ Zotero.AnnotationMarkdownPreferences = {
     const mathOutputOption = documentRef.getElementById("annotation-markdown-math-output-option");
     const mathOutputSelect = documentRef.getElementById("annotation-markdown-math-output");
     const svgEnabledInput = documentRef.getElementById("annotation-markdown-svg-enabled");
+    const mermaidEnabledInput = documentRef.getElementById("annotation-markdown-mermaid-enabled");
     const outlineEnabledInput = documentRef.getElementById("annotation-markdown-outline-enabled");
     const outlineNumberingOption = documentRef.getElementById("annotation-markdown-outline-numbering-option");
     const outlineNumberingInput = documentRef.getElementById("annotation-markdown-outline-numbering");
@@ -66,6 +68,7 @@ Zotero.AnnotationMarkdownPreferences = {
     fastEditorInput.checked = this.getPref(this.fastEditorKey, true);
     mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
     if (svgEnabledInput) svgEnabledInput.checked = this.getPref(this.svgEnabledKey, false);
+    if (mermaidEnabledInput) mermaidEnabledInput.checked = this.getPref(this.mermaidEnabledKey, false);
     mathOutputSelect.value = this.getPref(this.mathOutputKey, "htmlAndMathml") === "mathml"
       ? "mathml"
       : "htmlAndMathml";
@@ -73,6 +76,7 @@ Zotero.AnnotationMarkdownPreferences = {
       const renderingEnabled = enabledInput.checked || popupEnabledInput.checked;
       this.setControlEnabled(mathEnabledInput, renderingEnabled);
       if (svgEnabledInput) this.setControlEnabled(svgEnabledInput, renderingEnabled);
+      if (mermaidEnabledInput) this.setControlEnabled(mermaidEnabledInput, renderingEnabled);
       this.setDependentOptionEnabled(mathOutputOption, mathOutputSelect,
         renderingEnabled && mathEnabledInput.checked);
     };
@@ -129,6 +133,9 @@ Zotero.AnnotationMarkdownPreferences = {
     });
     svgEnabledInput?.addEventListener("command", () => {
       Zotero.Prefs.set(this.svgEnabledKey, Boolean(svgEnabledInput.checked), true);
+    });
+    mermaidEnabledInput?.addEventListener("command", () => {
+      Zotero.Prefs.set(this.mermaidEnabledKey, Boolean(mermaidEnabledInput.checked), true);
     });
     mathEnabledInput.addEventListener("syncfrompreference", syncMathControlsEnabled);
 

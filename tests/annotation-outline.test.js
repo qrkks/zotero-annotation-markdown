@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { trackAnnotationOutline } from "../src/annotation-outline.ts";
 import { createMarkdownRenderer } from "../src/markdown-renderer.ts";
+import { createSvgRenderer } from "../src/svg-renderer.ts";
 
 let controller;
 afterEach(() => {
@@ -167,6 +168,19 @@ test("creates a collapsed outline only for one selected preview with multiple he
 });
 
 const svgFence = '```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40"><rect width="80" height="40"/></svg>\n```';
+
+test("distinguishes Mermaid and SVG source types in direct-section outline labels", async () => {
+  setup({ initialExpanded: true });
+  const preview = document.querySelector(".annotation-markdown-rendered");
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>';
+  const render = createSvgRenderer(window);
+  preview.innerHTML = '<h1>研究流程</h1>' + render(svg, "source", { sourceKind: "mermaid" }) + '<h2>几何示意</h2>' + render(svg, "source");
+  await flushMutations();
+  const items = [...document.querySelectorAll(".annotation-markdown-outline-item")];
+  expect(items.slice(0, 2).map(item => item.querySelector(".annotation-markdown-outline-svg-badge")?.textContent)).toEqual(["MERMAID", "SVG"]);
+  expect(items[0].title).toBe("研究流程\n本节含 1 个 Mermaid 图");
+  expect(items[1].title).toBe("几何示意\n本节含 1 个 SVG 图");
+});
 
 test("counts regular, deferred and failed linked images separately from SVG in their direct section", async () => {
   const { rows } = setup({ initialExpanded: true });

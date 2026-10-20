@@ -69,9 +69,9 @@ describe("preferences pane", () => {
     expect(child.checked).toBe(true);
     expect(option.getAttribute("data-disabled")).toBeNull();
   });
-  test("SVG is opt-in, follows rendering scopes, and writes the full pref key", async () => {
+  test.each(["svg", "mermaid"])("%s is opt-in, follows rendering scopes, and writes the full pref key", async kind => {
     const f = await mathPreferenceFixture(false, false, true);
-    const svg = f.controls.get("annotation-markdown-svg-enabled");
+    const svg = f.controls.get(`annotation-markdown-${kind}-enabled`);
     expect(svg.checked).toBe(false);
     expect(svg.disabled).toBe(true);
     svg.checked = true;
@@ -80,10 +80,10 @@ describe("preferences pane", () => {
     expect(svg.disabled).toBe(false);
     expect(svg.checked).toBe(true);
     svg.dispatch("command");
-    expect(f.set).toHaveBeenCalledWith("extensions.annotationMarkdown.svgEnabled", true, true);
+    expect(f.set).toHaveBeenCalledWith(`extensions.annotationMarkdown.${kind}Enabled`, true, true);
     const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
-    expect(source).toContain('preference="extensions.annotationMarkdown.svgEnabled"');
-    expect(source).toContain('data-l10n-id="annotation-markdown-prefs-svg-enabled"');
+    expect(source).toContain(`preference="extensions.annotationMarkdown.${kind}Enabled"`);
+    expect(source).toContain(`data-l10n-id="annotation-markdown-prefs-${kind}-enabled"`);
   });
   test.each([
     [false, false, false], [false, false, true],
@@ -148,7 +148,7 @@ describe("preferences pane", () => {
     expect(doc.querySelector("select")).toBeNull();
     const keys = {
       enabled: "enabled", "popup-enabled": "popupEnabled", "math-enabled": "mathEnabled",
-      "math-output": "mathOutput", "svg-enabled": "svgEnabled", "font-scale": "fontScalePercent",
+      "math-output": "mathOutput", "svg-enabled": "svgEnabled", "mermaid-enabled": "mermaidEnabled", "font-scale": "fontScalePercent",
       "paste-as-plain-text": "pasteAsPlainText", "fast-editor": "fastEditor",
       "outline-enabled": "outlineEnabled", "outline-numbering": "outlineNumbering", "outline-font-scale": "outlineFontScalePercent",
       "outline-smart-numbering": "outlineSmartNumbering",
@@ -175,7 +175,7 @@ describe("preferences pane", () => {
     ]);
     expect([...groups[0].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
       "annotation-markdown-enabled", "annotation-markdown-popup-enabled", "annotation-markdown-math-enabled",
-      "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-font-scale",
+      "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-mermaid-enabled", "annotation-markdown-font-scale",
       "annotation-markdown-paste-as-plain-text", "annotation-markdown-fast-editor"
     ]);
     expect(groups[1].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();

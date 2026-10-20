@@ -81,21 +81,22 @@ jobs:
           version="${RELEASE_TAG#v}"
           gh release create "$RELEASE_TAG" \
             "dist/zotero-annotation-markdown.xpi" \
+            "dist/zotero-annotation-markdown-source.zip" \
             --verify-tag \
             --title "Zotero Annotation Markdown $version" \
             --notes-file "dist/release-notes.md" \
             --latest
 
-      - name: Verify published asset
+      - name: Verify published assets
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: |
-          asset="zotero-annotation-markdown.xpi"
-          expected_hash="$(sha256sum "dist/$asset" | cut -d ' ' -f 1)"
-          expected_size="$(stat -c %s "dist/$asset")"
-          published_digest="$(gh release view "$RELEASE_TAG" --json assets --jq ".assets[] | select(.name == \"$asset\") | .digest")"
-          test "$published_digest" = "sha256:$expected_hash"
-
           mkdir -p dist/published
-          gh release download "$RELEASE_TAG" --pattern "$asset" --dir dist/published
-          test "$(stat -c %s "dist/published/$asset")" = "$expected_size"
-          echo "$expected_hash  dist/published/$asset" | sha256sum --check --strict
+          for asset in "zotero-annotation-markdown.xpi" "zotero-annotation-markdown-source.zip"; do
+            expected_hash="$(sha256sum "dist/$asset" | cut -d ' ' -f 1)"
+            expected_size="$(stat -c %s "dist/$asset")"
+            published_digest="$(gh release view "$RELEASE_TAG" --json assets --jq ".assets[] | select(.name == \"$asset\") | .digest")"
+            test "$published_digest" = "sha256:$expected_hash"
+            gh release download "$RELEASE_TAG" --pattern "$asset" --dir dist/published
+            test "$(stat -c %s "dist/published/$asset")" = "$expected_size"
+            echo "$expected_hash  dist/published/$asset" | sha256sum --check --strict
+          done

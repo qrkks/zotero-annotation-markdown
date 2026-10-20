@@ -145,7 +145,7 @@ export function createSvgAnnotationBadges({
             if (!mayContainImages(annotation.comment) || !iconBounds.has(annotation.id)) continue;
             const counts = getImageCounts(annotation.comment!);
             if (!imageBadgeLabel(counts)) continue;
-            const width = counts.img > 0 && counts.svg > 0 ? MIXED_BADGE_WIDTH : BADGE_WIDTH;
+            const width = imageBadgeWidth(counts);
             const textBounds = pdfTextBounds(div, pageRect, transform, pdfTextBoundsCache);
             const marker = choosePdfBadgePosition(iconBounds.get(annotation.id)!, icons, placed, textBounds,
               pageRect.width, pageRect.height, width);
@@ -183,7 +183,7 @@ export function createSvgAnnotationBadges({
               (element.localName === "g" || element.localName === "svg"));
           const rect = target?.getBoundingClientRect();
           if (rect?.width && rect?.height) {
-            const width = counts.img > 0 && counts.svg > 0 ? MIXED_BADGE_WIDTH : BADGE_WIDTH;
+            const width = imageBadgeWidth(counts);
             entries.set(annotation.id, { x: rect.left + 10, y: rect.top - 5, container: view._annotationRenderRootEl, counts, width });
           }
         }
@@ -304,7 +304,13 @@ function isShadowRoot(root: Node): root is ShadowRoot {
 }
 
 function mayContainImages(source?: string): boolean {
-  return Boolean(source && /<svg\b|!\[|https?:\/\//i.test(source));
+  return Boolean(source && /<svg\b|!\[|https?:\/\/|(?:`{3,}|~{3,})[ \t]*mermaid(?:\s|$)/i.test(source));
+}
+
+function imageBadgeWidth(counts: ImageCounts): number {
+  // Keep existing marker geometry; reserve enough room for longer source labels.
+  if ((counts.mermaid ?? 0) > 0) return Math.ceil(imageBadgeLabel(counts).length * 6.5 + 8);
+  return counts.img > 0 && counts.svg > 0 ? MIXED_BADGE_WIDTH : BADGE_WIDTH;
 }
 
 function hasNonBadgeChildChange(mutations: MutationRecord[]): boolean {

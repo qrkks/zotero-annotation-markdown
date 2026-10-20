@@ -11,6 +11,31 @@ const renderer = createMarkdownRenderer({ isSvgEnabled: () => true });
 afterEach(() => { document.body.innerHTML = ""; });
 
 describe("SVG annotation badges", () => {
+  test.each(["```", "~~~"])("discovers Mermaid-only page annotations with %s fences and sizes mixed labels", fence => {
+    document.body.innerHTML = '<div class="page"></div>';
+    const page = document.querySelector(".page");
+    const annotation = { id: "mermaid", type: "note", comment: `${fence}mermaid\nflowchart TD\nA --> B\n${fence}`,
+      position: { pageIndex: 0, rects: [[80, 100, 100, 120]] } };
+    const view = { _iframeDocument: document, _annotations: [annotation],
+      _pages: [{ _pageIndex: 0, _originalPage: { div: page, viewport: { transform: [1, 0, 0, -1, 0, 200] } } }] };
+    let counts = { img: 0, svg: 0, mermaid: 1 };
+    const badges = createSvgAnnotationBadges({ reader: { _internalReader: { _views: [view] } },
+      document, isEnabled: () => true, getImageCounts: () => counts, getLocale: () => "zh-CN" });
+    try {
+      badges.start();
+      const badge = page.querySelector("[data-annotation-markdown-svg-page-badge]");
+      expect(badge.textContent).toBe("MERMAID");
+      expect(badge.title).toBe("本条批注含 1 个 Mermaid 图");
+      const singleWidth = parseInt(badge.style.width, 10);
+      expect(singleWidth).toBeGreaterThanOrEqual(52);
+      counts = { img: 1, svg: 1, mermaid: 2 }; badges.refresh();
+      expect(badge.textContent).toBe("IMG · SVG · MERMAID");
+      expect(parseInt(badge.style.width, 10)).toBeGreaterThan(singleWidth);
+      expect(badge.style.pointerEvents).toBe("none");
+      counts = { img: 0, svg: 0, mermaid: 0 }; badges.refresh();
+      expect(page.querySelector("[data-annotation-markdown-svg-page-badge]")).toBeNull();
+    } finally { badges.stop(); }
+  });
   test("keeps one sidebar badge outside the clamped preview and removes it when SVG disappears", () => {
     document.body.innerHTML = '<div data-sidebar-annotation-id="a1" class="annotation"><div class="preview"><header><div class="start"><div class="icon"></div></div><div class="end"><div class="custom-sections"></div><button class="more"></button></div></header><div class="comment"><div class="content"></div></div></div></div>';
     const adapter = createAnnotationSidebarAdapter({ document });

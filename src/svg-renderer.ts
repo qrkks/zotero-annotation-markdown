@@ -8,7 +8,7 @@ import { createSvgAccessibility } from "./svg-accessibility.js";
 import { createSvgDiagnostics, SvgPolicyError, type SvgRenderResult, type SvgDiagnostics } from "./svg-diagnostics.js";
 
 export type { SvgRenderResult, SvgDiagnostic } from "./svg-diagnostics.js";
-export interface SvgRenderOptions { inferFromSource?: boolean; allowDegradation?: boolean; }
+export interface SvgRenderOptions { inferFromSource?: boolean; allowDegradation?: boolean; sourceKind?: "svg" | "mermaid"; }
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 export const SVG_LIMITS = { sourceChars: 32000, elements: 512, depth: 32, dimension: 4096 } as const;
@@ -50,7 +50,7 @@ const ENUMS: Record<string, RegExp> = {
 
 export function createSvgRenderer(windowRef: Window | null) {
   const purifier = windowRef?.document ? createDOMPurify(windowRef as unknown as WindowLike) : null;
-  const renderDetailed = (source: string, codeFallback: string, { inferFromSource = false, allowDegradation = true }: SvgRenderOptions = {}): SvgRenderResult => {
+  const renderDetailed = (source: string, codeFallback: string, { inferFromSource = false, allowDegradation = true, sourceKind = "svg" }: SvgRenderOptions = {}): SvgRenderResult => {
     const diagnostics = createSvgDiagnostics(allowDegradation);
     const unchangedFallback = (): SvgRenderResult => ({ status:"fallback", html:codeFallback, originalSource:source, omittedCount:0, diagnostics:[], reason:null });
     // This is only a cheap candidate check. XML parsing below must confirm that
@@ -154,7 +154,7 @@ export function createSvgRenderer(windowRef: Window | null) {
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clean)}`;
       const imageDescription = description ? ` title="${escapeHtml(description)}"` : "";
       const warning = diagnostics.omittedCount ? `<p class="annotation-markdown-svg-warning" role="note">${escapeHtml(diagnostics.warningText())}</p>` : "";
-      const html = `<figure class="annotation-markdown-svg">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(label)}"${imageDescription} width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
+      const html = `<figure class="annotation-markdown-svg${sourceKind === "mermaid" ? " annotation-markdown-mermaid" : ""}">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(label)}"${imageDescription} width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
       return { status:diagnostics.omittedCount ? "degraded" : "complete", html, originalSource:source,
         omittedCount:diagnostics.omittedCount, diagnostics:diagnostics.diagnostics, reason:null };
     } catch (error) {

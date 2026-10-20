@@ -653,7 +653,7 @@ function collectHeadings(preview: HTMLElement): HTMLElement[] {
 }
 
 function countSectionImages(preview: HTMLElement, headings: HTMLElement[]): ImageCounts[] {
-  const counts = headings.map(() => ({ img: 0, svg: 0 }));
+  const counts: ImageCounts[] = headings.map(() => ({ img: 0, svg: 0 }));
   const indices = new Map(headings.map((heading, index) => [heading, index]));
   let current = -1;
   // Document order also handles figures inside quotes or lists. Each heading
@@ -663,7 +663,7 @@ function countSectionImages(preview: HTMLElement, headings: HTMLElement[]): Imag
       current = indices.get(node) ?? -1;
     } else if (current >= 0) {
       const kind = imageKind(node, preview);
-      if (kind) counts[current][kind]++;
+      if (kind) counts[current][kind] = (counts[current][kind] ?? 0) + 1;
     }
   }
   return counts;

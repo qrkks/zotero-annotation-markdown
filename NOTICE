@@ -23,7 +23,8 @@ notice is preserved in licenses/MIT-legacy.txt. The current project as a
 whole is licensed under AGPL-3.0-or-later; this historical notice does not
 offer the current revision under MIT as an alternative license.
 
-Third-party components retain their respective licenses. Packaged builds
-include THIRD-PARTY-NOTICES.txt and a source snapshot described in SOURCE.txt.
+Third-party components retain their respective licenses. Packaged XPI files
+include THIRD-PARTY-NOTICES.txt. The matching source archive is distributed
+alongside the XPI, with download and rebuild directions in SOURCE.txt.
 
 Project: https://github.com/qrkks/zotero-annotation-markdown

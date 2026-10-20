@@ -1,6 +1,6 @@
 {
   "name": "zotero-annotation-markdown",
-  "version": "0.15.4",
+  "version": "0.16.0",
   "description": "Render Zotero reader annotation comments as Markdown with LaTeX math.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
@@ -22,7 +22,8 @@
     "markdown-it": "^14.3.1",
     "markdown-it-cjk-friendly": "3.0.0",
     "markdown-it-mark": "4.0.0",
-    "markdown-it-texmath": "^1.0.0"
+    "markdown-it-texmath": "^1.0.0",
+    "pele": "1.7.0"
   },
   "devDependencies": {
     "@fluent/bundle": "0.19.1",

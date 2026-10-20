@@ -8,6 +8,7 @@ pref("extensions.annotationMarkdown.mathEnabled", true);
 // Native MathML is an optional output; standard KaTeX rendering stays the default.
 pref("extensions.annotationMarkdown.mathOutput", "htmlAndMathml");
 pref("extensions.annotationMarkdown.svgEnabled", false);
+pref("extensions.annotationMarkdown.mermaidEnabled", false);
 pref("extensions.annotationMarkdown.performanceDiagnostics", false);
 pref("extensions.annotationMarkdown.lightweightMode", false);
 pref("extensions.annotationMarkdown.renderStrategy", "auto");

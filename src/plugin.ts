@@ -26,6 +26,7 @@ import {
   MATH_ENABLED_PREF_KEY,
   MATH_OUTPUT_PREF_KEY,
   SVG_ENABLED_PREF_KEY,
+  MERMAID_ENABLED_PREF_KEY,
   NATIVE_ROW_LAZY_PREF_KEY,
   OUTLINE_ENABLED_PREF_KEY,
   OUTLINE_NUMBERING_PREF_KEY,
@@ -202,6 +203,7 @@ export function createPlugin({
               isMathEnabled: () => settings.isMathEnabled(),
               getMathOutput: () => settings.getMathOutput(),
               isSvgEnabled: () => settings.isSvgEnabled(),
+              isMermaidEnabled: () => settings.isMermaidEnabled(),
               deferLinkedImages: Boolean(Zotero?.HTTP),
               windowRef: readerWindow
             }),
@@ -402,6 +404,7 @@ function registerPreferenceObservers(
     [MATH_ENABLED_PREF_KEY, true],
     [MATH_OUTPUT_PREF_KEY, true],
     [SVG_ENABLED_PREF_KEY, true],
+    [MERMAID_ENABLED_PREF_KEY, true],
     [OUTLINE_ENABLED_PREF_KEY, true],
     [OUTLINE_NUMBERING_PREF_KEY, true],
     [OUTLINE_SMART_NUMBERING_PREF_KEY, true],

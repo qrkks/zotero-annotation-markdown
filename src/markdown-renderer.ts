@@ -12,6 +12,7 @@ import markdownItTexmath from "markdown-it-texmath";
 
 import markdownItMarkColors from "./markdown-it-mark-colors.js";
 import { createSvgRenderer } from "./svg-renderer.js";
+import { createMermaidRenderer } from "./mermaid-renderer.js";
 import { createRawSvgBlockProtector } from "./raw-svg-blocks.js";
 import { installLinkedImagePreviews } from "./linked-image-preview.js";
 import { installSourceFavicons } from "./source-favicon.js";
@@ -37,6 +38,7 @@ interface CreateMarkdownRendererOptions {
   mathPluginOptions?: MathPluginOptions;
   isMathEnabled?: () => boolean;
   isSvgEnabled?: () => boolean;
+  isMermaidEnabled?: () => boolean;
   deferLinkedImages?: boolean;
   getMathOutput?: () => MathOutput;
   windowRef?: Window | null;
@@ -67,16 +69,18 @@ export function createMarkdownRenderer({
   getMathOutput = () => mathPluginOptions?.katexOptions?.output ?? "htmlAndMathml",
   isMathEnabled = () => true,
   isSvgEnabled = () => false,
+  isMermaidEnabled = () => false,
   deferLinkedImages = false,
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
   const renderSvg = createSvgRenderer(windowRef);
+  const renderMermaid = createMermaidRenderer(windowRef, renderSvg);
   const protectRawSvgBlocks = createRawSvgBlockProtector();
-  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages);
+  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages, isMermaidEnabled, renderMermaid);
   // Separate default engines let math be disabled again after the plugin has
   // been loaded without leaving texmath rules attached to the plain renderer.
   const mathCapableMarkdown = mathMarkdown ?? (
-    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages)
+    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages, isMermaidEnabled, renderMermaid)
   );
   const purifier = createPurifier(windowRef);
   // texmath retains this options object, so live switches do not rebuild its rules.
@@ -136,7 +140,8 @@ function wrapMathmlDisplayMath(html: string): string {
   );
 }
 
-function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: ReturnType<typeof createSvgRenderer>, deferLinkedImages: boolean): MarkdownIt {
+function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: ReturnType<typeof createSvgRenderer>, deferLinkedImages: boolean,
+  isMermaidEnabled: () => boolean, renderMermaid: ReturnType<typeof createMermaidRenderer>): MarkdownIt {
   const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
   markdown.use(markdownItCjkFriendly);
   markdown.use(markdownItMark);
@@ -148,6 +153,7 @@ function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: Ret
   markdown.renderer.rules.fence = (tokens, index, options, env, self) => {
     const fallback = originalFence(tokens, index, options, env, self);
     const language = tokens[index].info.trim().toLowerCase();
+    if (language === "mermaid") return isMermaidEnabled() ? renderMermaid(tokens[index].content, fallback) : fallback;
     if (!isSvgEnabled() || (language && language !== "svg")) return fallback;
     return renderSvg(tokens[index].content, fallback, { inferFromSource: !language });
   };
