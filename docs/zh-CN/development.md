@@ -35,7 +35,9 @@ pnpm run verify
 
 该命令会运行自动化测试和 TypeScript 检查、构建插件，并打包 XPI 与对应的源码 ZIP。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
 
-[SVG 样例指南](../examples/svg-samples.md)从回归样例生成。修改样例后运行 `node scripts/svg-samples.mjs`；文档检查会确认六个公开复制块仍与原始样例一致。运行 `pnpm exec vitest run tests/svg-rendering.test.js tests/svg-compatibility.test.js tests/svg-fonts.test.js` 可复跑 SVG 回归，真实宿主的已保存结果见 [SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。
+所有测试均使用 TypeScript。Vitest 运行 `tests/**/*.test.ts`；`pnpm run typecheck` 检查源码后，会通过 `tsconfig.test.json` 执行 `pnpm run typecheck:tests`。测试及辅助函数遵循与源码相同的严格规则；该配置允许导入现有 JavaScript 工具，但不检查这些脚本。mock 应复用生产接口，异常输入应在明确的测试边界中保留。单独执行 `pnpm test` 不进行类型检查。
+
+[SVG 样例指南](../examples/svg-samples.md)从回归样例生成。修改样例后运行 `node scripts/svg-samples.mjs`；文档检查会确认六个公开复制块仍与原始样例一致。运行 `pnpm exec vitest run tests/svg-rendering.test.ts tests/svg-compatibility.test.ts tests/svg-fonts.test.ts` 可复跑 SVG 回归，真实宿主的已保存结果见 [SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。
 
 ## 真实 Zotero 发版冒烟
 
@@ -60,7 +62,7 @@ pnpm run verify
 
 ## 发布检查清单
 
-1. 从干净检出或独立工作树开始，然后更新 `package.json`、`addon/manifest.json` 和 `tests/version.test.js` 中的版本号；依赖发生变化时同步更新 `pnpm-lock.yaml`。
+1. 从干净检出或独立工作树开始，然后更新 `package.json`、`addon/manifest.json` 和 `tests/version.test.ts` 中的版本号；依赖发生变化时同步更新 `pnpm-lock.yaml`。
 2. 更新 `CHANGELOG.md`，并同步修改受影响文档的中英文版本。
 3. 运行 `pnpm run verify`、`pnpm audit --prod`、`pnpm run release:verify v<version>` 和 `git diff --check`。
 4. 使用该检出生成的准确 XPI 完成真实 Zotero 冒烟测试。

@@ -1,0 +1,229 @@
+import { type ZoteroTagApi, hasTodoDirective, registerAutoTodoTagger } from "../src/auto-todo-tag.ts";
+import { describe, expect, test, vi } from "vitest";
+import { requireValue } from "./helpers/dom.ts";
+
+type Notifier = NonNullable<ZoteroTagApi["Notifier"]>;
+type Notify = Parameters<Notifier["registerObserver"]>[0]["notify"];
+
+const settle = async () => {
+  await new Promise(resolve => setTimeout(resolve, 0));
+  for (let i = 0; i < 8; i += 1) await Promise.resolve();
+};
+
+describe("automatic annotation todo tag", () => {
+  test("matches line-leading todo and t directives in any letter case", () => {
+    for (const comment of [
+      "todo: read", "TODO: read", "Todo：读完", "Note\n  tOdO：再核对",
+      "t: read", "T：读完", "Note\n  t：再核对"
+    ]) {
+      expect(hasTodoDirective(comment)).toBe(true);
+    }
+    for (const comment of [
+      "A todo: example in prose", "`todo:` is syntax", "todoo: read", "todo read", "todo读完",
+      "A t: example in prose", "`t:` is syntax", "tt: read", "to: read", "t read", "t读完"
+    ]) {
+      expect(hasTodoDirective(comment)).toBe(false);
+    }
+  });
+
+  test("adds one lowercase tag after a saved annotation change and avoids a notification loop", async () => {
+    let notify: Notify | undefined;
+    const tags: Array<string> = [];
+    const item = {
+      removeTag: vi.fn(),
+      isAnnotation: () => true,
+      annotationComment: "T：check this",
+      getTags: () => tags.map(tag => ({ tag })),
+      addTag: vi.fn(tag => { tags.push(tag); return true; }),
+      saveTx: vi.fn(async () => requireValue(notify)("modify", "item", [7], { 7: { changed: { tags: [] } } }))
+    };
+    const unregisterObserver = vi.fn();
+    const Zotero = {
+      Items: { getAsync: vi.fn(async () => item) },
+      Notifier: {
+        registerObserver: vi.fn<Notifier["registerObserver"]>(observer => { notify = observer.notify; return "observer-1"; }),
+        unregisterObserver
+      }
+    };
+    const stop = registerAutoTodoTagger({ Zotero, isEnabled: () => true, warn: vi.fn() });
+
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "" } } });
+    await settle();
+
+    expect(item.addTag).toHaveBeenCalledExactlyOnceWith("todo");
+    expect(item.saveTx).toHaveBeenCalledTimes(1);
+    expect(tags).toEqual(["todo"]);
+    stop();
+    expect(unregisterObserver).toHaveBeenCalledWith("observer-1");
+  });
+
+  test("skips disabled mode, non-annotations, and an existing tag in another case", async () => {
+    let notify: Notify | undefined;
+    let enabled = false;
+    const item = {
+      removeTag: vi.fn(),
+      isAnnotation: vi.fn(() => true),
+      annotationComment: "todo: check this",
+      getTags: vi.fn(() => [{ tag: "TODO" }]),
+      addTag: vi.fn(),
+      saveTx: vi.fn()
+    };
+    const Zotero = {
+      Items: { getAsync: vi.fn(async () => item) },
+      Notifier: {
+        registerObserver: vi.fn<Notifier["registerObserver"]>(observer => { notify = observer.notify; return "observer-1"; }),
+        unregisterObserver: vi.fn()
+      }
+    };
+    const stop = registerAutoTodoTagger({ Zotero, isEnabled: () => enabled, warn: vi.fn() });
+
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "" } } });
+    await settle();
+    expect(Zotero.Items.getAsync).not.toHaveBeenCalled();
+
+    enabled = true;
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "" } } });
+    await settle();
+    expect(item.addTag).not.toHaveBeenCalled();
+
+    item.getTags.mockReturnValue([]);
+    item.isAnnotation.mockReturnValue(false);
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "" } } });
+    await settle();
+    expect(item.addTag).not.toHaveBeenCalled();
+
+    stop();
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "" } } });
+    await settle();
+    expect(item.addTag).not.toHaveBeenCalled();
+  });
+
+  test("ignores tag-only changes so manual tag removal stays removed", async () => {
+    let notify: Notify | undefined;
+    const item = {
+      removeTag: vi.fn(),
+      isAnnotation: () => true,
+      annotationComment: "todo: check this",
+      getTags: () => [],
+      addTag: vi.fn(() => true),
+      saveTx: vi.fn(async () => true)
+    };
+    const Zotero = {
+      Items: { getAsync: vi.fn(async () => item) },
+      Notifier: {
+        registerObserver: vi.fn<Notifier["registerObserver"]>(observer => { notify = observer.notify; return "observer-1"; }),
+        unregisterObserver: vi.fn()
+      }
+    };
+    const stop = registerAutoTodoTagger({ Zotero, isEnabled: () => true, warn: vi.fn() });
+
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { tags: [{ tag: "todo" }] } } });
+    await settle();
+    expect(Zotero.Items.getAsync).not.toHaveBeenCalled();
+
+    requireValue(notify)("add", "item", [7]);
+    await settle();
+    expect(item.addTag).toHaveBeenCalledExactlyOnceWith("todo");
+    stop();
+  });
+
+  test("cleans a lowercase todo tag only after a comment change when opted in", async () => {
+    let notify: Notify | undefined;
+    let taggingEnabled = true;
+    let cleanupEnabled = false;
+    const tags = ["todo"];
+    const item = {
+      isAnnotation: () => true,
+      annotationComment: "Finished reading",
+      getTags: () => tags.map(tag => ({ tag })),
+      addTag: vi.fn(),
+      removeTag: vi.fn(tag => {
+        tags.splice(tags.indexOf(tag), 1);
+        return true;
+      }),
+      saveTx: vi.fn(async () => requireValue(notify)("modify", "item", [7], { 7: { changed: { tags: [] } } }))
+    };
+    const Zotero = {
+      Items: { getAsync: vi.fn(async () => item) },
+      Notifier: {
+        registerObserver: vi.fn<Notifier["registerObserver"]>(observer => { notify = observer.notify; return "observer-1"; }),
+        unregisterObserver: vi.fn()
+      }
+    };
+    const stop = registerAutoTodoTagger({
+      Zotero,
+      isEnabled: () => taggingEnabled,
+      isCleanupEnabled: () => cleanupEnabled,
+      warn: vi.fn()
+    });
+    const commentChange = { 7: { changed: { annotationComment: "t: read" } } };
+
+    requireValue(notify)("modify", "item", [7], commentChange);
+    await settle();
+    expect(item.removeTag).not.toHaveBeenCalled();
+
+    cleanupEnabled = true;
+    item.annotationComment = "T：still pending";
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "todo: read" } } });
+    await settle();
+    expect(item.removeTag).not.toHaveBeenCalled();
+
+    item.annotationComment = "Finished reading";
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "Earlier unrelated comment" } } });
+    await settle();
+    expect(item.removeTag).not.toHaveBeenCalled();
+
+    requireValue(notify)("modify", "item", [7], commentChange);
+    await settle();
+    expect(item.removeTag).toHaveBeenCalledExactlyOnceWith("todo");
+    expect(item.saveTx).toHaveBeenCalledTimes(1);
+    expect(tags).toEqual([]);
+
+    tags.push("todo");
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { tags: [] } } });
+    await settle();
+    expect(tags).toEqual(["todo"]);
+
+    taggingEnabled = false;
+    requireValue(notify)("modify", "item", [7], commentChange);
+    await settle();
+    expect(tags).toEqual(["todo"]);
+    stop();
+  });
+
+  test("cleanup leaves uppercase tags and newly added annotations untouched", async () => {
+    let notify: Notify | undefined;
+    const tags = ["TODO"];
+    const item = {
+      isAnnotation: () => true,
+      annotationComment: "Finished reading",
+      getTags: () => tags.map(tag => ({ tag })),
+      addTag: vi.fn(),
+      removeTag: vi.fn(),
+      saveTx: vi.fn()
+    };
+    const Zotero = {
+      Items: { getAsync: vi.fn(async () => item) },
+      Notifier: {
+        registerObserver: vi.fn<Notifier["registerObserver"]>(observer => { notify = observer.notify; return "observer-1"; }),
+        unregisterObserver: vi.fn()
+      }
+    };
+    const stop = registerAutoTodoTagger({
+      Zotero,
+      isEnabled: () => true,
+      isCleanupEnabled: () => true,
+      warn: vi.fn()
+    });
+
+    requireValue(notify)("modify", "item", [7], { 7: { changed: { annotationComment: "TODO: read" } } });
+    await settle();
+    expect(item.removeTag).not.toHaveBeenCalled();
+
+    tags.splice(0, 1, "todo");
+    requireValue(notify)("add", "item", [7]);
+    await settle();
+    expect(item.removeTag).not.toHaveBeenCalled();
+    stop();
+  });
+});

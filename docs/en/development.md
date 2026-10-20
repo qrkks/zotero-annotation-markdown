@@ -35,7 +35,9 @@ pnpm run verify
 
 This runs the automated tests and TypeScript checks, builds the add-on, and packages the XPI and matching source ZIP. All modules under `src/` use strict TypeScript; JavaScript under `addon/` remains where Zotero executes files directly, and `scripts/*.mjs` remains Node tooling. See the [architecture and file map](architecture.md) for ownership and runtime boundaries. Core rendering, settings, DOM adaptation, reader lifecycle, and packaging have automated coverage, but the Zotero reader sidebar still requires real-Zotero checks.
 
-The [SVG sample guide](../examples/svg-samples.md) is generated from the regression fixtures. After changing a fixture, run `node scripts/svg-samples.mjs`. The documentation check verifies that all six published copy blocks still match their source fixtures. Run the SVG regressions with `pnpm exec vitest run tests/svg-rendering.test.js tests/svg-compatibility.test.js tests/svg-fonts.test.js`; saved native-host results are in the [SVG validation report](../test-evidence/2026-10-10-svg-mvp.md).
+All tests use TypeScript. Vitest runs `tests/**/*.test.ts`; `pnpm run typecheck` checks the source and then runs `pnpm run typecheck:tests` using `tsconfig.test.json`. Tests and helpers follow the same strict rules as the source. This configuration permits imports from the existing JavaScript tooling without checking those scripts. Reuse production contracts for mocks and retain malformed-input coverage at explicit fixture boundaries. `pnpm test` alone does not perform type checking.
+
+The [SVG sample guide](../examples/svg-samples.md) is generated from the regression fixtures. After changing a fixture, run `node scripts/svg-samples.mjs`. The documentation check verifies that all six published copy blocks still match their source fixtures. Run the SVG regressions with `pnpm exec vitest run tests/svg-rendering.test.ts tests/svg-compatibility.test.ts tests/svg-fonts.test.ts`; saved native-host results are in the [SVG validation report](../test-evidence/2026-10-10-svg-mvp.md).
 
 ## Real-Zotero release smoke test
 
@@ -60,7 +62,7 @@ This release line prioritizes real-host validation on the latest Zotero 10 versi
 
 ## Release checklist
 
-1. Start from a clean checkout or worktree, then update the version in `package.json`, `addon/manifest.json`, and `tests/version.test.js`. Update `pnpm-lock.yaml` when dependencies change.
+1. Start from a clean checkout or worktree, then update the version in `package.json`, `addon/manifest.json`, and `tests/version.test.ts`. Update `pnpm-lock.yaml` when dependencies change.
 2. Update `CHANGELOG.md` and both languages of any affected documentation.
 3. Run `pnpm run verify`, `pnpm audit --prod`, `pnpm run release:verify v<version>`, and `git diff --check`.
 4. Complete the real-Zotero smoke test against the exact XPI produced by that checkout.

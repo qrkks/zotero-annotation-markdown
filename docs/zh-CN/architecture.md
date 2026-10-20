@@ -82,7 +82,7 @@ sequenceDiagram
 | Esc 定位补救 | `src/annotation-escape-scroll.ts` 中的 `createAnnotationEscapeRecovery()` | 在预览恢复期间保持位置；只有当前选中的实际标注行完全不可见时，才滚动一次到顶部 2px。 |
 | 原生回退 | 传给适配器的 `isFastEditorEnabled()` 与能力检查 | 偏好设置关闭或缺少所需管理器时，不挂载插件编辑器 DOM，也不阻止宿主事件。 |
 
-对应的回归测试位于 `tests/plugin.test.js`、`tests/reader-controller.test.js`、`tests/annotation-sidebar-adapter.test.js` 和 `tests/rendered-content-style.test.js`。任何生命周期修改都应先在最窄的适用测试中复现准确的 DOM、焦点、键盘、保存或滚动失败场景。
+对应的回归测试位于 `tests/plugin.test.ts`、`tests/reader-controller.test.ts`、`tests/annotation-sidebar-adapter.test.ts` 和 `tests/rendered-content-style.test.ts`。任何生命周期修改都应先在最窄的适用测试中复现准确的 DOM、焦点、键盘、保存或滚动失败场景。
 
 ## 侧栏滚动与标注选中状态
 
@@ -92,7 +92,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 
 样式表通过插件专属标记和自定义属性应用 `scroll-margin-top: 2px`，以及值为“视口高度 − 标注行高度 − 2px”的底部滚动边距。它让滚动目标区域等于视口高度，而不改变标注行的布局高度，因此原生最近边缘滚动能够从两个方向稳定对齐到开头。这条路径不会增加额外滚动调用、设置滚动吸附，也不会替换 `Element.prototype.scrollIntoView`。
 
-短标注和多选沿用原生定位；编辑状态、原生笔记编辑器和标注弹窗均被排除。手动滚动不会被纠正。刷新和关闭会移除目标标记及自定义属性；缺少所需的 MutationObserver 或 ResizeObserver 时，由原生滚动继续接管。回归测试位于 `tests/annotation-scroll-target.test.js` 和 `tests/native-reader-scroll.test.js`。
+短标注和多选沿用原生定位；编辑状态、原生笔记编辑器和标注弹窗均被排除。手动滚动不会被纠正。刷新和关闭会移除目标标记及自定义属性；缺少所需的 MutationObserver 或 ResizeObserver 时，由原生滚动继续接管。回归测试位于 `tests/annotation-scroll-target.test.ts` 和 `tests/native-reader-scroll.test.ts`。
 
 ### Esc 退出编辑
 
@@ -100,13 +100,13 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 
 经过两个布局帧后，补救流程重新查找当前选中的实际标注行。只要任何部分与视口相交，就不调用滚动；否则对滚动容器调用一次平滑 `scrollTo()`，以顶部 2px 为目标，并限制在可滚动范围内，编辑后变短的评论也适用。随后恢复此前的内联滚动锚定值和优先级。普通失焦不进入此流程；保存失败时编辑器保持打开。
 
-新的指针、滚轮、触摸、键盘或焦点操作会取消待执行的补救。选择变化、重新编辑、刷新、关闭或渲染恢复中止，也会阻止补救并清理临时状态。`tests/escape-editor-scroll.test.js` 覆盖可见与不可见标注、延迟测量、取消操作、保存失败、保存时替换标注行及 CSS 清理。实际滚动锚定和平滑滚动仍需 Firefox 与真实 Zotero 验证。
+新的指针、滚轮、触摸、键盘或焦点操作会取消待执行的补救。选择变化、重新编辑、刷新、关闭或渲染恢复中止，也会阻止补救并清理临时状态。`tests/escape-editor-scroll.test.ts` 覆盖可见与不可见标注、延迟测量、取消操作、保存失败、保存时替换标注行及 CSS 清理。实际滚动锚定和平滑滚动仍需 Firefox 与真实 Zotero 验证。
 
 ### 滚动条焦点与选择
 
 侧栏滚动期间，快速编辑会话独立于 DOM 焦点。`preserveActiveFastEditorForScrollbar()` 跟踪原生滚动条拖动直到释放或取消，并记住允许焦点暂留的滚动容器。控制器仅在匹配滚动条的 `focusin` 到达 Zotero 前拦截，防止标注被取消选中；不会重新聚焦文本框或修改选区。`hasActiveFastEditor()` 保持渲染暂停，`isEditable()` 在焦点位于滚动容器时仍保护已挂载的会话。点回文本框时由浏览器根据点击位置定位光标。真正的外部点击或焦点转移仍然保存；拖动结束后的窗口失焦也会保存。关闭或禁用时清理会话与释放定时器。
 
-`tests/fast-editor-scrollbar.test.js` 覆盖持续拖动、覆盖式滚动条、焦点暂留、光标保持、外部退出、保存失败及清理。浏览器验证还必须实际拖动原生滚动条，再点击不同位置输入；仅靠 DOM 测试不能验证原生光标命中或完整的 Zotero/Gecko 焦点链路。
+`tests/fast-editor-scrollbar.test.ts` 覆盖持续拖动、覆盖式滚动条、焦点暂留、光标保持、外部退出、保存失败及清理。浏览器验证还必须实际拖动原生滚动条，再点击不同位置输入；仅靠 DOM 测试不能验证原生光标命中或完整的 Zotero/Gecko 焦点链路。
 
 ### 浮动大纲
 
@@ -116,13 +116,13 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 
 `getSelectedAnnotationScrollbar()` 为已选中、非编辑状态的标注复用编辑器的滚动容器与滚动条命中判断。`registerAnnotationScrollbarHandlers()` 跟踪该指针交互，直到释放或取消。在此期间，只拦截目标为滚动容器或其祖先的 `focusin`，避免 Zotero 冒泡阶段的 `FocusManager` 清除选中状态。原生指针事件不被取消；这条路径不会重新选中标注、恢复标注焦点，也不会调用滚动 API。
 
-选中与展开状态仍由宿主持有，包括多选。键盘输入、新的外部指针操作、焦点进入真实控件或另一条标注、刷新与关闭都会清除临时保护。原生笔记编辑器和标注弹窗被排除；活跃快速编辑会话沿用已有的失焦保护路径。`tests/annotation-scrollbar.test.js` 按本机安装的 Reader 取消选中规则建模，覆盖持续拖动、覆盖式滚动条、清理和正常选中切换。真实 Zotero 验证还应确认：把一条很长的已选中标注滚出视野再滚回来，不会使它折叠，也不会把视口拉回该标注。
+选中与展开状态仍由宿主持有，包括多选。键盘输入、新的外部指针操作、焦点进入真实控件或另一条标注、刷新与关闭都会清除临时保护。原生笔记编辑器和标注弹窗被排除；活跃快速编辑会话沿用已有的失焦保护路径。`tests/annotation-scrollbar.test.ts` 按本机安装的 Reader 取消选中规则建模，覆盖持续拖动、覆盖式滚动条、清理和正常选中切换。真实 Zotero 验证还应确认：把一条很长的已选中标注滚出视野再滚回来，不会使它折叠，也不会把视口拉回该标注。
 
 ## 超宽独立公式
 
 仅为 `.annotation-markdown-rendered .katex-display` 设置横向自动溢出，采用 KaTeX 的 [CSS 定制方案](https://katex.org/docs/issues#css-customization)。短公式仍然居中；行内公式、源码、字号和公式结构保持不变。注释卡片本身不会变成横向滚动区域。
 
-`getPreviewMathScrollbar()` 区分原生滚动条与公式正文，包括矮公式底部附近的文字。控制器将临时滚动保护覆盖到指针、鼠标、焦点序列及拖动释放后的点击，不取消原生滚动。键盘焦点进入超宽公式不会触发编辑，普通正文点击仍然可以编辑。保护也覆盖插件自己的弹窗预览，并排除原生笔记及其他插件的预览。回归测试位于 `tests/math-scrollbar.test.js` 和 `tests/rendered-content-style.test.js`；浏览器验证应检查公式两端、短公式与高公式、窄侧栏以及真实滚动条拖动，再进行 Zotero 手动测试。
+`getPreviewMathScrollbar()` 区分原生滚动条与公式正文，包括矮公式底部附近的文字。控制器将临时滚动保护覆盖到指针、鼠标、焦点序列及拖动释放后的点击，不取消原生滚动。键盘焦点进入超宽公式不会触发编辑，普通正文点击仍然可以编辑。保护也覆盖插件自己的弹窗预览，并排除原生笔记及其他插件的预览。回归测试位于 `tests/math-scrollbar.test.ts` 和 `tests/rendered-content-style.test.ts`；浏览器验证应检查公式两端、短公式与高公式、窄侧栏以及真实滚动条拖动，再进行 Zotero 手动测试。
 
 ## 第三方 Reader 插件互操作
 
@@ -223,29 +223,31 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 
 | 测试文件 | 主要覆盖范围 |
 | --- | --- |
-| `tests/plugin.test.js` | 插件组合、Reader 事件、偏好设置、快速编辑宿主能力与提交桥接，以及关闭。 |
-| `tests/reader-registry.test.js` | 控制器所有权和异步生命周期顺序。 |
-| `tests/reader-controller.test.js` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
-| `tests/annotation-sidebar-adapter.test.js` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
-| `tests/annotation-scrollbar.test.js` | 已选中标注的滚动条焦点、持续拖动、视口与预览保持，以及交互保护清理。 |
-| `tests/annotation-scroll-target.test.js` | 选择目标的尺寸、懒渲染准备、大小变化、编辑与多选排除、标注行替换和清理。 |
-| `tests/native-reader-scroll.test.js` | 控制器启动、选择、刷新和关闭期间保持原生滚动方法不变。 |
-| `tests/escape-editor-scroll.test.js` | 仅针对 Esc 的可见性恢复、锚定样式恢复、输入取消、保存失败及实际标注行替换。 |
-| `tests/annotation-outline.test.js` | 大纲显示条件、标题层级、固定浮层几何、左右方向、状态保持、编辑时隐藏、侧栏内标题跳转和清理。 |
-| `tests/fast-editor-scrollbar.test.js` | 滚动条焦点与编辑会话分离、光标保持、外部退出、保存失败及清理。 |
-| `tests/math-scrollbar.test.js` | 独立公式滚动、编辑入口边界、焦点、拖动释放点击与清理。 |
-| `tests/markdown-renderer.test.js` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
-| `tests/settings.test.js` | 偏好默认值和规范化。 |
-| `tests/bootstrap.test.js` | Zotero 启动集成和诊断。 |
-| `tests/preferences-pane.test.js` | 偏好设置面板绑定，以及测试矩阵中各语言的 Fluent 消息和属性覆盖。 |
-| `tests/rendered-content-style.test.js` | 预览折叠、编辑状态和性能相关 CSS。 |
-| `tests/native-annotation-row-lazy.test.js` | 跨 Zotero 版本探测、宿主结构门禁、启动异常清理、精确高度空壳、选中行回退、重试行为和热重载清理兼容性。 |
-| `tests/katex-assets.test.js` | KaTeX 字体内联。 |
-| `tests/release-config.test.js` | 更新清单和可复现打包配置。 |
-| `tests/manifest.test.js` | 清单标识与兼容范围。 |
-| `tests/version.test.js` | 各发布文件之间的版本一致性。 |
+| `tests/plugin.test.ts` | 插件组合、Reader 事件、偏好设置、快速编辑宿主能力与提交桥接，以及关闭。 |
+| `tests/reader-registry.test.ts` | 控制器所有权和异步生命周期顺序。 |
+| `tests/reader-controller.test.ts` | 渲染策略、观察器、快速编辑事件生命周期、编辑暂停、缓存、诊断和清理。 |
+| `tests/annotation-sidebar-adapter.test.ts` | Zotero DOM 选择、源码提取、预览/编辑行为、快速编辑保存与视口行为，以及旧状态清理。 |
+| `tests/annotation-scrollbar.test.ts` | 已选中标注的滚动条焦点、持续拖动、视口与预览保持，以及交互保护清理。 |
+| `tests/annotation-scroll-target.test.ts` | 选择目标的尺寸、懒渲染准备、大小变化、编辑与多选排除、标注行替换和清理。 |
+| `tests/native-reader-scroll.test.ts` | 控制器启动、选择、刷新和关闭期间保持原生滚动方法不变。 |
+| `tests/escape-editor-scroll.test.ts` | 仅针对 Esc 的可见性恢复、锚定样式恢复、输入取消、保存失败及实际标注行替换。 |
+| `tests/annotation-outline.test.ts` | 大纲显示条件、标题层级、固定浮层几何、左右方向、状态保持、编辑时隐藏、侧栏内标题跳转和清理。 |
+| `tests/fast-editor-scrollbar.test.ts` | 滚动条焦点与编辑会话分离、光标保持、外部退出、保存失败及清理。 |
+| `tests/math-scrollbar.test.ts` | 独立公式滚动、编辑入口边界、焦点、拖动释放点击与清理。 |
+| `tests/markdown-renderer.test.ts` | Markdown、数学公式、内容清理、文本规范化和回退行为。 |
+| `tests/settings.test.ts` | 偏好默认值和规范化。 |
+| `tests/bootstrap.test.ts` | Zotero 启动集成和诊断。 |
+| `tests/preferences-pane.test.ts` | 偏好设置面板绑定，以及测试矩阵中各语言的 Fluent 消息和属性覆盖。 |
+| `tests/rendered-content-style.test.ts` | 预览折叠、编辑状态和性能相关 CSS。 |
+| `tests/native-annotation-row-lazy.test.ts` | 跨 Zotero 版本探测、宿主结构门禁、启动异常清理、精确高度空壳、选中行回退、重试行为和热重载清理兼容性。 |
+| `tests/katex-assets.test.ts` | KaTeX 字体内联。 |
+| `tests/release-config.test.ts` | 更新清单和可复现打包配置。 |
+| `tests/manifest.test.ts` | 清单标识与兼容范围。 |
+| `tests/version.test.ts` | 各发布文件之间的版本一致性。 |
 
-测试继续使用 JavaScript，以便用轻量的 Zotero 局部 Mock 验证面向运行时的 TypeScript 契约。
+全部测试及公共辅助函数均使用严格 TypeScript。`tsconfig.test.json` 根据生产接口检查测试，并包含 `src/` 中的本地声明，以及供测试工具使用的 Node.js/jsdom 类型。该配置允许导入现有 JavaScript 工具，但不检查这些脚本。`tests/helpers/` 提供有类型的 DOM 断言、观察器记录、设置及适配器工厂，同时允许每个测试覆盖自身需要验证的行为。
+
+`tests/helpers/dom.ts` 提供 `requireValue` 检查必需存在的样例值，以及 `queryElement` 查询必需存在的节点。需要访问子类型专有属性时传入元素构造器，辅助函数会在运行时检查元素类型；断言节点不存在时使用原生的可空查询。
 
 ## 构建产物
 

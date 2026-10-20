@@ -44,12 +44,12 @@ annotation-markdown-prefs-math-output =
 
 1. Fork [项目仓库](https://github.com/qrkks/zotero-annotation-markdown)，在翻译分支中工作。修正文案时编辑现有语言文件；新增语言时，将完整英文资源复制到新语言目录，再翻译其中的显示文字。
 2. 提供英文文件中的全部消息标识符和属性，包括说明文字。英文回退可以让缺少翻译的部分保持可读，但贡献的目标应是一份完整翻译。
-3. 新增语言时，在 `tests/preferences-pane.test.js` 中补充该语言的测试覆盖，并调整与语言相关的样例期望值。当前测试矩阵只覆盖 `en-US` 和 `zh-CN`；直接运行原有测试不会校验新语言。修改已有翻译的样例标签时，也应同步更新对应断言。
+3. 新增语言时，在 `tests/preferences-pane.test.ts` 中补充该语言的测试覆盖，并调整与语言相关的样例期望值。当前测试矩阵只覆盖 `en-US` 和 `zh-CN`；直接运行原有测试不会校验新语言。修改已有翻译的样例标签时，也应同步更新对应断言。
 4. 在仓库根目录运行针对性测试、文档检查及构建：
 
    ```powershell
    pnpm install --frozen-lockfile
-   pnpm exec vitest run tests/preferences-pane.test.js
+   pnpm exec vitest run tests/preferences-pane.test.ts
    pnpm run docs:check
    pnpm run build
    pnpm run package

@@ -82,7 +82,7 @@ The separate `nativeRowLazy` experiment targets the measured filter-clear mount 
 | Escape recovery | `createAnnotationEscapeRecovery()` in `src/annotation-escape-scroll.ts` | Preserve position through preview restoration; scroll once to a 2px top inset only if the live selected row is completely offscreen. |
 | Native fallback | `isFastEditorEnabled()` plus the capability check passed to the adapter | Do not mount plugin editor DOM or prevent the host event when the preference is off or the required manager is unavailable. |
 
-The corresponding regression suites are `tests/plugin.test.js`, `tests/reader-controller.test.js`, `tests/annotation-sidebar-adapter.test.js`, and `tests/rendered-content-style.test.js`. Any lifecycle change should start with the exact failing DOM, focus, keyboard, save, or scroll case in the narrowest applicable suite.
+The corresponding regression suites are `tests/plugin.test.ts`, `tests/reader-controller.test.ts`, `tests/annotation-sidebar-adapter.test.ts`, and `tests/rendered-content-style.test.ts`. Any lifecycle change should start with the exact failing DOM, focus, keyboard, save, or scroll case in the narrowest applicable suite.
 
 ## Sidebar scrolling and annotation selection
 
@@ -92,7 +92,7 @@ Zotero owns the selection scroll and calls `scrollIntoView()` with smooth behavi
 
 The stylesheet applies `scroll-margin-top: 2px` and a bottom margin of `viewport height - row height - 2px` through a plugin-owned marker and custom property. This makes the scroll target as tall as the viewport without changing the row's layout height, so the native nearest scroll aligns its beginning consistently from either direction. This path issues no extra scroll call, installs no scroll snap, and never replaces `Element.prototype.scrollIntoView`.
 
-Short rows and multiple selection retain native positioning. Editing, native note editors, and annotation popups are excluded. Manual scrolling is not corrected. Refresh and shutdown remove the target marker and custom property; without the required mutation/resize observers, native scrolling remains in control. Coverage is in `tests/annotation-scroll-target.test.js` and `tests/native-reader-scroll.test.js`.
+Short rows and multiple selection retain native positioning. Editing, native note editors, and annotation popups are excluded. Manual scrolling is not corrected. Refresh and shutdown remove the target marker and custom property; without the required mutation/resize observers, native scrolling remains in control. Coverage is in `tests/annotation-scroll-target.test.ts` and `tests/native-reader-scroll.test.ts`.
 
 ### Escape after editing
 
@@ -100,13 +100,13 @@ The adapter marks a successful Escape close with `reason: "escape"`. The control
 
 After two layout frames, recovery resolves the live selected row again. If any part intersects the viewport, it makes no scroll call. Otherwise it issues one scroller `scrollTo()` with smooth behavior, targeting a 2px top inset and clamping to the scroll range; this also handles short comments after editing. It then restores the prior inline anchoring value and priority. Ordinary blur does not enter this path. A failed save keeps the editor open.
 
-New pointer, wheel, touch, keyboard, or focus input cancels pending recovery. A changed selection, editor re-entry, refresh, shutdown, or an aborted rendering resume also prevents recovery and clears temporary state. `tests/escape-editor-scroll.test.js` covers visible/offscreen rows, deferred measurement, cancellation, save failure, replacement of the saved row, and CSS cleanup. Firefox and real-Zotero checks are needed for actual anchoring and smooth-scroll behavior.
+New pointer, wheel, touch, keyboard, or focus input cancels pending recovery. A changed selection, editor re-entry, refresh, shutdown, or an aborted rendering resume also prevents recovery and clears temporary state. `tests/escape-editor-scroll.test.ts` covers visible/offscreen rows, deferred measurement, cancellation, save failure, replacement of the saved row, and CSS cleanup. Firefox and real-Zotero checks are needed for actual anchoring and smooth-scroll behavior.
 
 ### Scrollbar focus and selection
 
 Fast-editor sessions are independent of DOM focus during sidebar scrolling. `preserveActiveFastEditorForScrollbar()` tracks the native scrollbar drag until release/cancellation and remembers its scroller as an allowed resting focus target. The controller stops only the matching scrollbar `focusin` before Zotero can deselect the row; it does not refocus the textarea or alter its selection. `hasActiveFastEditor()` keeps rendering paused, and `isEditable()` protects the mounted session even while focus is on the scroller. Clicking back into the textarea uses native caret placement. Real outside clicks/focus still save; window blur after the drag ends also saves. Closing or disabling clears the session and release timer.
 
-`tests/fast-editor-scrollbar.test.js` covers sustained drags, overlay scrollbars, parked focus, caret preservation, outside exits, failed saves, and cleanup. Browser QA must also drag the native scrollbar and click/type at multiple positions; DOM-only tests cannot verify native caret hit testing or the complete Zotero/Gecko focus chain.
+`tests/fast-editor-scrollbar.test.ts` covers sustained drags, overlay scrollbars, parked focus, caret preservation, outside exits, failed saves, and cleanup. Browser QA must also drag the native scrollbar and click/type at multiple positions; DOM-only tests cannot verify native caret hit testing or the complete Zotero/Gecko focus chain.
 
 ### Floating outline
 
@@ -116,13 +116,13 @@ Fast-editor sessions are independent of DOM focus during sidebar scrolling. `pre
 
 `getSelectedAnnotationScrollbar()` reuses the editor's scroll-container and scrollbar hit testing for selected, non-editing annotations. `registerAnnotationScrollbarHandlers()` tracks that pointer interaction until release or cancellation. During the interaction, only a `focusin` targeting the scroller (or its ancestor) is stopped before Zotero's bubbling `FocusManager` handler can clear the selection. Native pointer events are not cancelled; the plugin never reselects a row, restores its focus, or calls a scrolling API for this path.
 
-Selection and expansion remain host-owned, including multi-selection. Keyboard input, a new outside pointer action, focus entering a real control or another annotation, refresh, and shutdown clear the temporary guard. Native note editors and annotation popups are excluded; active fast-editor sessions retain their existing blur-preservation path. `tests/annotation-scrollbar.test.js` models the installed Reader's deselection rule and covers sustained drags, overlay scrollbars, cleanup, and normal selection changes. Real Zotero verification should also check that scrolling a long selected annotation out of view and back does not fold it or pull the viewport back to the row.
+Selection and expansion remain host-owned, including multi-selection. Keyboard input, a new outside pointer action, focus entering a real control or another annotation, refresh, and shutdown clear the temporary guard. Native note editors and annotation popups are excluded; active fast-editor sessions retain their existing blur-preservation path. `tests/annotation-scrollbar.test.ts` models the installed Reader's deselection rule and covers sustained drags, overlay scrollbars, cleanup, and normal selection changes. Real Zotero verification should also check that scrolling a long selected annotation out of view and back does not fold it or pull the viewport back to the row.
 
 ## Wide display equations
 
 Only `.annotation-markdown-rendered .katex-display` gets horizontal auto-overflow, following KaTeX's [CSS customization guidance](https://katex.org/docs/issues#css-customization). Short equations remain centered; inline math, source text, font sizes, and formula structure are unchanged. The annotation card itself does not become a horizontal scroll surface.
 
-`getPreviewMathScrollbar()` distinguishes the native bar from formula text, including text near the bottom of a short equation. The controller extends its temporary scrollbar guard through the pointer/mouse/focus sequence and the release click, without cancelling native scrolling. Keyboard focus on an overflowing formula does not enter editing; ordinary content clicks still do. The guard also covers plugin-owned popup previews and excludes native notes and other plugins' previews. Regression coverage lives in `tests/math-scrollbar.test.js` and `tests/rendered-content-style.test.js`; browser QA must check both formula ends, short/tall equations, narrow sidebars, and real scrollbar drags before manual Zotero testing.
+`getPreviewMathScrollbar()` distinguishes the native bar from formula text, including text near the bottom of a short equation. The controller extends its temporary scrollbar guard through the pointer/mouse/focus sequence and the release click, without cancelling native scrolling. Keyboard focus on an overflowing formula does not enter editing; ordinary content clicks still do. The guard also covers plugin-owned popup previews and excludes native notes and other plugins' previews. Regression coverage lives in `tests/math-scrollbar.test.ts` and `tests/rendered-content-style.test.ts`; browser QA must check both formula ends, short/tall equations, narrow sidebars, and real scrollbar drags before manual Zotero testing.
 
 ## Third-party Reader plugin interoperability
 
@@ -223,29 +223,31 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 
 | Test file | Primary coverage |
 | --- | --- |
-| `tests/plugin.test.js` | Plugin composition, Reader events, preferences, fast-editor host capability and commit bridging, and shutdown. |
-| `tests/reader-registry.test.js` | Controller ownership and asynchronous lifecycle ordering. |
-| `tests/reader-controller.test.js` | Rendering strategies, observers, fast-editor event lifecycle, editing pauses, caches, diagnostics, and cleanup. |
-| `tests/annotation-sidebar-adapter.test.js` | Zotero DOM selection, source extraction, preview/edit behavior, fast-editor save and viewport behavior, and stale-state cleanup. |
-| `tests/annotation-scrollbar.test.js` | Selected annotation scrollbar focus, sustained drags, unchanged viewport/preview, and guard cleanup. |
-| `tests/annotation-scroll-target.test.js` | Selection-target geometry, lazy preparation, resizing, editing/multi-selection exclusions, replacement, and cleanup. |
-| `tests/native-reader-scroll.test.js` | Preservation of the native scroll method across controller start, selection, refresh, and shutdown. |
-| `tests/escape-editor-scroll.test.js` | Escape-only visibility recovery, anchoring restoration, input cancellation, failed saves, and live-row replacement. |
-| `tests/annotation-outline.test.js` | Outline eligibility, hierarchy, fixed portal geometry, right/left placement, persistent toggles, editing visibility, sidebar-only heading navigation, and cleanup. |
-| `tests/fast-editor-scrollbar.test.js` | Scrollbar focus separate from editor sessions, caret preservation, outside exits, failed saves, and cleanup. |
-| `tests/math-scrollbar.test.js` | Display equation scrolling, editing-entry boundaries, focus, release clicks, and cleanup. |
-| `tests/markdown-renderer.test.js` | Markdown, math, sanitization, normalization, and fallback behavior. |
-| `tests/settings.test.js` | Preference defaults and normalization. |
-| `tests/bootstrap.test.js` | Zotero bootstrap integration and diagnostics. |
-| `tests/preferences-pane.test.js` | Preference-pane bindings and Fluent message/attribute coverage for the included locale test matrix. |
-| `tests/rendered-content-style.test.js` | Preview folding, editing, and performance-related CSS. |
-| `tests/native-annotation-row-lazy.test.js` | Cross-version probing, host-shape gates, startup-failure cleanup, exact-height shells, selected-row fallback, retry behavior, and hot-reload cleanup compatibility. |
-| `tests/katex-assets.test.js` | KaTeX font inlining. |
-| `tests/release-config.test.js` | Update-manifest and deterministic-package configuration. |
-| `tests/manifest.test.js` | Manifest identity and compatibility. |
-| `tests/version.test.js` | Version consistency across release files. |
+| `tests/plugin.test.ts` | Plugin composition, Reader events, preferences, fast-editor host capability and commit bridging, and shutdown. |
+| `tests/reader-registry.test.ts` | Controller ownership and asynchronous lifecycle ordering. |
+| `tests/reader-controller.test.ts` | Rendering strategies, observers, fast-editor event lifecycle, editing pauses, caches, diagnostics, and cleanup. |
+| `tests/annotation-sidebar-adapter.test.ts` | Zotero DOM selection, source extraction, preview/edit behavior, fast-editor save and viewport behavior, and stale-state cleanup. |
+| `tests/annotation-scrollbar.test.ts` | Selected annotation scrollbar focus, sustained drags, unchanged viewport/preview, and guard cleanup. |
+| `tests/annotation-scroll-target.test.ts` | Selection-target geometry, lazy preparation, resizing, editing/multi-selection exclusions, replacement, and cleanup. |
+| `tests/native-reader-scroll.test.ts` | Preservation of the native scroll method across controller start, selection, refresh, and shutdown. |
+| `tests/escape-editor-scroll.test.ts` | Escape-only visibility recovery, anchoring restoration, input cancellation, failed saves, and live-row replacement. |
+| `tests/annotation-outline.test.ts` | Outline eligibility, hierarchy, fixed portal geometry, right/left placement, persistent toggles, editing visibility, sidebar-only heading navigation, and cleanup. |
+| `tests/fast-editor-scrollbar.test.ts` | Scrollbar focus separate from editor sessions, caret preservation, outside exits, failed saves, and cleanup. |
+| `tests/math-scrollbar.test.ts` | Display equation scrolling, editing-entry boundaries, focus, release clicks, and cleanup. |
+| `tests/markdown-renderer.test.ts` | Markdown, math, sanitization, normalization, and fallback behavior. |
+| `tests/settings.test.ts` | Preference defaults and normalization. |
+| `tests/bootstrap.test.ts` | Zotero bootstrap integration and diagnostics. |
+| `tests/preferences-pane.test.ts` | Preference-pane bindings and Fluent message/attribute coverage for the included locale test matrix. |
+| `tests/rendered-content-style.test.ts` | Preview folding, editing, and performance-related CSS. |
+| `tests/native-annotation-row-lazy.test.ts` | Cross-version probing, host-shape gates, startup-failure cleanup, exact-height shells, selected-row fallback, retry behavior, and hot-reload cleanup compatibility. |
+| `tests/katex-assets.test.ts` | KaTeX font inlining. |
+| `tests/release-config.test.ts` | Update-manifest and deterministic-package configuration. |
+| `tests/manifest.test.ts` | Manifest identity and compatibility. |
+| `tests/version.test.ts` | Version consistency across release files. |
 
-Tests remain JavaScript so the runtime-facing TypeScript contracts can be exercised with lightweight partial Zotero mocks.
+All test suites and shared helpers use strict TypeScript. `tsconfig.test.json` checks them against production contracts, including local declarations from `src/` and Node.js/jsdom types for test tooling. It permits existing JavaScript tooling imports without checking those scripts. Shared factories in `tests/helpers/` provide typed DOM assertions, observer records, settings, and adapters while allowing each test to override the behavior it exercises.
+
+`tests/helpers/dom.ts` provides `requireValue` for required fixture values and `queryElement` for nodes that must exist. Supply an element constructor when subtype-specific properties are needed; the helper checks the element type at runtime. Use native nullable queries when asserting that a node is absent.
 
 ## Build output
 

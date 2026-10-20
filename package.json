@@ -8,7 +8,8 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && pnpm run typecheck:tests",
+    "typecheck:tests": "tsc --project tsconfig.test.json",
     "docs:check": "node scripts/check-docs.mjs",
     "build": "node scripts/build.mjs",
     "package": "pnpm run build && node scripts/package.mjs",
@@ -28,7 +29,9 @@
   "devDependencies": {
     "@fluent/bundle": "0.19.1",
     "@types/css-tree": "3.2.0",
+    "@types/jsdom": "^27.0.0",
     "@types/markdown-it": "14.2.0",
+    "@types/node": "^24.19.2",
     "@zip.js/zip.js": "^2.8.34",
     "esbuild": "^0.28.1",
     "jsdom": "^27.4.0",

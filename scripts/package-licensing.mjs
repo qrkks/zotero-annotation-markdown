@@ -4,7 +4,7 @@ import { sourceAssetName } from "./release-config.mjs";
 
 const projectInputs = [
   "LICENSE", "NOTICE", "licenses", "README.md", "README.zh-CN.md",
-  "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "src", "addon", "scripts"
+  "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.test.json", "src", "addon", "scripts"
 ];
 const noticePattern = /^(?:licen[sc]e|copying|notice|authors)(?:[.-]|$)/i;
 const textPattern = /\.(?:[cm]?js|ts|json|map|ya?ml|md|txt|css|svg|xhtml|ftl)$/i;

@@ -44,12 +44,12 @@ For more syntax examples, see the [Fluent guide](https://projectfluent.org/fluen
 
 1. Fork [the repository](https://github.com/qrkks/zotero-annotation-markdown) and work on a translation branch. For a wording correction, edit the existing locale file. For a new language, copy the entire English resource into the new locale directory and translate its displayed strings.
 2. Provide all message IDs and attributes from the English file, including the help descriptions. English fallback keeps missing translations readable, but a complete file is the contribution target.
-3. For a new language, extend locale coverage in `tests/preferences-pane.test.js` and adapt its language-specific sample expectations. The current test matrix covers only `en-US` and `zh-CN`; an unchanged test run does not validate a new locale. If an existing translation's sample caption changes, update the corresponding expectation as well.
+3. For a new language, extend locale coverage in `tests/preferences-pane.test.ts` and adapt its language-specific sample expectations. The current test matrix covers only `en-US` and `zh-CN`; an unchanged test run does not validate a new locale. If an existing translation's sample caption changes, update the corresponding expectation as well.
 4. Run the focused tests, documentation check, and build from the repository root:
 
    ```powershell
    pnpm install --frozen-lockfile
-   pnpm exec vitest run tests/preferences-pane.test.js
+   pnpm exec vitest run tests/preferences-pane.test.ts
    pnpm run docs:check
    pnpm run build
    pnpm run package
