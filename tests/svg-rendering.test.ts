@@ -204,7 +204,7 @@ describe("SVG preview lifecycle", () => {
       const large = queryElement(frame.contentDocument, "img", HTMLImageElement);
       expect(large.alt).toBe(image.alt);
       expect(large.title).toBe(image.title);
-      queryElement(frame.contentDocument, "[aria-label='Close SVG diagram']", HTMLElement).click();
+      queryElement(frame.contentDocument, "[aria-label='Close diagram']", HTMLElement).click();
       f.settings.setSvgEnabled(false); requireValue(f.controller.refresh).call(f.controller);
       expect(document.querySelector(".annotation-markdown-svg-image")).toBeNull();
       f.settings.setSvgEnabled(true); requireValue(f.controller.refresh).call(f.controller);
@@ -233,7 +233,7 @@ describe("SVG preview lifecycle", () => {
     try {
       queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click();
       const frame = queryElement(document, "[data-annotation-markdown-svg-viewer] iframe", HTMLIFrameElement);
-      queryElement(frame.contentDocument, "[aria-label='Close SVG diagram']", HTMLElement).click();
+      queryElement(frame.contentDocument, "[aria-label='Close diagram']", HTMLElement).click();
       expect(f.adapter.getSourceText(document.querySelector(".comment"))).toBe(f.source);
       f.settings.setSvgEnabled(false); requireValue(f.controller.refresh).call(f.controller);
       expect(document.querySelector(".annotation-markdown-svg-image")).toBeNull();
@@ -368,7 +368,7 @@ describe("SVG preview lifecycle", () => {
       requireValue(content).open(); requireValue(content).write("<!doctype html><html><head></head><body></body></html>"); requireValue(content).close();
       frame.dispatchEvent(new Event("load"));
       expect(queryElement(frame.contentDocument, "img", HTMLImageElement).getAttribute("src")).toBe(queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).getAttribute("src"));
-      const button = queryElement(frame.contentDocument, "button[aria-label='Close SVG diagram']", HTMLButtonElement);
+      const button = queryElement(frame.contentDocument, "button[aria-label='Close diagram']", HTMLButtonElement);
       expect(requireValue(frame.contentDocument).activeElement).toBe(button);
       button.click();
       expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
@@ -401,7 +401,7 @@ describe("SVG preview lifecycle", () => {
       pending[1].resolve(); await Promise.resolve();
       expect(dialog.style.opacity).toBe("");
       expect(queryElement(frame.contentDocument, "img", HTMLImageElement).getAttribute("src")).toBe(queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).getAttribute("src"));
-      expect(requireValue(requireValue(frame.contentDocument).activeElement).getAttribute("aria-label")).toBe("Close SVG diagram");
+      expect(requireValue(requireValue(frame.contentDocument).activeElement).getAttribute("aria-label")).toBe("Close diagram");
       expect(document.querySelector("textarea")).toBeNull();
     } finally { f.controller.stop(); }
   });
@@ -415,7 +415,7 @@ describe("SVG preview lifecycle", () => {
       const oldFrame = queryElement(oldDialog, "iframe", HTMLIFrameElement);
       const oldDecode = deferViewerDecode(oldFrame);
       oldFrame.dispatchEvent(new Event("load"));
-      queryElement(oldFrame.contentDocument, "[aria-label='Close SVG diagram']", HTMLElement).click();
+      queryElement(oldFrame.contentDocument, "[aria-label='Close diagram']", HTMLElement).click();
       button.click();
       const dialog = queryElement(document, "[data-annotation-markdown-svg-viewer]", HTMLElement);
       const frame = queryElement(dialog, "iframe", HTMLIFrameElement);
@@ -500,7 +500,7 @@ describe("SVG preview lifecycle", () => {
       requireValue(frame.contentDocument).open(); requireValue(frame.contentDocument).write("<!doctype html><html><head></head><body></body></html>"); requireValue(frame.contentDocument).close();
       frame.dispatchEvent(new Event("load"));
       expect(requireValue(frame.contentDocument).querySelectorAll(".annotation-markdown-svg-warning")).toHaveLength(1);
-      queryElement(frame.contentDocument, "[aria-label='Close SVG diagram']", HTMLElement).click();
+      queryElement(frame.contentDocument, "[aria-label='Close diagram']", HTMLElement).click();
       f.settings.setSvgEnabled(false); requireValue(f.controller.refresh).call(f.controller);
       expect(document.querySelector(".annotation-markdown-svg-warning, .annotation-markdown-svg-image")).toBeNull();
       f.settings.setSvgEnabled(true); requireValue(f.controller.refresh).call(f.controller);

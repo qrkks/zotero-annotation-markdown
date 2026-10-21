@@ -14,9 +14,9 @@
 
 [English](README.md) | 简体中文
 
-用 Markdown 标题、列表、彩色高亮、LaTeX 公式和实验性 SVG 示意图，让 Zotero 标注评论更清晰易读。渲染时保留 Zotero 保存的标注原文，源码仍可继续编辑。
+用 Markdown 标题、列表、彩色高亮、LaTeX 公式，以及实验性 SVG 示意图和 Mermaid 图表，让 Zotero 标注评论更清晰易读。渲染时保留 Zotero 保存的标注原文，源码仍可继续编辑。
 
-> 本项目正在持续开发和维护中。如果你遇到 Bug、渲染或兼容性问题，或者有功能建议，欢迎[提交 Issue](https://github.com/qrkks/zotero-annotation-markdown/issues) 与我们交流。提供 Zotero 和插件版本、复现步骤以及最小示例（如 Markdown、LaTeX 或 SVG）将有助于我们更高效地定位问题。
+> 本项目正在持续开发和维护中。如果你遇到 Bug、渲染或兼容性问题，或者有功能建议，欢迎[提交 Issue](https://github.com/qrkks/zotero-annotation-markdown/issues) 与我们交流。提供 Zotero 和插件版本、复现步骤以及最小示例（如 Markdown、LaTeX、SVG 或 Mermaid）将有助于我们更高效地定位问题。
 
 ## 功能预览
 
@@ -58,7 +58,7 @@ SVG 渲染分为完整预览、带持续提示的兼容预览，以及带原因�
 - **高亮与链接**：使用 `==高亮文字==` 或 `==高亮文字=={.red}` 等预设颜色；裸 URL 自动转为可点击链接。
 - **图片链接**：独立成段的图片链接会显示预览，包括没有文件扩展名的 OpenAI 图片链接；保留标题和原始链接，加载失败时回退到链接。复制来的 Google 网站图标链接会以小图标与简短站点名同行显示，不计入图片数量。
 - **SVG 示意图（实验性）**：预览代码块或独立 SVG 源码中的静态图形，并提供大图查看器。默认关闭；详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
-- **Mermaid 图表（实验性）**：使用 Pele 预览 `mermaid` 代码块中的七类常用图表，保留源码并复用大图查看器。默认关闭；详见 [Mermaid 支持范围与限制](docs/zh-CN/user-guide.md#mermaid-图表实验性)。
+- **Mermaid 图表（实验性）**：预览 `mermaid` 代码块中的七类常用图表，保留源码并复用大图查看器。默认关闭；详见 [Mermaid 支持范围与限制](docs/zh-CN/user-guide.md#mermaid-图表实验性)和[可直接复制的研究流程样例](docs/examples/mermaid-samples.md#简体中文)。
 - **页内标注弹窗**：可选择将弹窗评论渲染为 Markdown，默认关闭。
 
 ### 编辑与导航

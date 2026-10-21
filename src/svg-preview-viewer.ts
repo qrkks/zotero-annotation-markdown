@@ -49,12 +49,12 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
     // Keep layout and keyboard focus active while the initial frame is replaced.
     overlay.style.opacity = "0";
     overlay.setAttribute(VIEWER, "true"); overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-label", image.alt || "SVG diagram");
+    overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-label", image.alt || "Diagram");
     // Zotero registers capturing keyboard shortcuts on the Reader window before
     // the plugin. A child browsing context keeps modal keys out of that window,
     // including Escape (deselect) and Delete (erase the selected annotation).
     const frame = doc.createElement("iframe"); frame.className = "annotation-markdown-svg-viewer-frame";
-    frame.title = image.alt || "SVG diagram";
+    frame.title = image.alt || "Diagram";
     frame.style.width = `${Math.max(480, Number(image.getAttribute("width")))}px`;
     frame.style.height = `${Math.max(100, Number(image.getAttribute("height"))) + 44}px`;
     const populate = () => {
@@ -68,12 +68,12 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, beforeOpen = 
       const style = content.createElement("style"); style.textContent = styleText; content.head.append(style);
       const panel = content.createElement("div"); panel.className = "annotation-markdown-svg-viewer-panel";
       const toolbar = content.createElement("div"); toolbar.className = "annotation-markdown-svg-viewer-toolbar";
-      const title = content.createElement("span"); title.className = "annotation-markdown-svg-viewer-title"; title.textContent = image.alt || "SVG diagram";
+      const title = content.createElement("span"); title.className = "annotation-markdown-svg-viewer-title"; title.textContent = image.alt || "Diagram";
       const warning = warningText ? content.createElement("p") : null;
       if (warning) { warning.className = "annotation-markdown-svg-warning"; warning.setAttribute("role", "note"); warning.textContent = warningText!; }
       const controlHeight = () => Math.ceil(toolbar.getBoundingClientRect().height) + Math.ceil(warning?.getBoundingClientRect().height ?? 0);
       closeButton = content.createElement("button"); closeButton.type = "button"; closeButton.textContent = "Close";
-      closeButton.setAttribute("aria-label", "Close SVG diagram");
+      closeButton.setAttribute("aria-label", "Close diagram");
       region = content.createElement("div"); region.className = "annotation-markdown-svg-viewer-region";
       region.tabIndex = 0; region.setAttribute("role", "region"); region.setAttribute("aria-label", "Diagram (wheel to zoom, drag to pan)");
       const large = content.createElement("img"); large.src = src; large.alt = image.alt;

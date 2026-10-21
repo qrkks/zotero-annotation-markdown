@@ -55,7 +55,7 @@ describe("SVG viewer zoom and pan", () => {
     const f = fixture();
     expect(requireValue(f.image).width).toBe(360); expect(requireValue(f.image).height).toBe(180);
     expect(queryElement(f.doc, "output", HTMLOutputElement).textContent).toBe("36%");
-    expect([...requireValue(f.doc).querySelectorAll("button")].map(node => node.getAttribute("aria-label"))).toEqual(["Zoom out", "Zoom in", "Fit diagram", "Close SVG diagram"]);
+    expect([...requireValue(f.doc).querySelectorAll("button")].map(node => node.getAttribute("aria-label"))).toEqual(["Zoom out", "Zoom in", "Fit diagram", "Close diagram"]);
     requireElement(f.button("Zoom in"), HTMLButtonElement).click(); expect(requireValue(f.image).width).toBeGreaterThan(360);
     requireElement(f.button("Zoom out"), HTMLButtonElement).click(); expect(requireValue(f.image).width).toBe(360);
     f.actualSize(); expect(requireValue(f.image).width).toBe(1000);
@@ -155,7 +155,7 @@ describe("SVG viewer zoom and pan", () => {
   });
 
   test("cycles focus in both directions, skips disabled controls and restores the opener on Escape", () => {
-    const f = fixture(); const close = f.button("Close SVG diagram");
+    const f = fixture(); const close = f.button("Close diagram");
     expect(requireValue(f.doc).activeElement).toBe(close);
     requireValue(close).dispatchEvent(new (requireValue(f.win).KeyboardEvent)("keydown", { key: "Tab", bubbles: true, cancelable: true }));
     expect(requireValue(f.doc).activeElement).toBe(f.region);

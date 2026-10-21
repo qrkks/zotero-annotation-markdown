@@ -10,6 +10,7 @@ English | [简体中文](#简体中文)
 - [Localization and translation contributions](en/localization.md)
 - [Performance diagnostics](en/performance-diagnostics.md)
 - [Copyable SVG test samples (English and Chinese)](examples/svg-samples.md)
+- [Copyable Mermaid workflow example (English and Chinese)](examples/mermaid-samples.md)
 - [Saved SVG validation results](test-evidence/2026-10-10-svg-mvp.md)
 
 ### Performance investigations
@@ -31,6 +32,7 @@ The English pages are the source of truth for release and developer documentatio
 - [本地化与翻译贡献](zh-CN/localization.md)
 - [性能诊断](zh-CN/performance-diagnostics.md)
 - [可直接复制的 SVG 测试样例（中英双语）](examples/svg-samples.md)
+- [可直接复制的 Mermaid 研究流程样例（中英双语）](examples/mermaid-samples.md#简体中文)
 - [已保存的 SVG 验证结果](test-evidence/2026-10-10-svg-mvp.md)
 
 ### 性能调查记录

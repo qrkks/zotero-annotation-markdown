@@ -154,7 +154,7 @@ export function createSvgRenderer(windowRef: Window | null) {
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clean)}`;
       const imageDescription = description ? ` title="${escapeHtml(description)}"` : "";
       const warning = diagnostics.omittedCount ? `<p class="annotation-markdown-svg-warning" role="note">${escapeHtml(diagnostics.warningText())}</p>` : "";
-      const html = `<figure class="annotation-markdown-svg${sourceKind === "mermaid" ? " annotation-markdown-mermaid" : ""}">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(label)}"${imageDescription} width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">SVG image could not be displayed.</p>${codeFallback}</div></figure>`;
+      const html = `<figure class="annotation-markdown-svg${sourceKind === "mermaid" ? " annotation-markdown-mermaid" : ""}">${warning}<img class="annotation-markdown-svg-image" src="${src}" alt="${escapeHtml(label)}"${imageDescription} width="${width}" height="${height}" decoding="async"><button type="button" class="annotation-markdown-svg-open">View larger</button><div class="annotation-markdown-svg-fallback" hidden><p class="annotation-markdown-svg-error">Diagram could not be displayed.</p>${codeFallback}</div></figure>`;
       return { status:diagnostics.omittedCount ? "degraded" : "complete", html, originalSource:source,
         omittedCount:diagnostics.omittedCount, diagnostics:diagnostics.diagnostics, reason:null };
     } catch (error) {

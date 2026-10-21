@@ -35,7 +35,7 @@ export function createSvgAccessibility(root: Element, validId: RegExp) {
         return node.textContent ?? "";
       }).join(" "));
       const label = resolve("aria-labelledby") || plainText(metadata.get("aria-label") ?? "") ||
-        root.querySelector("title")?.textContent?.trim().slice(0, 160) || "SVG diagram";
+        root.querySelector("title")?.textContent?.trim().slice(0, 160) || "Diagram";
       const description = resolve("aria-describedby") || plainText(root.querySelector("desc")?.textContent ?? "");
       return { label, description };
     }

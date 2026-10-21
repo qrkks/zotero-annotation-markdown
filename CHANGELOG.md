@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- Complete the Mermaid project introductions and add copyable English/Chinese workflow examples. Use diagram-neutral default names, viewer controls and image-load messages for the shared SVG/Mermaid preview.
+
+### 变更
+
+- 补齐 Mermaid 项目介绍，新增可直接复制的中英文研究流程样例。SVG/Mermaid 共用预览的默认名称、查看器控件和图片加载提示统一使用通用图表文案。
+
 ## 0.16.1 - 2026-10-21
 
 ### Security

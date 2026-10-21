@@ -14,9 +14,9 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, LaTeX math, and experimental SVG diagrams. Rendering preserves the original source stored by Zotero, so it stays editable.
+Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, LaTeX math, and experimental SVG and Mermaid diagrams. Rendering preserves the original source stored by Zotero, so it stays editable.
 
-> This project is actively developed and maintained. If you encounter a bug, rendering or compatibility issue, or have a feature request, feel free to [open an issue](https://github.com/qrkks/zotero-annotation-markdown/issues) and share your feedback. Providing your Zotero and plugin versions, reproduction steps, and minimal examples (Markdown, LaTeX, or SVG when applicable) can help us investigate problems more efficiently.
+> This project is actively developed and maintained. If you encounter a bug, rendering or compatibility issue, or have a feature request, feel free to [open an issue](https://github.com/qrkks/zotero-annotation-markdown/issues) and share your feedback. Providing your Zotero and plugin versions, reproduction steps, and minimal examples (Markdown, LaTeX, SVG, or Mermaid when applicable) can help us investigate problems more efficiently.
 
 ## Preview
 
@@ -58,7 +58,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 - **Highlights and links:** use `==Highlighted text==` or preset colors such as `==Highlighted text=={.red}`; bare URLs become clickable links.
 - **Image links:** preview standalone image URLs, including OpenAI image links without a file extension, while retaining their caption and original link. Pasted Google favicon links appear as small source icons beside short site names and stay outside image counts. Failed images fall back to the link.
 - **SVG diagrams (Experimental):** preview static SVGs from code blocks or standalone SVG source, with a larger-image viewer. Off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
-- **Mermaid diagrams (Experimental):** preview seven common diagram types from `mermaid` code blocks with Pele, preserving source and reusing the larger-image viewer. Off by default; see [Mermaid support and limits](docs/en/user-guide.md#mermaid-diagrams-experimental).
+- **Mermaid diagrams (Experimental):** preview seven common diagram types from `mermaid` code blocks, preserving source and reusing the larger-image viewer. Off by default; see [Mermaid support and limits](docs/en/user-guide.md#mermaid-diagrams-experimental) and the [copyable workflow example](docs/examples/mermaid-samples.md).
 - **Page annotation popups:** optionally render popup comments as Markdown. Off by default.
 
 ### Editing and navigation
