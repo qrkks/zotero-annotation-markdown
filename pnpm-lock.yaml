@@ -18,11 +18,11 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       markdown-it:
-        specifier: ^14.3.1
-        version: 14.3.1
+        specifier: ^14.3.3
+        version: 14.3.3
       markdown-it-cjk-friendly:
         specifier: 3.0.0
-        version: 3.0.0(@types/markdown-it@14.2.0)(markdown-it@14.3.1)
+        version: 3.0.0(@types/markdown-it@14.2.0)(markdown-it@14.3.3)
       markdown-it-mark:
         specifier: 4.0.0
         version: 4.0.0
@@ -888,8 +888,8 @@ packages:
   markdown-it-texmath@1.0.0:
     resolution: {integrity: sha512-4hhkiX8/gus+6e53PLCUmUrsa6ZWGgJW2XCW6O0ASvZUiezIK900ZicinTDtG3kAO2kon7oUA/ReWmpW2FByxg==}
 
-  markdown-it@14.3.1:
-    resolution: {integrity: sha512-4Ej49aYTDFIQ+uBkfX8GBvJGccoARxxPep+7aWTs55ozbjQJpW9M26Fe53vnGgvLeVzva/amzjQQaQu9w0vMhA==}
+  markdown-it@14.3.3:
+    resolution: {integrity: sha512-L//tDAkjTjJCU6pBUSBTgs3Kg4InVaZuUZog/b6V12UKhcDQ7S78877ibbCanRExwPuYP1CZD7Gd2dxSy1GXRg==}
     hasBin: true
 
   mdn-data@2.27.1:
@@ -1817,10 +1817,10 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  markdown-it-cjk-friendly@3.0.0(@types/markdown-it@14.2.0)(markdown-it@14.3.1):
+  markdown-it-cjk-friendly@3.0.0(@types/markdown-it@14.2.0)(markdown-it@14.3.3):
     dependencies:
       get-east-asian-width: 1.7.0
-      markdown-it: 14.3.1
+      markdown-it: 14.3.3
     optionalDependencies:
       '@types/markdown-it': 14.2.0
 
@@ -1828,7 +1828,7 @@ snapshots:
 
   markdown-it-texmath@1.0.0: {}
 
-  markdown-it@14.3.1:
+  markdown-it@14.3.3:
     dependencies:
       argparse: 2.0.1
       entities: 4.5.0
