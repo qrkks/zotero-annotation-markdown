@@ -199,23 +199,26 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/prefs.js` | Default preference values loaded by Zotero. |
 | `addon/preferences.xhtml` | Preference-pane markup. |
 | `addon/locale/<locale>/annotation-markdown-preferences.ftl` | Native Fluent settings translations; see the [translation contribution guide](localization.md). |
-| `addon/preferences.js` | Preference-pane event handling and writes to `Zotero.Prefs`. |
+| `src/preferences.ts` → `dist/addon/preferences.js` | Strictly typed preference-pane controls and writes to `Zotero.Prefs`; bundled as a standalone privileged script. |
 | `addon/preferences.css` | Preference-pane layout styles. |
 | `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including selected-row scroll margins and preference-gated Weavero link-color variables. |
 | `addon/icons/annotation-markdown.svg` | Add-on and preference-pane icon. |
 
-These JavaScript files intentionally remain JavaScript because Zotero executes them directly. TypeScript under `src/` is bundled into `dist/addon/plugin.js`.
+The bootstrap and default-preference declarations remain JavaScript because Zotero executes them directly. The build bundles `src/plugin.ts` into `dist/addon/plugin.js` and `src/preferences.ts` separately into `dist/addon/preferences.js`. The latter keeps the global `Zotero.AnnotationMarkdownPreferences.init(document)` interface used by the pane markup.
 
 ## Build and maintenance scripts
 
 | File | Responsibility |
 | --- | --- |
-| `scripts/build.mjs` | Copies `addon/`, bundles `src/plugin.ts`, and prepares add-on CSS and KaTeX assets. |
-| `scripts/katex-assets.mjs` | Inlines KaTeX WOFF2 font data referenced by generated CSS. |
-| `scripts/package.mjs` | Creates a deterministic XPI and generates local update metadata. |
-| `scripts/release-config.mjs` | Centralizes release asset naming, update URLs, deterministic ZIP metadata, and update-manifest construction. |
-| `scripts/check-docs.mjs` | Enforces paired English/Chinese pages and validates local Markdown links. |
-| `scripts/read-debug-log.mjs` | Reads the opt-in annotation Markdown diagnostic log from a Zotero profile. |
+| `scripts/build.mts` | Copies `addon/`, bundles the plugin and preference-pane TypeScript entries, and prepares add-on CSS and KaTeX assets. |
+| `scripts/preferences-bundle.mts` | Shares the standalone preference-pane build between packaging and VM tests. |
+| `scripts/katex-assets.mts` | Inlines KaTeX WOFF2 font data referenced by generated CSS. |
+| `scripts/package.mts` | Creates a deterministic XPI and generates local update metadata. |
+| `scripts/release-config.mts` | Centralizes release asset naming, update URLs, deterministic ZIP metadata, and update-manifest construction. |
+| `scripts/check-docs.mts` | Enforces paired English/Chinese pages and validates local Markdown links. |
+| `scripts/read-debug-log.mts` | Reads the opt-in annotation Markdown diagnostic log from a Zotero profile. |
+
+Regular Node tools use `.mts` and run directly on Node.js 24. `tsconfig.scripts.json` checks them with strict rules, Node types only, and erasable TypeScript syntax; `pnpm run typecheck` includes this check. Isolated assessment/prototype scripts remain JavaScript.
 
 `pnpm run package` rewrites `updates.json` for the locally built XPI. Keep that generated hash only for an actual release; otherwise restore the published release metadata.
 
@@ -245,7 +248,7 @@ These JavaScript files intentionally remain JavaScript because Zotero executes t
 | `tests/manifest.test.ts` | Manifest identity and compatibility. |
 | `tests/version.test.ts` | Version consistency across release files. |
 
-All test suites and shared helpers use strict TypeScript. `tsconfig.test.json` checks them against production contracts, including local declarations from `src/` and Node.js/jsdom types for test tooling. It permits existing JavaScript tooling imports without checking those scripts. Shared factories in `tests/helpers/` provide typed DOM assertions, observer records, settings, and adapters while allowing each test to override the behavior it exercises.
+All test suites and shared helpers use strict TypeScript. `tsconfig.test.json` checks them against production contracts, including local declarations from `src/` and Node.js/jsdom types for test tooling. It permits imports from isolated JavaScript prototypes; regular Node tools are checked separately by `tsconfig.scripts.json`. Shared factories in `tests/helpers/` provide typed DOM assertions, observer records, settings, and adapters while allowing each test to override the behavior it exercises.
 
 `tests/helpers/dom.ts` provides `requireValue` for required fixture values and `queryElement` for nodes that must exist. Supply an element constructor when subtype-specific properties are needed; the helper checks the element type at runtime. Use native nullable queries when asserting that a node is absent.
 

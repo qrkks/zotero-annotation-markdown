@@ -1,15 +1,27 @@
+import type { AddonManifest, ReleasePackage } from "./release-config.mts";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { TextWriter, Uint8ArrayReader, ZipReader } from "@zip.js/zip.js";
-import { createProjectSourceHash } from "./package-licensing.mjs";
+import { createProjectSourceHash } from "./package-licensing.mts";
 
 import {
   createUpdateManifest,
   releaseAssetName,
   createSourceLinks
-} from "./release-config.mjs";
+} from "./release-config.mts";
+
+interface ReleaseValidation {
+  tag?: string;
+  packageJson: {version?: unknown} | null | undefined;
+  manifest: {version?: unknown} | null | undefined;
+  updateManifest: unknown;
+  distUpdateManifest: unknown;
+  expectedUpdateManifest: unknown;
+  changelog: string;
+}
+interface VerifyOptions { root?: string; tag?: string; sourceRoot?: string; }
 
 export function validateRelease({
   tag,
@@ -19,7 +31,7 @@ export function validateRelease({
   distUpdateManifest,
   expectedUpdateManifest,
   changelog
-}) {
+}: ReleaseValidation) {
   const errors = [];
   const version = String(packageJson?.version ?? "");
   const expectedTag = `v${version}`;
@@ -50,9 +62,9 @@ export function validateRelease({
   return errors;
 }
 
-export async function verifyRelease({ root = process.cwd(), tag, sourceRoot = root } = {}) {
-  const packageJson = await readJson(path.join(root, "package.json"));
-  const manifest = await readJson(path.join(root, "addon", "manifest.json"));
+export async function verifyRelease({ root = process.cwd(), tag, sourceRoot = root }: VerifyOptions = {}) {
+  const packageJson = await readJson<ReleasePackage>(path.join(root, "package.json"));
+  const manifest = await readJson<AddonManifest>(path.join(root, "addon", "manifest.json"));
   const updateManifest = await readJson(path.join(root, "updates.json"));
   const distUpdateManifest = await readJson(path.join(root, "dist", "updates.json"));
   const changelog = await readFile(path.join(root, "CHANGELOG.md"), "utf8");
@@ -86,7 +98,7 @@ export async function verifyRelease({ root = process.cwd(), tag, sourceRoot = ro
   };
 }
 
-export async function validateXpiSource({ xpiBytes, version, sourceSha256 }) {
+export async function validateXpiSource({ xpiBytes, version, sourceSha256 }: {xpiBytes: Uint8Array; version: string; sourceSha256: string}) {
   const errors = [];
   const xpi = new ZipReader(new Uint8ArrayReader(xpiBytes));
   try {
@@ -96,7 +108,7 @@ export async function validateXpiSource({ xpiBytes, version, sourceSha256 }) {
       if (!entries.some(entry => entry.filename === filename)) errors.push("XPI is missing " + filename);
     }
     const notice = entries.find(entry => entry.filename === "SOURCE.txt");
-    if (!notice) return [...errors, "XPI is missing source download directions"];
+    if (!notice || notice.directory) return [...errors, "XPI is missing source download directions"];
     const text = await notice.getData(new TextWriter());
     const source = createSourceLinks(version);
     for (const line of ["Release tag: " + source.tag, "Source browser: " + source.tree,
@@ -107,18 +119,18 @@ export async function validateXpiSource({ xpiBytes, version, sourceSha256 }) {
     if (expectedHash !== sourceSha256) errors.push("XPI source checksum does not match project files");
     if (/zotero-annotation-markdown-source\.zip/.test(text)) errors.push("SOURCE.txt refers to a removed release asset");
     const manifestEntry = entries.find(entry => entry.filename === "manifest.json");
-    if (manifestEntry) {
+    if (manifestEntry && !manifestEntry.directory) {
       const manifest = JSON.parse(await manifestEntry.getData(new TextWriter()));
       if (manifest.version !== version) errors.push("XPI manifest version does not match source tag");
     } else errors.push("XPI is missing manifest.json");
   } catch (error) {
-    errors.push("Could not inspect XPI source directions: " + error.message);
+    errors.push("Could not inspect XPI source directions: " + (error instanceof Error ? error.message : String(error)));
   } finally { await xpi.close(); }
   return errors;
 }
 
-async function readJson(filePath) {
-  return JSON.parse(await readFile(filePath, "utf8"));
+async function readJson<T = unknown>(filePath: string): Promise<T> {
+  return JSON.parse(await readFile(filePath, "utf8")) as T;
 }
 
 async function main() {

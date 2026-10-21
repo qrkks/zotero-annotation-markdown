@@ -1,3 +1,9 @@
+export interface ReleasePackage { version: string; }
+export interface AddonManifest {
+  version: string;
+  applications: { zotero: { id: string; strict_min_version: string; strict_max_version: string } };
+}
+
 export const releaseAssetName = "zotero-annotation-markdown.xpi";
 export const releaseRepository = "qrkks/zotero-annotation-markdown";
 export const updateManifestUrl =
@@ -14,7 +20,7 @@ export const deterministicZipEntryOptions = {
   extendedTimestamp: false
 };
 
-export function createSourceLinks(version, repository = releaseRepository) {
+export function createSourceLinks(version: string, repository = releaseRepository) {
   const tag = "v" + version;
   const base = "https://github.com/" + repository;
   return {
@@ -25,7 +31,7 @@ export function createSourceLinks(version, repository = releaseRepository) {
   };
 }
 
-export function createUpdateManifest({ packageJson, manifest, xpiHash }) {
+export function createUpdateManifest({ packageJson, manifest, xpiHash }: {packageJson: ReleasePackage; manifest: AddonManifest; xpiHash: string}) {
   const zoteroApplication = manifest.applications.zotero;
 
   return {

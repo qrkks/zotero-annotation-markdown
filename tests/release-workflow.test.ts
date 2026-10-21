@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { validateRelease } from "../scripts/verify-release.mjs";
+import { validateRelease } from "../scripts/verify-release.mts";
 
 describe("release workflow", () => {
   test("accepts matching tag, versions, changelog, and update manifests", () => {
@@ -57,13 +57,13 @@ describe("release workflow", () => {
     expect(workflow).toContain('pnpm run release:verify "$RELEASE_TAG"');
     expect(workflow).toContain("git diff --exit-code -- updates.json");
     expect(workflow).toContain(
-      'node scripts/extract-release-notes.mjs "$RELEASE_TAG" CHANGELOG.md dist/release-notes.md'
+      'node scripts/extract-release-notes.mts "$RELEASE_TAG" CHANGELOG.md dist/release-notes.md'
     );
     expect(workflow).toContain('--notes-file "dist/release-notes.md"');
     expect(workflow).not.toContain('zotero-annotation-markdown-source.zip');
     expect(workflow).toContain('for asset in "zotero-annotation-markdown.xpi"');
     expect(workflow).toContain("Verify GitHub-generated source archive");
-    expect(workflow).toContain('node scripts/verify-release.mjs "$RELEASE_TAG" "$source_root"');
+    expect(workflow).toContain('node scripts/verify-release.mts "$RELEASE_TAG" "$source_root"');
     expect(workflow).not.toContain("--generate-notes");
     expect(workflow).toContain('gh release download "$RELEASE_TAG"');
     expect(workflow).toContain("sha256sum --check --strict");

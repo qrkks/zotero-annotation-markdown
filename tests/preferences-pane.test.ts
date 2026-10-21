@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
@@ -5,20 +6,40 @@ import { describe, expect, test, vi } from "vitest";
 import { FluentBundle, FluentResource } from "@fluent/bundle";
 import { JSDOM } from "jsdom";
 import { requireValue } from "./helpers/dom.ts";
+import type { PreferencePane, PreferencePaneHost, PreferenceElement } from "../src/preferences.ts";
+import { bundlePreferences } from "../scripts/preferences-bundle.mts";
 
-interface PreferenceInput {
+interface PreferenceInput extends PreferenceElement {
   checked?: boolean; value: string; disabled?: boolean;
   addEventListener(name: string, callback: () => void): void;
   setAttribute(name: string, value: unknown): void; removeAttribute(name: string): void;
   getAttribute(name: string): string | null; dispatch(name: string): void;
 }
-interface PreferencesApi { init(document: { getElementById(id: string): PreferenceInput | null | undefined }): void; }
-interface PreferenceHost {
-  Prefs: { get(key: string, global?: boolean): unknown; set(key: string, value: unknown, global?: boolean): void; };
-  AnnotationMarkdownPreferences?: PreferencesApi;
+type PreferenceHost = PreferencePaneHost & { AnnotationMarkdownPreferences?: PreferencePane };
+let compiledPreferences: Promise<string> | undefined;
+
+function preferenceScript() {
+  return compiledPreferences ??= bundlePreferences({ root: process.cwd(), write: false })
+    .then(result => requireValue(result.outputFiles?.[0]).text);
 }
 
 describe("preferences pane", () => {
+  test("initializes the standalone compiled script through the pane document global", async () => {
+    const doc = await loadPreferenceDocument();
+    const Zotero: PreferenceHost = { Prefs: { get: vi.fn(() => undefined), set: vi.fn() } };
+    const context = { Zotero, document: doc };
+    vm.runInNewContext(await preferenceScript(), context);
+    requireValue(Zotero.AnnotationMarkdownPreferences).init();
+    const enabled = requireValue(doc.getElementById("annotation-markdown-enabled"));
+    const fontScale = requireValue(doc.getElementById("annotation-markdown-font-scale"));
+    expect(Reflect.get(enabled, "checked")).toBe(true);
+    expect(Reflect.get(fontScale, "value")).toBe("100");
+    const event = new doc.defaultView!.Event("command");
+    Reflect.set(enabled, "checked", false);
+    enabled.dispatchEvent(event);
+    expect(Zotero.Prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
+  });
+
   test("defaults smart avoidance on and gates it by both parent choices without resetting it", async () => {
     const f = await mathPreferenceFixture(true, false, true);
     const outline = f.controls.get("annotation-markdown-outline-enabled");
@@ -476,7 +497,7 @@ async function mathPreferenceFixture(sidebar: boolean, popup: boolean, math: boo
 }
 
 async function loadPreferencesScript(Zotero: PreferenceHost = { Prefs: { get: vi.fn(() => undefined), set: vi.fn() } }) {
-  const source = await readFile(path.join(process.cwd(), "addon", "preferences.js"), "utf8");
+  const source = await preferenceScript();
   const context = { Zotero };
   vm.runInNewContext(source, context);
   expect(context.Zotero.AnnotationMarkdownPreferences).toBeDefined();

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { createReleaseNotes, extractReleaseNotes } from "../scripts/extract-release-notes.mjs";
+import { createReleaseNotes, extractReleaseNotes } from "../scripts/extract-release-notes.mts";
 
 describe("release notes", () => {
   test("extracts the exact bilingual section for a v-prefixed tag", () => {

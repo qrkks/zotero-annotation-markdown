@@ -2,9 +2,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { createSourceLinks, releaseAssetName } from "./release-config.mjs";
+import { createSourceLinks, releaseAssetName } from "./release-config.mts";
 
-export function extractReleaseNotes(changelog, releaseTag) {
+export function extractReleaseNotes(changelog: string, releaseTag: string | undefined) {
   const version = String(releaseTag ?? "").replace(/^v/, "");
 
   if (!version) {
@@ -36,9 +36,9 @@ export function extractReleaseNotes(changelog, releaseTag) {
 }
 
 export function createReleaseNotes(
-  changelog,
-  releaseTag,
-  { previousTag, repository }
+  changelog: string,
+  releaseTag: string,
+  { previousTag, repository }: {previousTag?: string; repository?: string}
 ) {
   const notes = extractReleaseNotes(changelog, releaseTag).trimEnd();
 

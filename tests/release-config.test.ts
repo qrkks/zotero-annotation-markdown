@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { createUpdateManifest, deterministicZipEntryOptions, deterministicZipWriterOptions, releaseAssetName, updateManifestUrl } from "../scripts/release-config.mjs";
+import { createUpdateManifest, deterministicZipEntryOptions, deterministicZipWriterOptions, releaseAssetName, updateManifestUrl } from "../scripts/release-config.mts";
 
 describe("release configuration", () => {
   test("uses the stable GitHub raw update manifest URL", () => {

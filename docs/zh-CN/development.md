@@ -32,11 +32,11 @@ Fluent 资源布局、新增语言的方法及翻译专项检查，参见[本地
 pnpm run verify
 ```
 
-该命令会运行自动化测试和 TypeScript 检查、构建插件，并打包 XPI。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
+该命令会运行自动化测试和 TypeScript 检查、构建插件，并打包 XPI。`src/` 下的模块全部使用严格 TypeScript；偏好面板入口独立打包为 `dist/addon/preferences.js`，VM 测试执行实际生成的脚本；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/` 下的常用 Node 工具使用 `.mts`。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
 
-所有测试均使用 TypeScript。Vitest 运行 `tests/**/*.test.ts`；`pnpm run typecheck` 检查源码后，会通过 `tsconfig.test.json` 执行 `pnpm run typecheck:tests`。测试及辅助函数遵循与源码相同的严格规则；该配置允许导入现有 JavaScript 工具，但不检查这些脚本。mock 应复用生产接口，异常输入应在明确的测试边界中保留。单独执行 `pnpm test` 不进行类型检查。
+所有测试均使用 TypeScript。Vitest 运行 `tests/**/*.test.ts`；`pnpm run typecheck` 会检查源码，通过 `tsconfig.scripts.json` 执行 `pnpm run typecheck:scripts` 检查 Node 工具，并通过 `tsconfig.test.json` 执行 `pnpm run typecheck:tests` 检查测试。测试及辅助函数遵循与源码相同的严格规则；测试配置仍允许导入独立的 JavaScript 实验原型；常用工具采用只包含 Node 类型的独立严格配置，并限制为可擦除的类型语法、显式类型导入，让 Node.js 24 无需加载器或预先编译即可直接运行 `.mts`。mock 应复用生产接口，异常输入应在明确的测试边界中保留。单独执行 `pnpm test` 不进行类型检查。
 
-[SVG 样例指南](../examples/svg-samples.md)从回归样例生成。修改样例后运行 `node scripts/svg-samples.mjs`；文档检查会确认六个公开复制块仍与原始样例一致。运行 `pnpm exec vitest run tests/svg-rendering.test.ts tests/svg-compatibility.test.ts tests/svg-fonts.test.ts` 可复跑 SVG 回归，真实宿主的已保存结果见 [SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。
+[SVG 样例指南](../examples/svg-samples.md)从回归样例生成。修改样例后运行 `node scripts/svg-samples.mts`；文档检查会确认六个公开复制块仍与原始样例一致。运行 `pnpm exec vitest run tests/svg-rendering.test.ts tests/svg-compatibility.test.ts tests/svg-fonts.test.ts` 可复跑 SVG 回归，真实宿主的已保存结果见 [SVG 验证报告](../test-evidence/2026-10-10-svg-mvp.md)。
 
 ## 真实 Zotero 发版冒烟
 

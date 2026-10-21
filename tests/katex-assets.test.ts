@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { inlineKatexWoff2Fonts } from "../scripts/katex-assets.mjs";
+import { inlineKatexWoff2Fonts } from "../scripts/katex-assets.mts";
 
 describe("KaTeX asset helpers", () => {
   test("inlines woff2 font URLs as data URIs", async () => {

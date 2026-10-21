@@ -199,23 +199,26 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/prefs.js` | Zotero 加载的默认偏好设置值。 |
 | `addon/preferences.xhtml` | 偏好设置面板结构。 |
 | `addon/locale/<locale>/annotation-markdown-preferences.ftl` | 设置页的原生 Fluent 翻译，参见[翻译贡献指南](localization.md)。 |
-| `addon/preferences.js` | 偏好设置面板事件处理，并写入 `Zotero.Prefs`。 |
+| `src/preferences.ts` → `dist/addon/preferences.js` | 严格类型的偏好控件及 `Zotero.Prefs` 写入，构建为独立的特权脚本。 |
 | `addon/preferences.css` | 偏好设置面板布局样式。 |
 | `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括选中标注的滚动边距及受偏好开关控制的 Weavero 链接颜色变量。 |
 | `addon/icons/annotation-markdown.svg` | 插件和偏好设置面板图标。 |
 
-这些 JavaScript 文件有意保留为 JavaScript，因为 Zotero 会直接执行它们。`src/` 下的 TypeScript 会被打包为 `dist/addon/plugin.js`。
+启动入口和默认偏好声明保留 JavaScript，由 Zotero 直接执行。构建将 `src/plugin.ts` 打包为 `dist/addon/plugin.js`，另将 `src/preferences.ts` 打包为 `dist/addon/preferences.js`，后者保留面板标记调用的全局 `Zotero.AnnotationMarkdownPreferences.init(document)` 接口。
 
 ## 构建与维护脚本
 
 | 文件 | 职责 |
 | --- | --- |
-| `scripts/build.mjs` | 复制 `addon/`、打包 `src/plugin.ts`，并准备插件 CSS 和 KaTeX 资源。 |
-| `scripts/katex-assets.mjs` | 内联生成 CSS 引用的 KaTeX WOFF2 字体数据。 |
-| `scripts/package.mjs` | 创建可复现的 XPI，并生成本地更新元数据。 |
-| `scripts/release-config.mjs` | 集中管理发布文件名、更新地址、可复现 ZIP 元数据和更新清单结构。 |
-| `scripts/check-docs.mjs` | 检查中英文页面是否成对，并验证本地 Markdown 链接。 |
-| `scripts/read-debug-log.mjs` | 从 Zotero 配置中读取按需启用的标注 Markdown 诊断日志。 |
+| `scripts/build.mts` | 复制 `addon/`、打包插件与偏好面板的 TypeScript 入口，并准备插件 CSS 和 KaTeX 资源。 |
+| `scripts/preferences-bundle.mts` | 让打包与 VM 测试共用独立偏好面板的构建配置。 |
+| `scripts/katex-assets.mts` | 内联生成 CSS 引用的 KaTeX WOFF2 字体数据。 |
+| `scripts/package.mts` | 创建可复现的 XPI，并生成本地更新元数据。 |
+| `scripts/release-config.mts` | 集中管理发布文件名、更新地址、可复现 ZIP 元数据和更新清单结构。 |
+| `scripts/check-docs.mts` | 检查中英文页面是否成对，并验证本地 Markdown 链接。 |
+| `scripts/read-debug-log.mts` | 从 Zotero 配置中读取按需启用的标注 Markdown 诊断日志。 |
+
+常用 Node 工具使用 `.mts`，由 Node.js 24 直接运行。`tsconfig.scripts.json` 只引入 Node 类型，采用严格检查与可擦除的 TypeScript 语法；`pnpm run typecheck` 包含此项检查。独立评估和实验原型脚本保留 JavaScript。
 
 `pnpm run package` 会根据本地构建的 XPI 重写 `updates.json`。只有正式发布时才保留该哈希；普通本地验证后应恢复已发布版本的元数据。
 
@@ -245,7 +248,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `tests/manifest.test.ts` | 清单标识与兼容范围。 |
 | `tests/version.test.ts` | 各发布文件之间的版本一致性。 |
 
-全部测试及公共辅助函数均使用严格 TypeScript。`tsconfig.test.json` 根据生产接口检查测试，并包含 `src/` 中的本地声明，以及供测试工具使用的 Node.js/jsdom 类型。该配置允许导入现有 JavaScript 工具，但不检查这些脚本。`tests/helpers/` 提供有类型的 DOM 断言、观察器记录、设置及适配器工厂，同时允许每个测试覆盖自身需要验证的行为。
+全部测试及公共辅助函数均使用严格 TypeScript。`tsconfig.test.json` 根据生产接口检查测试，并包含 `src/` 中的本地声明，以及供测试工具使用的 Node.js/jsdom 类型。该配置允许导入独立的 JavaScript 实验原型；常用 Node 工具另由 `tsconfig.scripts.json` 检查。`tests/helpers/` 提供有类型的 DOM 断言、观察器记录、设置及适配器工厂，同时允许每个测试覆盖自身需要验证的行为。
 
 `tests/helpers/dom.ts` 提供 `requireValue` 检查必需存在的样例值，以及 `queryElement` 查询必需存在的节点。需要访问子类型专有属性时传入元素构造器，辅助函数会在运行时检查元素类型；断言节点不存在时使用原生的可空查询。
 

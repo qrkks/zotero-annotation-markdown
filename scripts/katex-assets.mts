@@ -1,6 +1,6 @@
-export async function inlineKatexWoff2Fonts(css, readFont) {
+export async function inlineKatexWoff2Fonts(css: string, readFont: (filename: string) => Promise<Uint8Array>) {
   const fontUrlPattern = /url\(fonts\/([^()]+?\.woff2)\)/g;
-  const replacements = new Map();
+  const replacements = new Map<string, string>();
 
   for (const match of css.matchAll(fontUrlPattern)) {
     const filename = match[1];

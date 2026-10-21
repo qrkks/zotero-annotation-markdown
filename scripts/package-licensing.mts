@@ -1,17 +1,28 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createSourceLinks } from "./release-config.mjs";
+import { createSourceLinks, type ReleasePackage } from "./release-config.mts";
+
+interface DependencyMetadata {
+  name: string;
+  version: string;
+  license: string;
+  repository?: string | {url?: string};
+}
+interface Dependency { directory: string; packageJson: DependencyMetadata; }
+function hasErrorCode(error: unknown, code: string): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
+}
 
 const projectInputs = [
   "LICENSE", "NOTICE", "licenses", "README.md", "README.zh-CN.md",
-  "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.test.json", "src", "addon", "scripts"
+  "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "tsconfig.test.json", "tsconfig.scripts.json", "src", "addon", "scripts"
 ];
 const noticePattern = /^(?:licen[sc]e|copying|notice|authors)(?:[.-]|$)/i;
-const textPattern = /\.(?:[cm]?js|ts|json|map|ya?ml|md|txt|css|svg|xhtml|ftl)$/i;
+const textPattern = /\.(?:[cm]?[jt]s|json|map|ya?ml|md|txt|css|svg|xhtml|ftl)$/i;
 
-export async function packageLicensing({ root, distAddon, inputs }) {
-  const packages = new Map();
+export async function packageLicensing({ root, distAddon, inputs }: {root: string; distAddon: string; inputs: string[]}) {
+  const packages = new Map<string, Dependency>();
   for (const input of inputs) {
     if (!input.replaceAll("\\", "/").includes("node_modules/")) continue;
     const dependency = await findPackage(path.resolve(root, input));
@@ -46,13 +57,13 @@ export async function packageLicensing({ root, distAddon, inputs }) {
     }
   }
   await writeFile(path.join(distAddon, "THIRD-PARTY-NOTICES.txt"), notices.join("\n") + "\n");
-  const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")) as ReleasePackage;
   await writeFile(path.join(distAddon, "SOURCE.txt"), createSourceNotice(
     packageJson.version, await createProjectSourceHash(root)
   ));
 }
 
-export function createSourceNotice(version, sourceSha256) {
+export function createSourceNotice(version: string, sourceSha256: string) {
   const source = createSourceLinks(version);
   return [
     "Source for this Zotero Annotation Markdown build", "",
@@ -79,14 +90,14 @@ export function createSourceNotice(version, sourceSha256) {
 }
 
 /** Hash build inputs in filename order with portable text line endings. */
-export async function createProjectSourceHash(root) {
-  const files = [];
-  async function collect(relative) {
+export async function createProjectSourceHash(root: string) {
+  const files: string[] = [];
+  async function collect(relative: string): Promise<void> {
     const absolute = path.join(root, relative);
     let entries;
     try { entries = await readdir(absolute); }
     catch (error) {
-      if (error.code !== "ENOTDIR") throw error;
+      if (!hasErrorCode(error, "ENOTDIR")) throw error;
       files.push(relative.replaceAll("\\", "/")); return;
     }
     for (const entry of entries.sort()) if (entry !== "node_modules") await collect(path.join(relative, entry));
@@ -102,12 +113,12 @@ export async function createProjectSourceHash(root) {
   return hash.digest("hex");
 }
 
-async function findPackage(filename) {
+async function findPackage(filename: string): Promise<Dependency> {
   let directory = path.dirname(await realpath(filename));
   while (true) {
-    let packageJson;
-    try { packageJson = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8")); }
-    catch (error) { if (error.code !== "ENOENT") throw error; }
+    let packageJson: DependencyMetadata | undefined;
+    try { packageJson = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8")) as DependencyMetadata; }
+    catch (error) { if (!hasErrorCode(error, "ENOENT")) throw error; }
     if (packageJson?.name && packageJson?.version) return { directory, packageJson };
     const parent = path.dirname(directory);
     if (parent === directory) throw new Error("Cannot identify dependency for " + filename);
@@ -115,13 +126,13 @@ async function findPackage(filename) {
   }
 }
 
-async function copySource(source, destination) {
+async function copySource(source: string, destination: string): Promise<void> {
   const filename = path.basename(source);
   await mkdir(path.dirname(destination), { recursive: true });
   let entries;
   try { entries = await readdir(source); }
   catch (error) {
-    if (error.code !== "ENOTDIR") throw error;
+    if (!hasErrorCode(error, "ENOTDIR")) throw error;
     const bytes = await readFile(source);
     const content = textPattern.test(filename) || noticePattern.test(filename)
       ? bytes.toString("utf8").replaceAll("\r\n", "\n") : bytes;

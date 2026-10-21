@@ -73,7 +73,7 @@ jobs:
 
       - name: Prepare release notes
         if: github.event_name == 'push' && github.ref_type == 'tag'
-        run: node scripts/extract-release-notes.mjs "$RELEASE_TAG" CHANGELOG.md dist/release-notes.md
+        run: node scripts/extract-release-notes.mts "$RELEASE_TAG" CHANGELOG.md dist/release-notes.md
 
       - name: Publish GitHub release
         if: github.event_name == 'push' && github.ref_type == 'tag'
@@ -107,4 +107,4 @@ jobs:
           unzip -q dist/published/source.zip -d dist/published/source
           source_root="$(find dist/published/source -mindepth 1 -maxdepth 1 -type d -print -quit)"
           test -n "$source_root"
-          node scripts/verify-release.mjs "$RELEASE_TAG" "$source_root"
+          node scripts/verify-release.mts "$RELEASE_TAG" "$source_root"

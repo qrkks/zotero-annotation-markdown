@@ -18,7 +18,7 @@ async function loadSvgSamples() {
     ["Unlabeled fence and NBSP / 无语言围栏与 NBSP", "Three panels labeled t = 0, t = 0.25 and t = 0.5; copied non-breaking spaces remain in saved source. / 三个时间面板，保存的源码仍保留复制产生的不换行空格。", ""],
     ["Gradients and compact paths / 渐变和紧凑路径", "A pelican with shaded body, wing and pouch. / 鹈鹕及身体、翅膀和喉囊的渐变。", "svg"],
     ["Chinese Jordan diagram / 中文 Jordan 图示", "A square and transformed parallelogram with Chinese labels in an unlabeled fence. / 无语言围栏中的正方形、变换后的平行四边形和中文标签。", ""]
-  ];
+  ] as const;
   return { samples, cases };
 }
 
@@ -104,11 +104,11 @@ Copy one complete block below with its copy button and paste it as plain text in
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  for (const [guidePath, build] of [[svgSampleGuidePath, buildSvgSampleGuide], [rawSvgSampleGuidePath, buildRawSvgSampleGuide]]) {
+  for (const [guidePath, build] of [[svgSampleGuidePath, buildSvgSampleGuide], [rawSvgSampleGuidePath, buildRawSvgSampleGuide]] as const) {
     const expected = await build();
     if (process.argv.includes("--check")) {
       if (await readFile(guidePath, "utf8") !== expected) {
-        throw new Error("SVG sample guide is stale. Run node scripts/svg-samples.mjs.");
+        throw new Error("SVG sample guide is stale. Run node scripts/svg-samples.mts.");
       }
     } else {
       await mkdir(path.dirname(guidePath), { recursive: true });

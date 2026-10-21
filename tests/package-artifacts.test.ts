@@ -5,10 +5,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { BlobWriter, TextWriter, Uint8ArrayReader, ZipReader, ZipWriter } from "@zip.js/zip.js";
-import { packageArtifacts } from "../scripts/package.mjs";
-import { createProjectSourceHash } from "../scripts/package-licensing.mjs";
-import { validateXpiSource, verifyRelease } from "../scripts/verify-release.mjs";
-import { createSourceLinks, releaseAssetName } from "../scripts/release-config.mjs";
+import { packageArtifacts } from "../scripts/package.mts";
+import { createProjectSourceHash } from "../scripts/package-licensing.mts";
+import { validateXpiSource, verifyRelease } from "../scripts/verify-release.mts";
+import { createSourceLinks, releaseAssetName } from "../scripts/release-config.mts";
 
 const temporaryRoots: string[] = [];
 const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -28,9 +28,9 @@ async function fixture() {
     "CHANGELOG.md": "## 1.2.3 - 2026-10-20\n", "dist/addon/manifest.json": JSON.stringify(manifest),
     "dist/addon/plugin.js": "/* bundled runtime */", "dist/addon/LICENSE": "Project license",
     "dist/addon/NOTICE": "Project notice", "dist/addon/THIRD-PARTY-NOTICES.txt": "Dependency license notices",
-    "src/plugin.ts": "export const source = 'editable';\n", "scripts/build.mjs": "// build\n",
+    "src/plugin.ts": "export const source = 'editable';\n", "scripts/build.mts": "// build\n",
     "pnpm-lock.yaml": "lockfileVersion: '9.0'\n", "pnpm-workspace.yaml": "virtualStoreDirMaxLength: 60\n",
-    "tsconfig.json": "{}\n", "tsconfig.test.json": "{}\n",
+    "tsconfig.json": "{}\n", "tsconfig.test.json": "{}\n", "tsconfig.scripts.json": "{}\n",
     "LICENSE": "Project license", "NOTICE": "Project notice", "licenses/MIT-legacy.txt": "Legacy notice",
     "README.md": "Build instructions", "README.zh-CN.md": "构建说明"
   };
@@ -114,6 +114,7 @@ describe("XPI with GitHub-generated source downloads", () => {
   test("keeps source identity stable across Windows and Unix text line endings", async () => {
     const root = await fixture(), sourceSha256 = await createProjectSourceHash(root);
     await writeFile(path.join(root, "src/plugin.ts"), "export const source = 'editable';\r\n");
+    await writeFile(path.join(root, "scripts/build.mts"), "// build\r\n");
     expect(await createProjectSourceHash(root)).toBe(sourceSha256);
   });
 });

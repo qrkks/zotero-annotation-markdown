@@ -1,22 +1,22 @@
 import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { buildSvgSampleGuide, svgSampleGuidePath, buildRawSvgSampleGuide, rawSvgSampleGuidePath } from "./svg-samples.mjs";
+import { buildSvgSampleGuide, svgSampleGuidePath, buildRawSvgSampleGuide, rawSvgSampleGuidePath } from "./svg-samples.mts";
 
 const root = process.cwd();
 const localeRoots = ["en", "zh-CN"];
 const docsRoot = path.join(root, "docs");
-const errors = [];
+const errors: string[] = [];
 
 try {
-  for (const [guidePath, build] of [[svgSampleGuidePath, buildSvgSampleGuide], [rawSvgSampleGuidePath, buildRawSvgSampleGuide]]) {
+  for (const [guidePath, build] of [[svgSampleGuidePath, buildSvgSampleGuide], [rawSvgSampleGuidePath, buildRawSvgSampleGuide]] as const) {
     const [saved, expected] = await Promise.all([readFile(guidePath, "utf8"), build()]);
-    if (saved !== expected) errors.push(`${path.relative(root, guidePath)} is stale; run node scripts/svg-samples.mjs.`);
+    if (saved !== expected) errors.push(`${path.relative(root, guidePath)} is stale; run node scripts/svg-samples.mts.`);
   }
 } catch (error) {
-  errors.push(`SVG sample guide check failed: ${error.message}`);
+  errors.push(`SVG sample guide check failed: ${error instanceof Error ? error.message : String(error)}`);
 }
 
-const localeFiles = new Map();
+const localeFiles = new Map<string, string[]>();
 for (const locale of localeRoots) {
   localeFiles.set(locale, await listMarkdownFiles(path.join(docsRoot, locale)));
 }
@@ -24,7 +24,7 @@ for (const locale of localeRoots) {
 const allLocalePaths = new Set([...localeFiles.values()].flat());
 for (const relativePath of allLocalePaths) {
   for (const locale of localeRoots) {
-    if (!localeFiles.get(locale).includes(relativePath)) {
+    if (!localeFiles.get(locale)!.includes(relativePath)) {
       errors.push(`Missing ${locale} translation: docs/${locale}/${relativePath}`);
     }
   }
@@ -37,7 +37,7 @@ const activeDocs = [
   svgSampleGuidePath,
   rawSvgSampleGuidePath,
   ...localeRoots.flatMap((locale) =>
-    localeFiles.get(locale).map((relativePath) => path.join(docsRoot, locale, relativePath))
+    localeFiles.get(locale)!.map((relativePath) => path.join(docsRoot, locale, relativePath))
   )
 ];
 
@@ -63,7 +63,7 @@ if (errors.length) {
   console.log(`Documentation check passed (${allLocalePaths.size} bilingual page pairs).`);
 }
 
-async function listMarkdownFiles(directory, prefix = "") {
+async function listMarkdownFiles(directory: string, prefix = ""): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
@@ -79,7 +79,7 @@ async function listMarkdownFiles(directory, prefix = "") {
   return files.sort();
 }
 
-function findLocalTargets(markdown) {
+function findLocalTargets(markdown: string) {
   const targets = [];
   const linkPattern = /!?\[[^\]]*\]\(([^)]+)\)/g;
 

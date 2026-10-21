@@ -2,8 +2,9 @@ import { appendFile, cp, mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { build } from "esbuild";
-import { inlineKatexWoff2Fonts } from "./katex-assets.mjs";
-import { packageLicensing } from "./package-licensing.mjs";
+import { inlineKatexWoff2Fonts } from "./katex-assets.mts";
+import { packageLicensing } from "./package-licensing.mts";
+import { bundlePreferences } from "./preferences-bundle.mts";
 
 const root = process.cwd();
 const distAddon = path.join(root, "dist", "addon");
@@ -25,6 +26,8 @@ const result = await build({
   sourcemap: false,
   metafile: true
 });
+
+await bundlePreferences({ root });
 
 await packageLicensing({
   root,
