@@ -174,7 +174,7 @@ Zotero 负责选择时的滚动，使用平滑行为和最近边缘对齐调用 
 | `src/svg-fonts.ts` | 校验并重建纯字体 CSS，限制内嵌 WOFF2 数据大小并检查字体头。 |
 | `src/svg-class-styles.ts` | 解析有界的简单元素/类规则，按优先级和样式表顺序把已验证的表现属性展开到预览副本。 |
 | `src/svg-accessibility.ts` | 校验静态根元素标注及局部名称/描述引用，为图片替代文本和工具提示提供有界的纯文本。 |
-| `src/svg-preview-viewer.ts` | 管理 SVG 图片加载失败回退、大图查看交互、焦点、键盘事件及清理。 |
+| `src/svg-preview-viewer.ts` | 管理清理后的 SVG/Mermaid 图示与已加载位图链接预览共用的查看器，包括加载失败回退、焦点、键盘事件及清理。位图预览复用已加载来源和原始尺寸，独立于 SVG/Mermaid 设置；标题链接保留普通链接处理。 |
 | `src/reader-controller.ts` | 协调 Reader 就绪、DOM 扫描、立即/懒渲染、快速编辑进入/退出事件、编辑暂停、缓存、诊断、样式和清理。 |
 | `src/annotation-sidebar-adapter.ts` | 封装 Zotero Reader 选择器、“源码 + 预览”DOM 操作和快速文本框会话，并排除原生笔记编辑器。 |
 | `src/annotation-scroll-target.ts` | 跟踪选中的超长标注行，通过可清理的 CSS 边距配合 Zotero 原生选择滚动。 |
@@ -200,6 +200,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/preferences.xhtml` | 偏好设置面板结构。 |
 | `addon/locale/<locale>/annotation-markdown-preferences.ftl` | 设置页的原生 Fluent 翻译，参见[翻译贡献指南](localization.md)。 |
 | `src/preferences.ts` → `dist/addon/preferences.js` | 严格类型的偏好控件及 `Zotero.Prefs` 写入，构建为独立的特权脚本。 |
+| `src/preference-localization.ts` | 将原生 Fluent 消息限定在插件设置面板，支持立即切换、保存语言选择及英文回退。使用私有目标属性，不改变共享设置文档的语言。 |
 | `addon/preferences.css` | 偏好设置面板布局样式。 |
 | `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括选中标注的滚动边距及受偏好开关控制的 Weavero 链接颜色变量。 |
 | `addon/icons/annotation-markdown.svg` | 插件和偏好设置面板图标。 |

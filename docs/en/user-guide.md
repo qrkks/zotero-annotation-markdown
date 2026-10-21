@@ -17,7 +17,9 @@
 
 A paragraph consisting only of a Markdown link, reference-style link, or bare URL previews the image when its HTTP(S) path ends in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.avif`, or `.bmp`. HTTPS links under `images.openai.com/static-rsc/` and versioned paths such as `/static-rsc-4/` are also recognized without a file extension. Sentence links, headings, tight list items, code examples, and other web links keep their normal layout.
 
-Images load lazily and fit the annotation preview width. The original link and its formatted caption remain below the image; choosing the image or caption opens the original URL through the existing link handler. If the image cannot load, only its caption link remains. This applies to sidebar and page-popup Markdown previews without changing the stored Markdown. Explicit `![description](https://example.org/photo.jpg)` images keep their existing behavior.
+Images load lazily and fit the annotation preview width. Click a loaded image, or focus its preview link and press Enter or Space, to open the larger-image viewer shared with SVG and Mermaid. It fits the image to the available space and provides **− / +**, **Fit**, wheel zoom and drag panning. Close it with **Close**, Escape or the backdrop; keyboard focus returns to the preview link. Normal scrolling over the sidebar image still scrolls the annotation. Image viewing works independently of the SVG and Mermaid switches and reuses the loaded preview data.
+
+The original link and its formatted caption remain below the image; choosing the caption opens the original URL through the existing link handler. If the image cannot load, only its caption link remains. This applies to sidebar and page-popup Markdown previews without changing the stored Markdown. Explicit `![description](https://example.org/photo.jpg)` images keep their existing behavior.
 
 Image data is fetched when a preview approaches the viewport and kept only in a bounded memory cache; repeated links reuse it and no attachment is created. Responses must be a supported raster image up to 8 MiB, with a 15-second request timeout. Unsupported or unavailable responses keep their original caption link.
 
@@ -94,6 +96,8 @@ Use `==text==` for the default yellow highlight. Put one supported color suffix 
 
 The supported suffixes are `.yellow`, `.red`, `.orange`, `.green`, `.blue`, `.purple`, and `.gray`. Arbitrary classes, multiple classes, style attributes, and custom color values are not interpreted. Unknown or detached suffixes remain visible as ordinary text.
 
+The `{.red}` notation borrows the attribute-suffix convention used by [`markdown-it-attrs`](https://github.com/arve0/markdown-it-attrs) in the markdown-it ecosystem, where `.red` denotes a class name. This is a Markdown extension, not standard Markdown syntax. This add-on implements only a single preset color suffix for highlights, without general-purpose attribute support.
+
 ## Installation
 
 Install `Zotero Annotation Markdown` from the Zotero Add-ons marketplace.
@@ -102,7 +106,7 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 
 ## Settings
 
-Open Zotero Settings and select the **Annotation Markdown** pane. The pane follows Zotero's interface language, with English and Simplified Chinese translations. To add another language or improve wording, see the [translation contribution guide](localization.md).
+Open Zotero Settings and select the **Annotation Markdown** pane. At the top, **Settings page language** offers **Follow Zotero (default)**, **简体中文** and **English**. A selection applies immediately and is remembered when the page reopens, without changing Zotero’s interface language or other plugin settings. It affects this settings page; Reader controls keep their existing language behavior. To add another language or improve wording, see the [translation contribution guide](localization.md).
 
 The available settings control:
 

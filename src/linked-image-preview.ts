@@ -47,7 +47,7 @@ export function installLinkedImagePreviews(markdown: MarkdownIt, deferLoading = 
     const { url, alt, caption } = tokens[index].meta as LinkedImageMeta;
     const escape = markdown.utils.escapeHtml;
     const sourceAttribute = deferLoading ? "data-annotation-markdown-image-src" : "src";
-    return `<a class="annotation-markdown-linked-image-target" href="${escape(url)}"><img class="annotation-markdown-linked-image-content" ${sourceAttribute}="${escape(url)}" alt="${escape(alt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>` +
+    return `<a class="annotation-markdown-linked-image-target" href="${escape(url)}" title="View larger" aria-haspopup="dialog"><img class="annotation-markdown-linked-image-content" ${sourceAttribute}="${escape(url)}" alt="${escape(alt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>` +
       `<figcaption>${self.renderInline(caption, options, env)}</figcaption>`;
   };
 }

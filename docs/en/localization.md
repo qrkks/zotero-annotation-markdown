@@ -4,7 +4,7 @@
 
 ## Current scope
 
-Since v0.14.0, the settings pane follows Zotero's interface language using native Fluent localization. English (`en-US`) and Simplified Chinese (`zh-CN`) are included, with English fallback when a translation is unavailable. There is no separate plugin language selector.
+The settings pane uses native Fluent localization. **Settings page language** defaults to **Follow Zotero** and can override this page to **简体中文** (`zh-CN`) or **English** (`en-US`) immediately. The choice is stored in `extensions.annotationMarkdown.settingsLanguage`; it does not change Zotero’s locale or other panes. English is the fallback when a translation is unavailable.
 
 This currently covers settings group headings, checkbox captions, dropdown choices, field labels, and help text. Reader controls such as the SVG viewer's **View larger**, **Fit**, and **Close** are outside this localization resource. Translating the settings file does not translate every plugin interface.
 
@@ -12,7 +12,7 @@ UI translations live under `addon/locale/`. Documentation translations live sepa
 
 ## Files and Fluent syntax
 
-Use the [English resource](../../addon/locale/en-US/annotation-markdown-preferences.ftl) as the reference for message IDs, attributes, and meaning. The [Simplified Chinese resource](../../addon/locale/zh-CN/annotation-markdown-preferences.ftl) is another complete example. The current pane uses 32 messages; the English file and [pane markup](../../addon/preferences.xhtml) define the set to keep in sync.
+Use the [English resource](../../addon/locale/en-US/annotation-markdown-preferences.ftl) as the reference for message IDs, attributes, and meaning. The [Simplified Chinese resource](../../addon/locale/zh-CN/annotation-markdown-preferences.ftl) is another complete example. The current pane uses 41 messages; the English file and [pane markup](../../addon/preferences.xhtml) define the set to keep in sync.
 
 The filename is `annotation-markdown-preferences.ftl` in every locale directory. For example, a French translation would be stored at:
 
@@ -20,7 +20,7 @@ The filename is `annotation-markdown-preferences.ftl` in every locale directory.
 addon/locale/fr-FR/annotation-markdown-preferences.ftl
 ```
 
-Use the locale code for the corresponding Zotero interface language. Keep files in UTF-8. Zotero registers FTL files in plugin locale directories automatically; the settings pane loads this resource through its existing `<linkset>`. The build copies the `addon/` directory, so adding a translation does not require another bootstrap registration or a build-script change.
+Use the locale code for the corresponding Zotero interface language. Keep files in UTF-8. Zotero registers FTL files in plugin locale directories automatically. `src/preference-localization.ts` creates a native `Localization` instance with the selected locale and English fallback, then applies messages only within the plugin pane. Pane targets use `data-annotation-markdown-l10n-id`, so the shared document’s automatic translator cannot overwrite the local selection. The build copies the `addon/` directory, so adding a translation does not require another bootstrap registration or a build-script change.
 
 Fluent distinguishes text content from element attributes. A short French example shows all three forms:
 
@@ -56,7 +56,7 @@ For more syntax examples, see the [Fluent guide](https://projectfluent.org/fluen
    git diff --check
    ```
 
-5. Install `dist/zotero-annotation-markdown.xpi` in a test Zotero profile. Select the target interface language in Zotero's general settings, restart if Zotero requests it, and reopen the plugin settings. Check every group, dropdown, help description, and disabled control at a normal window size. Confirm long text wraps without clipping, options keep their stored choices, and English still displays correctly. Include screenshots and the tested Zotero version in the pull request.
+5. Install `dist/zotero-annotation-markdown.xpi` in a test Zotero profile. Use **Settings page language** to switch between Simplified Chinese and English without restarting Zotero. Also test **Follow Zotero** with the target language selected in Zotero’s general settings; restart if Zotero requests it. A newly contributed locale follows Zotero until it is deliberately added to the override choices. Check every group, dropdown, help description, and disabled control at a normal window size. Confirm long text wraps without clipping, options keep their stored choices, and English still displays correctly. Include screenshots and the tested Zotero version in the pull request.
 6. Open a pull request stating the locale code, whether this is a new translation or a correction, and the checks performed. For a new language, update the supported-language descriptions in the READMEs and user guides. Keep the contribution focused on translation resources, coverage, and relevant documentation.
 
 `pnpm run package` regenerates `updates.json` as well as the XPI. Inspect `git diff -- updates.json` and restore that generated change on a translation-only branch. Leave generated `dist/` files and release version/tag changes out of the translation PR; maintainers handle release metadata when publishing.
@@ -65,6 +65,6 @@ If you cannot run the development tools, [open an issue](https://github.com/qrkk
 
 ## Maintain translations when adding settings
 
-New settings text should use a namespaced `annotation-markdown-prefs-...` ID in `addon/preferences.xhtml`, with the appropriate Fluent value or attribute. Update the English source and every supported translation together, then run the locale coverage checks. Avoid introducing new hardcoded natural-language captions into the pane; language-neutral percentages can remain literal.
+New settings text should use a namespaced `annotation-markdown-prefs-...` ID in the `data-annotation-markdown-l10n-id` attribute in `addon/preferences.xhtml`, with the appropriate Fluent value or attribute. Update the English source and every supported translation together, then run the locale coverage checks. Avoid introducing new hardcoded natural-language captions into the pane; language-neutral percentages can remain literal.
 
 Follow the separate [documentation translation policy](../README.md) when changing documentation pages.

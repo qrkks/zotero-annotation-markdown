@@ -246,6 +246,7 @@ export function createReaderController({
     document: documentRef,
     styleText,
     isEnabled: () => Boolean(settings.isSvgEnabled?.() || settings.isMermaidEnabled?.()) && isAnyRenderingEnabled(),
+    isLinkedImageEnabled: isAnyRenderingEnabled,
     beforeOpen: () => adapter.closeActiveFastEditor?.() ?? true
   });
   const imageBadgeCache = new Map<string, ImageCounts>();

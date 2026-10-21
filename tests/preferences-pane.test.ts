@@ -24,6 +24,54 @@ function preferenceScript() {
 }
 
 describe("preferences pane", () => {
+  test("switches only this pane immediately and preserves stored setting values", async () => {
+    const f = await languageFixture("zh-CN");
+    await f.preferences.init(f.doc);
+    const language = requireValue(f.doc.getElementById("annotation-markdown-settings-language"));
+    expect(Reflect.get(language, "value")).toBe("auto");
+    expect(f.doc.getElementById("annotation-markdown-enabled")?.getAttribute("label")).toBe("将侧栏批注评论渲染为 Markdown");
+    expect(f.set).not.toHaveBeenCalled();
+    Reflect.set(language, "value", "en-US");
+    language.dispatchEvent(new f.doc.defaultView!.Event("command"));
+    await vi.waitFor(() => expect(f.doc.getElementById("annotation-markdown-enabled")?.getAttribute("label"))
+      .toBe("Render sidebar annotation comments as Markdown"));
+    expect(f.set).toHaveBeenCalledExactlyOnceWith("extensions.annotationMarkdown.settingsLanguage", "en-US", true);
+    expect(f.doc.getElementById("other-plugin")?.textContent).toBe("Other plugin");
+    expect(f.doc.documentElement.getAttribute("lang")).toBe("zh-CN");
+    expect(Reflect.get(f.doc.getElementById("annotation-markdown-math-output")!, "value")).toBe("mathml");
+    Reflect.set(language, "value", "auto");
+    language.dispatchEvent(new f.doc.defaultView!.Event("command"));
+    await vi.waitFor(() => expect(f.doc.getElementById("annotation-markdown-enabled")?.getAttribute("label"))
+      .toBe("将侧栏批注评论渲染为 Markdown"));
+  });
+
+  test.each(["zh-CN", "en-US", "invalid"])("restores or safely defaults the stored settings language: %s", async stored => {
+    const f = await languageFixture("fr-FR", stored);
+    await f.preferences.init(f.doc);
+    expect(Reflect.get(f.doc.getElementById("annotation-markdown-settings-language")!, "value"))
+      .toBe(stored === "invalid" ? "auto" : stored);
+    expect(f.doc.getElementById("annotation-markdown-enabled")?.getAttribute("label"))
+      .toBe(stored === "zh-CN" ? "将侧栏批注评论渲染为 Markdown" : "Render sidebar annotation comments as Markdown");
+    expect(f.set).not.toHaveBeenCalled();
+  });
+
+  test("keeps the latest selection when an earlier translation finishes late", async () => {
+    let releaseChinese!: () => void;
+    const gate = new Promise<void>(resolve => { releaseChinese = resolve; });
+    const f = await languageFixture("en-US", undefined, locale => locale === "zh-CN" ? gate : Promise.resolve());
+    await f.preferences.init(f.doc);
+    const language = requireValue(f.doc.getElementById("annotation-markdown-settings-language"));
+    Reflect.set(language, "value", "zh-CN");
+    language.dispatchEvent(new f.doc.defaultView!.Event("command"));
+    Reflect.set(language, "value", "en-US");
+    language.dispatchEvent(new f.doc.defaultView!.Event("command"));
+    await vi.waitFor(() => expect(f.doc.getElementById("annotation-markdown-preferences")?.getAttribute("lang")).toBe("en-US"));
+    releaseChinese();
+    await new Promise(resolve => setImmediate(resolve));
+    expect(f.doc.getElementById("annotation-markdown-enabled")?.getAttribute("label")).toBe("Render sidebar annotation comments as Markdown");
+    expect(Reflect.get(language, "value")).toBe("en-US");
+  });
+
   test("initializes the standalone compiled script through the pane document global", async () => {
     const doc = await loadPreferenceDocument();
     const Zotero: PreferenceHost = { Prefs: { get: vi.fn(() => undefined), set: vi.fn() } };
@@ -116,7 +164,7 @@ describe("preferences pane", () => {
     expect(f.set).toHaveBeenCalledWith(`extensions.annotationMarkdown.${kind}Enabled`, true, true);
     const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
     expect(source).toContain(`preference="extensions.annotationMarkdown.${kind}Enabled"`);
-    expect(source).toContain(`data-l10n-id="annotation-markdown-prefs-${kind}-enabled"`);
+    expect(source).toContain(`data-annotation-markdown-l10n-id="annotation-markdown-prefs-${kind}-enabled"`);
   });
   test.each([
     [false, false, false], [false, false, true],
@@ -171,7 +219,7 @@ describe("preferences pane", () => {
 
   test("presents sidebar and popup rendering as peer options", async () => {
     const source = await readFile(path.join(process.cwd(), "addon", "preferences.xhtml"), "utf8");
-    expect(source).toContain('data-l10n-id="annotation-markdown-prefs-enabled"');
+    expect(source).toContain('data-annotation-markdown-l10n-id="annotation-markdown-prefs-enabled"');
     expect(source).toContain('<vbox id="annotation-markdown-popup-option">');
   });
 
@@ -180,6 +228,7 @@ describe("preferences pane", () => {
     expect(doc.documentElement.getAttribute("onload")).toBe("Zotero.AnnotationMarkdownPreferences.init(document)");
     expect(doc.querySelector("select")).toBeNull();
     const keys = {
+      "settings-language": "settingsLanguage",
       enabled: "enabled", "popup-enabled": "popupEnabled", "math-enabled": "mathEnabled",
       "math-output": "mathOutput", "svg-enabled": "svgEnabled", "mermaid-enabled": "mermaidEnabled", "font-scale": "fontScalePercent",
       "paste-as-plain-text": "pasteAsPlainText", "fast-editor": "fastEditor",
@@ -192,7 +241,7 @@ describe("preferences pane", () => {
     for (const [id, key] of Object.entries(keys)) {
       const control = doc.getElementById(`annotation-markdown-${id}`);
       expect(control.getAttribute("preference")).toBe(`extensions.annotationMarkdown.${key}`);
-      expect(control.localName).toBe(["math-output", "font-scale", "outline-font-scale", "render-strategy"].includes(id) ? "menulist" : "checkbox");
+      expect(control.localName).toBe(["settings-language", "math-output", "font-scale", "outline-font-scale", "render-strategy"].includes(id) ? "menulist" : "checkbox");
     }
     for (const id of ["font-scale", "outline-font-scale"]) {
       const items = [...doc.getElementById(`annotation-markdown-${id}`).querySelectorAll("menuitem")];
@@ -202,35 +251,33 @@ describe("preferences pane", () => {
     expect([...doc.getElementById("annotation-markdown-math-output").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["htmlAndMathml", "mathml"]);
     expect([...doc.getElementById("annotation-markdown-render-strategy").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["auto", "eager", "lazy"]);
     const groups = [...doc.querySelectorAll("groupbox")];
-    expect(groups.map(group => group.firstElementChild.firstElementChild.getAttribute("data-l10n-id"))).toEqual([
+    expect(groups.map(group => group.firstElementChild.firstElementChild.getAttribute("data-annotation-markdown-l10n-id"))).toEqual([
+      "annotation-markdown-prefs-general",
       "annotation-markdown-prefs-reader", "annotation-markdown-prefs-outline",
       "annotation-markdown-prefs-tags", "annotation-markdown-prefs-performance"
     ]);
-    expect([...groups[0].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
+    expect([...groups[1].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
       "annotation-markdown-enabled", "annotation-markdown-popup-enabled", "annotation-markdown-math-enabled",
       "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-mermaid-enabled", "annotation-markdown-font-scale",
       "annotation-markdown-paste-as-plain-text", "annotation-markdown-fast-editor"
     ]);
-    expect(groups[1].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();
-    expect(groups[2].querySelector("#annotation-markdown-auto-todo-cleanup")).not.toBeNull();
+    expect(groups[2].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();
+    expect(groups[3].querySelector("#annotation-markdown-auto-todo-cleanup")).not.toBeNull();
   });
 
   test.each(["en-US", "zh-CN"] as const)("localizes all pane text and caption attributes in %s", async locale => {
     const doc = await loadPreferenceDocument();
-    const link = doc.querySelector("linkset > *");
-    expect(link.namespaceURI).toBe("http://www.w3.org/1999/xhtml");
-    expect(link.getAttribute("rel")).toBe("localization");
-    expect(link.getAttribute("href")).toBe("annotation-markdown-preferences.ftl");
-    const source = await readFile(path.join(process.cwd(), "addon", "locale", locale, link.getAttribute("href")), "utf8");
+    expect(doc.querySelector("[data-l10n-id]")).toBeNull();
+    const source = await readFile(path.join(process.cwd(), "addon", "locale", locale, "annotation-markdown-preferences.ftl"), "utf8");
     const resource = new FluentResource(source);
     const bundle = new FluentBundle(locale);
     expect(bundle.addResource(resource)).toEqual([]);
-    const targets = [...doc.querySelectorAll("[data-l10n-id]")];
-    const ids = targets.map(element => element.getAttribute("data-l10n-id"));
+    const targets = [...doc.querySelectorAll("[data-annotation-markdown-l10n-id]")];
+    const ids = targets.map(element => element.getAttribute("data-annotation-markdown-l10n-id"));
     expect(new Set(ids).size).toBe(ids.length);
     expect(resource.body.map(message => message.id).sort()).toEqual([...ids].sort());
     for (const element of targets) {
-      const id = element.getAttribute("data-l10n-id");
+      const id = element.getAttribute("data-annotation-markdown-l10n-id");
       expect(id).toMatch(/^annotation-markdown-prefs-/);
       const message = bundle.getMessage(id);
       expect(message, id).toBeDefined();
@@ -246,13 +293,14 @@ describe("preferences pane", () => {
     for (const element of doc.querySelectorAll("checkbox, menuitem, description, label, h2")) {
       if (element.localName === "label" && element.children.length) continue;
       if (element.localName === "menuitem" && /^\d+%$/.test(element.getAttribute("label") ?? "")) continue;
-      expect(element.hasAttribute("data-l10n-id"), element.outerHTML).toBe(true);
+      if (element.localName === "menuitem" && ["zh-CN", "en-US"].includes(element.getAttribute("value") ?? "")) continue;
+      expect(element.hasAttribute("data-annotation-markdown-l10n-id"), element.outerHTML).toBe(true);
     }
     expect(doc.getElementById("annotation-markdown-enabled").getAttribute("label")).toBe(locale === "zh-CN" ? "将侧栏批注评论渲染为 Markdown" : "Render sidebar annotation comments as Markdown");
-    expect(doc.querySelector('[data-l10n-id="annotation-markdown-prefs-math-output"]').getAttribute("value")).toBe(locale === "zh-CN" ? "公式渲染方式" : "Math rendering");
+    expect(doc.querySelector('[data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-output"]').getAttribute("value")).toBe(locale === "zh-CN" ? "公式渲染方式" : "Math rendering");
     expect(doc.getElementById("annotation-markdown-math-output").getAttribute("preference")).toBe("extensions.annotationMarkdown.mathOutput");
     expect([...doc.getElementById("annotation-markdown-math-output").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["htmlAndMathml", "mathml"]);
-    expect(doc.querySelector('[data-l10n-id="annotation-markdown-prefs-math-native"]').getAttribute("label"))
+    expect(doc.querySelector('[data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-native"]').getAttribute("label"))
       .toBe(locale === "zh-CN" ? "仅使用原生 MathML" : "Native MathML only");
     for (const id of ["annotation-markdown-svg-enabled", "annotation-markdown-native-row-lazy"]) {
       expect(doc.getElementById(id).getAttribute("label")).toContain(locale === "zh-CN" ? "实验性" : "Experimental");
@@ -494,6 +542,39 @@ async function mathPreferenceFixture(sidebar: boolean, popup: boolean, math: boo
     return controls.get(id);
   } });
   return { controls, set };
+}
+
+async function languageFixture(locale: string, stored?: string, delay?: (locale: string) => Promise<void>) {
+  const dom = new JSDOM('<html lang="zh-CN"><body><p id="other-plugin">Other plugin</p></body></html>');
+  const doc = dom.window.document;
+  const source = await loadPreferenceDocument();
+  doc.body.append(doc.importNode(source.documentElement, true));
+  const bundles = new Map<string, FluentBundle>();
+  for (const lang of ["en-US", "zh-CN"]) {
+    const bundle = new FluentBundle(lang);
+    bundle.addResource(new FluentResource(await readFile(path.join(process.cwd(), "addon/locale", lang, "annotation-markdown-preferences.ftl"), "utf8")));
+    bundles.set(lang, bundle);
+  }
+  const set = vi.fn();
+  const Zotero: PreferenceHost = { locale, Prefs: { get: (key, global) => global && key.endsWith(".settingsLanguage") ? stored
+    : key.endsWith(".mathOutput") ? "mathml" : undefined, set } };
+  class NativeLocalization {
+    constructor(_resources: string[], _sync: boolean, _registry: unknown, private locales: string[]) {}
+    async formatMessages(keys: { id: string }[]) {
+      await delay?.(this.locales[0]);
+      return keys.map(({ id }) => {
+        for (const lang of this.locales) {
+          const bundle = bundles.get(lang), message = bundle?.getMessage(id);
+          if (bundle && message) return { value: message.value ? bundle.formatPattern(message.value) : null,
+            attributes: Object.entries(message.attributes).map(([name, pattern]) => ({ name, value: bundle.formatPattern(pattern) })) };
+        }
+        return null;
+      });
+    }
+  }
+  const context = { Zotero, Localization: NativeLocalization };
+  vm.runInNewContext(await preferenceScript(), context);
+  return { doc, set, preferences: requireValue(Zotero.AnnotationMarkdownPreferences) };
 }
 
 async function loadPreferencesScript(Zotero: PreferenceHost = { Prefs: { get: vi.fn(() => undefined), set: vi.fn() } }) {

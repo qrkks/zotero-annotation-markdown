@@ -55,8 +55,9 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 ### Reading previews
 
 - **Markdown and math:** render Markdown and LaTeX formulas in PDF and EPUB annotation sidebars.
-- **Highlights and links:** use `==Highlighted text==` or preset colors such as `==Highlighted text=={.red}`; bare URLs become clickable links.
-- **Image links:** preview standalone image URLs, including OpenAI image links without a file extension, while retaining their caption and original link. Pasted Google favicon links appear as small source icons beside short site names and stay outside image counts. Failed images fall back to the link.
+- **Highlights:** use `==Highlighted text==` for default yellow, or `==Highlighted text=={.red}` for a preset color. See [supported colors and syntax](docs/en/user-guide.md#highlight-colors).
+- **Links:** bare URLs become clickable links.
+- **Image links:** preview standalone image URLs, including OpenAI image links without a file extension, while retaining their caption and original link. Click a loaded image to zoom and pan in the larger-image viewer; its caption link opens the original URL. Pasted Google favicon links appear as small source icons beside short site names and stay outside image counts. Failed images fall back to the link.
 - **SVG diagrams (Experimental):** preview static SVGs from code blocks or standalone SVG source, with a larger-image viewer. Off by default; see the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 - **Mermaid diagrams (Experimental):** preview seven common diagram types from `mermaid` code blocks, preserving source and reusing the larger-image viewer. Off by default; see [Mermaid support and limits](docs/en/user-guide.md#mermaid-diagrams-experimental) and the [copyable workflow example](docs/examples/mermaid-samples.md).
 - **Page annotation popups:** optionally render popup comments as Markdown. Off by default.
@@ -72,7 +73,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 
 - **Preview controls:** enable sidebar and popup rendering independently, and adjust preview font size and rendering strategy.
 - **Math output:** KaTeX HTML + MathML is the default. Optional native MathML can reduce formula rendering cost; spacing and appearance may differ.
-- **Interface language:** settings follow Zotero's language, with English and Simplified Chinese translations.
+- **Settings language:** follow Zotero by default, or switch the settings page immediately to 简体中文 or English without changing Zotero’s language.
 - **Safe rendering:** previews are sanitized, stored source stays unchanged, and rendering failures fall back to plain text.
 - **Zotero support:** Zotero Desktop 9.0 and 10.0.x. Current validation prioritizes Zotero 10; see [compatibility details](docs/en/user-guide.md#compatibility).
 

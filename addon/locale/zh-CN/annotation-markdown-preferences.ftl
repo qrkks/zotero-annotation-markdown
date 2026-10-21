@@ -1,6 +1,13 @@
 # 仅用于设置面板。Zotero 的设置文档由多个插件共享，标识符须保留插件前缀。
 # 复选框和菜单项使用 .label；XUL 字段标签使用 .value。
 
+annotation-markdown-prefs-general = 常规
+annotation-markdown-prefs-settings-language =
+    .value = 设置页语言
+annotation-markdown-prefs-language-auto =
+    .label = 跟随 Zotero（默认）
+annotation-markdown-prefs-language-description = 立即切换本设置页的语言，不改变 Zotero 的界面语言。阅读器控件沿用原有的语言行为。
+
 annotation-markdown-prefs-reader = 阅读器批注
 annotation-markdown-prefs-enabled =
     .label = 将侧栏批注评论渲染为 Markdown

@@ -1,4 +1,5 @@
 import type { PreferenceValue } from "./types.js";
+import { createPreferenceLocalizer, settingsLanguage } from "./preference-localization";
 
 /** The part of a XUL element needed by the settings pane. */
 export interface PreferenceElement {
@@ -13,6 +14,8 @@ export interface PreferenceDocument {
   getElementById(id: string): PreferenceElement | null | undefined;
 }
 export interface PreferencePaneHost {
+  locale?: string;
+  logError?: (error: unknown) => void;
   Prefs: {
     get(key: string, global: boolean): unknown;
     set(key: string, value: PreferenceValue, global: boolean): void;
@@ -28,6 +31,7 @@ function getXulElement<T extends PreferenceElement>(doc: PreferenceDocument, id:
 
 export function createPreferencePane(host: PreferencePaneHost) {
   return {
+    settingsLanguageKey: "extensions.annotationMarkdown.settingsLanguage",
     enabledKey: "extensions.annotationMarkdown.enabled",
     popupEnabledKey: "extensions.annotationMarkdown.popupEnabled",
     fontScalePercentKey: "extensions.annotationMarkdown.fontScalePercent",
@@ -47,6 +51,23 @@ export function createPreferencePane(host: PreferencePaneHost) {
     nativeRowLazyKey: "extensions.annotationMarkdown.nativeRowLazy",
 
     init(documentRef: PreferenceDocument = document) {
+      const languageSelect = getXulElement<PreferenceSelect>(documentRef, "annotation-markdown-settings-language");
+      const localize = createPreferenceLocalizer(documentRef, host);
+      const savedLanguage = settingsLanguage(host.Prefs.get(this.settingsLanguageKey, true));
+      if (languageSelect) {
+        languageSelect.value = savedLanguage;
+        languageSelect.addEventListener("command", () => {
+          const language = settingsLanguage(languageSelect.value);
+          languageSelect.value = language;
+          host.Prefs.set(this.settingsLanguageKey, language, true);
+          void localize(language);
+        });
+        languageSelect.addEventListener("syncfrompreference", () => {
+          languageSelect.value = settingsLanguage(host.Prefs.get(this.settingsLanguageKey, true));
+          void localize(settingsLanguage(languageSelect.value));
+        });
+      }
+      const localizationReady = localize(savedLanguage);
       const enabledInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-enabled");
       const popupOption = getXulElement<PreferenceElement>(documentRef, "annotation-markdown-popup-option");
       const popupEnabledInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-popup-enabled");
@@ -210,6 +231,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
       nativeRowLazyInput.addEventListener("command", () => {
         host.Prefs.set(this.nativeRowLazyKey, Boolean(nativeRowLazyInput.checked), true);
       });
+      return localizationReady;
     },
 
     getPref<T extends PreferenceValue>(key: string, defaultValue: T): PreferenceType<T> {

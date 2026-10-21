@@ -1,6 +1,13 @@
 # Settings pane only. Keep identifiers namespaced because Zotero shares the document with other plugins.
 # Checkbox/menuitem captions use .label; XUL field labels use .value.
 
+annotation-markdown-prefs-general = General
+annotation-markdown-prefs-settings-language =
+    .value = Settings page language
+annotation-markdown-prefs-language-auto =
+    .label = Follow Zotero (default)
+annotation-markdown-prefs-language-description = Switch this settings page immediately without changing Zotero's interface language. Reader controls keep their existing language behavior.
+
 annotation-markdown-prefs-reader = Reader Annotations
 annotation-markdown-prefs-enabled =
     .label = Render sidebar annotation comments as Markdown

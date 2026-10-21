@@ -174,7 +174,7 @@ When adding another Reader integration, prefer a callable host/plugin API for be
 | `src/svg-fonts.ts` | Validates and rebuilds font-only CSS with bounded embedded WOFF2 data and header checks. |
 | `src/svg-class-styles.ts` | Parses bounded simple type/class rules and expands validated presentation properties into the preview copy by specificity and stylesheet order. |
 | `src/svg-accessibility.ts` | Validates static root metadata and local label/description references, then supplies bounded plain text for image alternatives and tooltips. |
-| `src/svg-preview-viewer.ts` | Owns SVG image load fallback, larger-image interaction, focus, keyboard handling and cleanup. |
+| `src/svg-preview-viewer.ts` | Owns the shared viewer for sanitized SVG/Mermaid diagrams and loaded raster link previews, including image-load fallback, focus, keyboard handling and cleanup. Raster previews reuse their loaded source and intrinsic dimensions, independently of SVG/Mermaid settings; caption links retain ordinary link routing. |
 | `src/reader-controller.ts` | Orchestrates Reader readiness, DOM discovery, eager/lazy rendering, fast-editor entry/exit events, editing pauses, caches, diagnostics, styles, and cleanup. |
 | `src/annotation-sidebar-adapter.ts` | Encapsulates Zotero Reader selectors, source-plus-preview DOM operations, and the fast textarea session. Excludes native note editors. |
 | `src/annotation-scroll-target.ts` | Tracks the selected oversized row and applies reversible CSS margins for Zotero's native selection scroll. |
@@ -200,6 +200,7 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/preferences.xhtml` | Preference-pane markup. |
 | `addon/locale/<locale>/annotation-markdown-preferences.ftl` | Native Fluent settings translations; see the [translation contribution guide](localization.md). |
 | `src/preferences.ts` → `dist/addon/preferences.js` | Strictly typed preference-pane controls and writes to `Zotero.Prefs`; bundled as a standalone privileged script. |
+| `src/preference-localization.ts` | Native Fluent messages scoped to the plugin settings pane, with an immediate stored language override and English fallback. Uses private target attributes to avoid changing the shared preferences document's locale. |
 | `addon/preferences.css` | Preference-pane layout styles. |
 | `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including selected-row scroll margins and preference-gated Weavero link-color variables. |
 | `addon/icons/annotation-markdown.svg` | Add-on and preference-pane icon. |

@@ -302,6 +302,7 @@
 
 .annotation-markdown-linked-image-content {
     height: auto;
+    cursor: zoom-in;
 }
 
 .annotation-markdown-linked-image > figcaption {

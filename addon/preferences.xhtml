@@ -1,47 +1,58 @@
-<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+<vbox id="annotation-markdown-preferences" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
       xmlns:html="http://www.w3.org/1999/xhtml"
       onload="Zotero.AnnotationMarkdownPreferences.init(document)">
-  <linkset>
-    <html:link rel="localization" href="annotation-markdown-preferences.ftl"/>
-  </linkset>
   <groupbox>
-    <label><html:h2 data-l10n-id="annotation-markdown-prefs-reader"/></label>
+    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-general"/></label>
+    <hbox class="annotation-markdown-preference-field" align="center">
+      <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-settings-language" control="annotation-markdown-settings-language"/>
+      <menulist id="annotation-markdown-settings-language" preference="extensions.annotationMarkdown.settingsLanguage">
+        <menupopup>
+          <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-language-auto" value="auto"/>
+          <menuitem label="简体中文" value="zh-CN"/>
+          <menuitem label="English" value="en-US"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-language-description"/>
+  </groupbox>
+  <groupbox>
+    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-reader"/></label>
     <checkbox id="annotation-markdown-enabled"
               preference="extensions.annotationMarkdown.enabled"
-              data-l10n-id="annotation-markdown-prefs-enabled"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-enabled"/>
     <vbox id="annotation-markdown-popup-option">
       <checkbox id="annotation-markdown-popup-enabled"
                 preference="extensions.annotationMarkdown.popupEnabled"
-                data-l10n-id="annotation-markdown-prefs-popup-enabled"/>
-      <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-popup-description"/>
+                data-annotation-markdown-l10n-id="annotation-markdown-prefs-popup-enabled"/>
+      <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-popup-description"/>
     </vbox>
     <checkbox id="annotation-markdown-math-enabled"
               preference="extensions.annotationMarkdown.mathEnabled"
-              data-l10n-id="annotation-markdown-prefs-math-enabled"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-math-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-enabled"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-description"/>
     <vbox id="annotation-markdown-math-output-option" class="annotation-markdown-preference-suboption">
       <hbox class="annotation-markdown-preference-field" align="center">
-        <label data-l10n-id="annotation-markdown-prefs-math-output" control="annotation-markdown-math-output"/>
+        <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-output" control="annotation-markdown-math-output"/>
         <menulist id="annotation-markdown-math-output"
           preference="extensions.annotationMarkdown.mathOutput">
           <menupopup>
-            <menuitem data-l10n-id="annotation-markdown-prefs-math-html" value="htmlAndMathml"/>
-            <menuitem data-l10n-id="annotation-markdown-prefs-math-native" value="mathml"/>
+            <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-html" value="htmlAndMathml"/>
+            <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-native" value="mathml"/>
           </menupopup>
         </menulist>
       </hbox>
-      <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-math-output-description"/>
+      <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-output-description"/>
     </vbox>
     <checkbox id="annotation-markdown-svg-enabled"
               preference="extensions.annotationMarkdown.svgEnabled"
-              data-l10n-id="annotation-markdown-prefs-svg-enabled"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-svg-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-svg-enabled"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-svg-description"/>
     <checkbox id="annotation-markdown-mermaid-enabled"
               preference="extensions.annotationMarkdown.mermaidEnabled"
-              data-l10n-id="annotation-markdown-prefs-mermaid-enabled"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-mermaid-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-mermaid-enabled"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-mermaid-description"/>
     <hbox class="annotation-markdown-preference-field" align="center">
-      <label data-l10n-id="annotation-markdown-prefs-font-size" control="annotation-markdown-font-scale"/>
+      <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-font-size" control="annotation-markdown-font-scale"/>
       <menulist id="annotation-markdown-font-scale"
         preference="extensions.annotationMarkdown.fontScalePercent">
         <menupopup>
@@ -63,32 +74,32 @@
     </hbox>
     <checkbox id="annotation-markdown-paste-as-plain-text"
               preference="extensions.annotationMarkdown.pasteAsPlainText"
-              data-l10n-id="annotation-markdown-prefs-paste-as-plain-text"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-paste-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-paste-as-plain-text"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-paste-description"/>
     <checkbox id="annotation-markdown-fast-editor"
               preference="extensions.annotationMarkdown.fastEditor"
-              data-l10n-id="annotation-markdown-prefs-fast-editor"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-fast-editor-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-fast-editor"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-fast-editor-description"/>
   </groupbox>
 
   <groupbox>
-    <label><html:h2 data-l10n-id="annotation-markdown-prefs-outline"/></label>
+    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-outline"/></label>
     <checkbox id="annotation-markdown-outline-enabled"
               preference="extensions.annotationMarkdown.outlineEnabled"
-              data-l10n-id="annotation-markdown-prefs-outline-enabled"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-outline-enabled"/>
     <vbox id="annotation-markdown-outline-numbering-option" class="annotation-markdown-preference-suboption">
       <checkbox id="annotation-markdown-outline-numbering"
                 preference="extensions.annotationMarkdown.outlineNumbering"
-                data-l10n-id="annotation-markdown-prefs-outline-numbering"/>
+                data-annotation-markdown-l10n-id="annotation-markdown-prefs-outline-numbering"/>
       <vbox id="annotation-markdown-outline-smart-numbering-option" class="annotation-markdown-preference-suboption">
         <checkbox id="annotation-markdown-outline-smart-numbering"
                   preference="extensions.annotationMarkdown.outlineSmartNumbering"
-                  data-l10n-id="annotation-markdown-prefs-outline-smart-numbering"/>
-        <description data-l10n-id="annotation-markdown-prefs-outline-smart-numbering-description"/>
+                  data-annotation-markdown-l10n-id="annotation-markdown-prefs-outline-smart-numbering"/>
+        <description data-annotation-markdown-l10n-id="annotation-markdown-prefs-outline-smart-numbering-description"/>
       </vbox>
     </vbox>
     <hbox class="annotation-markdown-preference-field" align="center">
-      <label data-l10n-id="annotation-markdown-prefs-outline-font-size" control="annotation-markdown-outline-font-scale"/>
+      <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-outline-font-size" control="annotation-markdown-outline-font-scale"/>
       <menulist id="annotation-markdown-outline-font-scale"
         preference="extensions.annotationMarkdown.outlineFontScalePercent">
         <menupopup>
@@ -111,34 +122,34 @@
   </groupbox>
 
   <groupbox>
-    <label><html:h2 data-l10n-id="annotation-markdown-prefs-tags"/></label>
+    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-tags"/></label>
     <checkbox id="annotation-markdown-auto-todo-tag"
               preference="extensions.annotationMarkdown.autoTodoTag"
-              data-l10n-id="annotation-markdown-prefs-auto-todo-tag"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-auto-todo-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-auto-todo-tag"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-auto-todo-description"/>
     <checkbox id="annotation-markdown-auto-todo-cleanup"
               preference="extensions.annotationMarkdown.autoTodoCleanup"
-              data-l10n-id="annotation-markdown-prefs-auto-todo-cleanup"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-auto-todo-cleanup-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-auto-todo-cleanup"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-auto-todo-cleanup-description"/>
   </groupbox>
 
   <groupbox>
-    <label><html:h2 data-l10n-id="annotation-markdown-prefs-performance"/></label>
+    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-performance"/></label>
     <hbox class="annotation-markdown-preference-field" align="center">
-      <label data-l10n-id="annotation-markdown-prefs-render-strategy" control="annotation-markdown-render-strategy"/>
+      <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-render-strategy" control="annotation-markdown-render-strategy"/>
       <menulist id="annotation-markdown-render-strategy"
         preference="extensions.annotationMarkdown.renderStrategy">
         <menupopup>
-          <menuitem data-l10n-id="annotation-markdown-prefs-render-auto" value="auto"/>
-          <menuitem data-l10n-id="annotation-markdown-prefs-render-eager" value="eager"/>
-          <menuitem data-l10n-id="annotation-markdown-prefs-render-lazy" value="lazy"/>
+          <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-render-auto" value="auto"/>
+          <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-render-eager" value="eager"/>
+          <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-render-lazy" value="lazy"/>
         </menupopup>
       </menulist>
     </hbox>
     <checkbox id="annotation-markdown-native-row-lazy"
               preference="extensions.annotationMarkdown.nativeRowLazy"
-              data-l10n-id="annotation-markdown-prefs-native-row-lazy"/>
-    <description class="annotation-markdown-preference-description" data-l10n-id="annotation-markdown-prefs-native-row-description"/>
+              data-annotation-markdown-l10n-id="annotation-markdown-prefs-native-row-lazy"/>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-native-row-description"/>
   </groupbox>
 
 </vbox>

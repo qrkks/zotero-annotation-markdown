@@ -1,4 +1,5 @@
 // The existing key now controls sidebar rendering independently of popups.
+pref("extensions.annotationMarkdown.settingsLanguage", "auto");
 pref("extensions.annotationMarkdown.enabled", true);
 pref("extensions.annotationMarkdown.popupEnabled", false);
 pref("extensions.annotationMarkdown.fontScalePercent", 100);

@@ -4,7 +4,7 @@
 
 ## 当前支持范围
 
-从 v0.14.0 起，设置页通过 Zotero 原生 Fluent 本地化系统，跟随 Zotero 的界面语言显示。目前包含英文（`en-US`）和简体中文（`zh-CN`），没有对应翻译时回退到英文。插件没有单独的语言选择器。
+设置页使用 Zotero 原生 Fluent 本地化系统。**设置页语言** 默认 **跟随 Zotero**，也可以立即指定为 **简体中文**（`zh-CN`）或 **English**（`en-US`）。选择保存在 `extensions.annotationMarkdown.settingsLanguage`，不改变 Zotero 的语言或其他设置面板；没有对应翻译时回退到英文。
 
 当前覆盖设置页的分组标题、复选框标签、下拉菜单、字段标签及说明文字。SVG 查看器中的 **View larger**、**Fit**、**Close** 等阅读器控件不在这份本地化资源的范围内；翻译设置文件不意味着插件的所有界面都已翻译。
 
@@ -12,7 +12,7 @@
 
 ## 文件位置与 Fluent 语法
 
-请以[英文资源](../../addon/locale/en-US/annotation-markdown-preferences.ftl)为消息标识符、属性及含义的基准，[简体中文资源](../../addon/locale/zh-CN/annotation-markdown-preferences.ftl)也是完整示例。当前面板使用 32 条消息；需要保持同步的消息集合由英文文件和[设置页结构](../../addon/preferences.xhtml)定义。
+请以[英文资源](../../addon/locale/en-US/annotation-markdown-preferences.ftl)为消息标识符、属性及含义的基准，[简体中文资源](../../addon/locale/zh-CN/annotation-markdown-preferences.ftl)也是完整示例。当前面板使用 41 条消息；需要保持同步的消息集合由英文文件和[设置页结构](../../addon/preferences.xhtml)定义。
 
 每个语言目录中的文件名都使用 `annotation-markdown-preferences.ftl`。例如，法语翻译应放在：
 
@@ -20,7 +20,7 @@
 addon/locale/fr-FR/annotation-markdown-preferences.ftl
 ```
 
-目录名称应使用对应 Zotero 界面语言的语言代码，文件采用 UTF-8 编码。Zotero 会自动注册插件语言目录中的 FTL 文件，设置页通过已有的 `<linkset>` 加载这份资源。构建时会复制整个 `addon/` 目录，因此新增翻译不需要另写 bootstrap 注册逻辑，也无需修改构建脚本。
+目录名称应使用对应 Zotero 界面语言的语言代码，文件采用 UTF-8 编码。Zotero 会自动注册插件语言目录中的 FTL 文件。`src/preference-localization.ts` 根据所选语言和英文回退创建原生 `Localization` 实例，仅将消息应用到本插件面板。面板使用 `data-annotation-markdown-l10n-id` 属性，避免共享文档的自动翻译覆盖当前选择。构建时会复制整个 `addon/` 目录，因此新增翻译不需要另写 bootstrap 注册逻辑，也无需修改构建脚本。
 
 Fluent 区分元素的正文与属性。下面的法语片段展示了三种写法：
 
@@ -56,7 +56,7 @@ annotation-markdown-prefs-math-output =
    git diff --check
    ```
 
-5. 在用于测试的 Zotero 配置中安装 `dist/zotero-annotation-markdown.xpi`。在 Zotero 常规设置中选择目标界面语言；如果 Zotero 提示需要重启，重启后重新打开插件设置。以正常窗口尺寸检查所有分组、下拉选项、说明和禁用控件，确认长文本换行后没有截断，选项仍保留已保存的选择，英文显示也仍然正常。在拉取请求中提供截图和测试使用的 Zotero 版本。
+5. 在用于测试的 Zotero 配置中安装 `dist/zotero-annotation-markdown.xpi`。通过 **设置页语言** 在简体中文和 English 之间切换，无需重启 Zotero。还应在 Zotero 常规设置中选择目标语言，测试 **跟随 Zotero**；如果 Zotero 提示需要重启，按提示重启。新贡献的语言先通过跟随 Zotero 使用，是否加入覆盖选项需另行决定。以正常窗口尺寸检查所有分组、下拉选项、说明和禁用控件，确认长文本换行后没有截断，选项仍保留已保存的选择，英文显示也仍然正常。在拉取请求中提供截图和测试使用的 Zotero 版本。
 6. 提交拉取请求，说明语言代码、属于新增翻译还是文案修正，以及完成了哪些检查。新增语言时，同步更新 README 和使用指南中的支持语言说明。改动集中在翻译资源、测试覆盖和相关文档。
 
 `pnpm run package` 除了生成 XPI，还会重新生成 `updates.json`。在仅贡献翻译的分支中，检查 `git diff -- updates.json`，并恢复这项生成的变更。翻译拉取请求不应包含生成的 `dist/` 文件或发布版本、标签的改动；维护者在发布时处理这些元数据。
@@ -65,6 +65,6 @@ annotation-markdown-prefs-math-output =
 
 ## 新增设置时如何维护翻译
 
-新的设置文案应在 `addon/preferences.xhtml` 中使用带 `annotation-markdown-prefs-...` 前缀的标识符，并采用对应的 Fluent 正文或属性。同步更新英文基准和所有受支持语言，再运行语言覆盖检查。避免在设置页加入新的固定自然语言标签；百分比等不依赖语言的内容可以保留原样。
+新的设置文案应在 `addon/preferences.xhtml` 的 `data-annotation-markdown-l10n-id` 属性中使用带 `annotation-markdown-prefs-...` 前缀的标识符，并采用对应的 Fluent 正文或属性。同步更新英文基准和所有受支持语言，再运行语言覆盖检查。避免在设置页加入新的固定自然语言标签；百分比等不依赖语言的内容可以保留原样。
 
 修改文档页面时，另请遵循[文档翻译规则](../README.md)。

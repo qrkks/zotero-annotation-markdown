@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- Add a settings-page language selector with Follow Zotero (default), Simplified Chinese and English. Apply and remember changes immediately within the plugin pane, preserving Zotero's language and other settings.
+- Open loaded image-link previews in the existing larger-image viewer with zoom, Fit, panning, keyboard access and Escape to close, independently of SVG/Mermaid settings. Reuse loaded image data and preserve caption links to the original URL, source editing and failed-image fallback.
+
+### 新增
+
+- 新增设置页语言选择，提供跟随 Zotero（默认）、简体中文和 English。选择后立即生效并保存，仅作用于本插件面板，保留 Zotero 的语言及其他设置。
+- 已加载的图片链接预览可进入现有大图查看器，支持缩放、Fit、平移、键盘操作与 Escape 关闭，独立于 SVG/Mermaid 设置。复用已加载的图片数据，保留标题链接打开原地址、源码编辑及图片加载失败回退。
+
 ### Changed
 
 - Complete the Mermaid project introductions and add copyable English/Chinese workflow examples. Use diagram-neutral default names, viewer controls and image-load messages for the shared SVG/Mermaid preview.

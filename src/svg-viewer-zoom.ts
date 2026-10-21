@@ -1,15 +1,16 @@
 /** Zoom the sanitized image and its viewer without changing saved annotations. */
 export function createSvgViewerZoom(image: HTMLImageElement, region: HTMLElement, {
-  sizeFrame = () => {}, fitBounds = () => region.getBoundingClientRect()
+  sizeFrame = () => {}, fitBounds = () => region.getBoundingClientRect(), imageKind = "diagram"
 }: {
   sizeFrame?: (width: number, height: number) => void;
   fitBounds?: () => { width: number; height: number };
+  imageKind?: "diagram" | "image";
 } = {}) {
   const doc = image.ownerDocument;
   const width = image.width, height = image.height;
-  const minScale = 0.01;
-  // Bound both magnification and rendered dimensions for the largest allowed SVGs.
+  // Bound both magnification and rendered dimensions for large images.
   const maxScale = Math.min(4, 8192 / Math.max(width, height));
+  const minScale = Math.min(0.01, maxScale);
   let scale = 1, fitting = true;
   let drag: { id: number; x: number; y: number; left: number; top: number } | null = null;
   const controls = doc.createElement("div");
@@ -23,8 +24,8 @@ export function createSvgViewerZoom(image: HTMLImageElement, region: HTMLElement
   const out = button("−", "Zoom out", () => zoom(scale / 1.25));
   const into = button("+", "Zoom in", () => zoom(scale * 1.25));
   const status = doc.createElement("output"); status.setAttribute("aria-label", "Zoom level");
-  const fitButton = button("Fit", "Fit diagram", fit);
-  fitButton.title = "Restore a size that shows the entire diagram";
+  const fitButton = button("Fit", `Fit ${imageKind}`, fit);
+  fitButton.title = `Restore a size that shows the entire ${imageKind}`;
   controls.append(out, status, into, fitButton);
 
   function update(): void {
@@ -59,7 +60,7 @@ export function createSvgViewerZoom(image: HTMLImageElement, region: HTMLElement
     // Use the Reader's available space, independent of this frame's current size
     // or old scrollbars, so shrinking and resize events cannot shrink Fit again.
     const viewport = fitBounds();
-    scale = Math.max(minScale, Math.min(1, (viewport.width || width) / width, (viewport.height || height) / height));
+    scale = Math.max(minScale, Math.min(1, maxScale, (viewport.width || width) / width, (viewport.height || height) / height));
     update(); region.scrollLeft = 0; region.scrollTop = 0;
   }
   function endDrag(): void {
