@@ -79,7 +79,11 @@ describe("release notes", () => {
     expect(createReleaseNotes(changelog, "v1.2.0", {
       previousTag: "v1.1.0",
       repository: "example/project"
-    })).toBe(`### Fixed
+    })).toBe(`**Install / 安装：** [Download XPI / 下载 XPI](https://github.com/example/project/releases/download/v1.2.0/zotero-annotation-markdown.xpi)
+
+Source code for developers / 开发者源码：[ZIP](https://github.com/example/project/archive/refs/tags/v1.2.0.zip) · [tar.gz](https://github.com/example/project/archive/refs/tags/v1.2.0.tar.gz)
+
+### Fixed
 
 - Fixed the popup.
 

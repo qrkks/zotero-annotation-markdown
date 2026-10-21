@@ -24,7 +24,8 @@ whole is licensed under AGPL-3.0-or-later; this historical notice does not
 offer the current revision under MIT as an alternative license.
 
 Third-party components retain their respective licenses. Packaged XPI files
-include THIRD-PARTY-NOTICES.txt. The matching source archive is distributed
-alongside the XPI, with download and rebuild directions in SOURCE.txt.
+include THIRD-PARTY-NOTICES.txt with package and upstream source locations.
+SOURCE.txt links to the release tag and GitHub-generated source archives,
+records a checksum of project build inputs, and gives rebuild directions.
 
 Project: https://github.com/qrkks/zotero-annotation-markdown

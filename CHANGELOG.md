@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- Upload only the installable XPI in future releases. Use GitHub’s automatic release-tag ZIP/tar.gz for developer source downloads, retain source identity and license notices in the XPI, and add a direct XPI installation link to release notes.
+
+### 变更
+
+- 后续发布只上传可安装的 XPI，开发者源码使用 GitHub 自动生成的发布标签 ZIP/tar.gz。XPI 保留源码标识与许可声明，发布说明增加 XPI 直接安装下载链接。
+
 ## 0.16.0 - 2026-10-20
 
 ### Added

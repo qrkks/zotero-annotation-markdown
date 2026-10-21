@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { createSourceLinks, releaseAssetName } from "./release-config.mjs";
 
 export function extractReleaseNotes(changelog, releaseTag) {
   const version = String(releaseTag ?? "").replace(/^v/, "");
@@ -45,7 +46,11 @@ export function createReleaseNotes(
     throw new Error("Previous tag and repository are required");
   }
 
-  return `${notes}\n\n` +
+  const source = createSourceLinks(String(releaseTag).replace(/^v/, ""), repository);
+  const download = `https://github.com/${repository}/releases/download/${source.tag}/${releaseAssetName}`;
+  return `**Install / 安装：** [Download XPI / 下载 XPI](${download})\n\n` +
+    `Source code for developers / 开发者源码：[ZIP](${source.zip}) · [tar.gz](${source.tar})\n\n` +
+    `${notes}\n\n` +
     `**Full Changelog**: https://github.com/${repository}/compare/${previousTag}...${releaseTag}\n`;
 }
 

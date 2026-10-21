@@ -1,5 +1,4 @@
 export const releaseAssetName = "zotero-annotation-markdown.xpi";
-export const sourceAssetName = "zotero-annotation-markdown-source.zip";
 export const releaseRepository = "qrkks/zotero-annotation-markdown";
 export const updateManifestUrl =
   `https://raw.githubusercontent.com/${releaseRepository}/main/updates.json`;
@@ -14,6 +13,17 @@ export const deterministicZipEntryOptions = {
   creationDate: deterministicZipDate,
   extendedTimestamp: false
 };
+
+export function createSourceLinks(version, repository = releaseRepository) {
+  const tag = "v" + version;
+  const base = "https://github.com/" + repository;
+  return {
+    tag,
+    tree: base + "/tree/" + tag,
+    zip: base + "/archive/refs/tags/" + tag + ".zip",
+    tar: base + "/archive/refs/tags/" + tag + ".tar.gz"
+  };
+}
 
 export function createUpdateManifest({ packageJson, manifest, xpiHash }) {
   const zoteroApplication = manifest.applications.zotero;

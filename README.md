@@ -80,7 +80,7 @@ Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1
 
 Install `Zotero Annotation Markdown` from the Zotero Add-ons marketplace.
 
-For manual installation, download `zotero-annotation-markdown.xpi` from the [latest GitHub release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest). In Zotero, open **Tools → Plugins**, then drag the `.xpi` file into the Plugins window.
+For manual installation, [download `zotero-annotation-markdown.xpi`](https://github.com/qrkks/zotero-annotation-markdown/releases/latest/download/zotero-annotation-markdown.xpi). In Zotero, open **Tools → Plugins**, then drag the `.xpi` file into the Plugins window.
 
 ## Documentation
 
@@ -108,4 +108,4 @@ Copyright (c) 2026 qrkks. Licensed under the [GNU Affero General Public License,
 
 Published releases up to and including v0.15.4 were distributed under MIT. Those existing grants remain valid; the [original MIT notice](licenses/MIT-legacy.txt) is retained for that code. This does not offer the current revision under MIT as an alternative to AGPL.
 
-Third-party components retain their own licenses. Each newly packaged XPI includes the project license and third-party notices. The matching project and dependency source snapshot is distributed separately as `zotero-annotation-markdown-source.zip` alongside the XPI; `SOURCE.txt` inside the XPI identifies its SHA-256 and rebuild instructions. Only the XPI is needed to install the add-on. Contributions to the current project are accepted under `AGPL-3.0-or-later` unless explicitly stated otherwise.
+Third-party components retain their own licenses. Each packaged XPI includes the project license and third-party notices. Install the XPI; GitHub’s automatic **Source code (zip)** and **Source code (tar.gz)** downloads contain the repository at the release tag for developers. `SOURCE.txt` inside the XPI links to that tag and records a checksum of the project build inputs and rebuild instructions. The lockfile pins dependency versions; third-party notices list package and upstream source locations. Contributions to the current project are accepted under `AGPL-3.0-or-later` unless explicitly stated otherwise.

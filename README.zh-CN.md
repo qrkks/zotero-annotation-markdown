@@ -80,7 +80,7 @@ SVG 渲染分为完整预览、带持续提示的兼容预览，以及带原因�
 
 推荐在 Zotero 插件市场中搜索 `Zotero Annotation Markdown` 并安装。
 
-也可以从[最新 GitHub Release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest)下载 `zotero-annotation-markdown.xpi`。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
+也可以[直接下载 `zotero-annotation-markdown.xpi`](https://github.com/qrkks/zotero-annotation-markdown/releases/latest/download/zotero-annotation-markdown.xpi)。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
 
 ## 文档
 
@@ -108,4 +108,4 @@ Copyright (c) 2026 qrkks。本项目采用 [GNU Affero 通用公共许可证第 
 
 已发布的 v0.15.4 及更早版本采用 MIT 许可证，已授予的权限继续有效；这些代码的[原始 MIT 声明](licenses/MIT-legacy.txt)予以保留。这不代表当前修订版提供 MIT 作为 AGPL 之外的可选许可证。
 
-第三方组件保留各自的许可证。此后打包的每个 XPI 均包含项目许可证和第三方许可声明。对应构建的项目与依赖源码快照单独生成 `zotero-annotation-markdown-source.zip`，与 XPI 一起提供；XPI 内的 `SOURCE.txt` 记录其 SHA-256 和重建步骤。安装插件只需下载 XPI。除非另有明确说明，对当前项目的贡献按 `AGPL-3.0-or-later` 接受。
+第三方组件保留各自的许可证。每个 XPI 均包含项目许可证和第三方许可声明。安装请选择 XPI；GitHub 自动提供的 **Source code (zip)** 和 **Source code (tar.gz)** 包含发布标签对应的仓库内容，供开发者使用。XPI 内的 `SOURCE.txt` 提供该标签的源码链接、项目构建输入的校验值及重建步骤。锁文件固定依赖版本，第三方声明列出包及上游源码地址。除非另有明确说明，对当前项目的贡献按 `AGPL-3.0-or-later` 接受。

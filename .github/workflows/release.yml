@@ -81,7 +81,6 @@ jobs:
           version="${RELEASE_TAG#v}"
           gh release create "$RELEASE_TAG" \
             "dist/zotero-annotation-markdown.xpi" \
-            "dist/zotero-annotation-markdown-source.zip" \
             --verify-tag \
             --title "Zotero Annotation Markdown $version" \
             --notes-file "dist/release-notes.md" \
@@ -91,7 +90,7 @@ jobs:
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: |
           mkdir -p dist/published
-          for asset in "zotero-annotation-markdown.xpi" "zotero-annotation-markdown-source.zip"; do
+          for asset in "zotero-annotation-markdown.xpi"; do
             expected_hash="$(sha256sum "dist/$asset" | cut -d ' ' -f 1)"
             expected_size="$(stat -c %s "dist/$asset")"
             published_digest="$(gh release view "$RELEASE_TAG" --json assets --jq ".assets[] | select(.name == \"$asset\") | .digest")"
@@ -100,3 +99,12 @@ jobs:
             test "$(stat -c %s "dist/published/$asset")" = "$expected_size"
             echo "$expected_hash  dist/published/$asset" | sha256sum --check --strict
           done
+
+      - name: Verify GitHub-generated source archive
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: |
+          curl --fail --location --retry 3 "https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$RELEASE_TAG.zip" --output dist/published/source.zip
+          unzip -q dist/published/source.zip -d dist/published/source
+          source_root="$(find dist/published/source -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          test -n "$source_root"
+          node scripts/verify-release.mjs "$RELEASE_TAG" "$source_root"

@@ -12,14 +12,13 @@ pnpm run build
 pnpm run package
 ```
 
-打包会生成两个文件：
+打包会生成可安装的 XPI：
 
 ```text
 dist/zotero-annotation-markdown.xpi
-dist/zotero-annotation-markdown-source.zip
 ```
 
-通过 Zotero 插件管理器安装 XPI，在真实阅读器中进行验证。XPI 包含运行文件与许可声明。独立源码 ZIP 包含对应的项目和依赖快照，供查阅及重建，安装和运行插件时无需下载。XPI 内的 `SOURCE.txt` 记录源码包的 SHA-256。分发时应在同一下载位置一起提供这两个文件。
+通过 Zotero 插件管理器安装 XPI，在真实阅读器中进行验证。XPI 包含运行文件与许可声明。发布时只上传 XPI；GitHub 自动为发布标签提供 **Source code (zip)** 和 **Source code (tar.gz)**，供开发者下载，安装插件时不需要这些文件。XPI 内的 `SOURCE.txt` 提供两种格式的链接、规范化项目构建输入的校验值及重建步骤。解压源码快照后运行 `pnpm install --frozen-lockfile`，再运行 `pnpm run package`；锁文件固定依赖版本，第三方声明列出对应包及上游源码地址。
 
 `pnpm-workspace.yaml` 在所有平台上将 `virtualStoreDirMaxLength` 固定为 60。否则，pnpm 的 Windows 与 Linux 默认值会生成不同的依赖目录名，esbuild 将这些路径写入构建文件后会改变 XPI 哈希。比较本地与 CI 发布产物时应保留此设置。手动运行 Release 工作流会输出各打包文件的哈希，便于定位差异。
 
@@ -33,7 +32,7 @@ Fluent 资源布局、新增语言的方法及翻译专项检查，参见[本地
 pnpm run verify
 ```
 
-该命令会运行自动化测试和 TypeScript 检查、构建插件，并打包 XPI 与对应的源码 ZIP。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
+该命令会运行自动化测试和 TypeScript 检查、构建插件，并打包 XPI。`src/` 下的模块全部使用严格 TypeScript；`addon/` 中由 Zotero 直接执行的文件仍保留 JavaScript，`scripts/*.mjs` 则是 Node 工具。各模块所有权和运行边界参见[架构与文件职责](architecture.md)。核心渲染、设置、DOM 适配、阅读器生命周期和打包流程已有自动化测试覆盖，但 Zotero 阅读器侧栏仍需在真实 Zotero 中检查。
 
 所有测试均使用 TypeScript。Vitest 运行 `tests/**/*.test.ts`；`pnpm run typecheck` 检查源码后，会通过 `tsconfig.test.json` 执行 `pnpm run typecheck:tests`。测试及辅助函数遵循与源码相同的严格规则；该配置允许导入现有 JavaScript 工具，但不检查这些脚本。mock 应复用生产接口，异常输入应在明确的测试边界中保留。单独执行 `pnpm test` 不进行类型检查。
 
@@ -67,7 +66,7 @@ pnpm run verify
 3. 运行 `pnpm run verify`、`pnpm audit --prod`、`pnpm run release:verify v<version>` 和 `git diff --check`。
 4. 使用该检出生成的准确 XPI 完成真实 Zotero 冒烟测试。
 5. 提交版本文件、受影响的文档与生成的 `updates.json`。确认 `git diff --exit-code -- updates.json`，然后推送发布提交，并等待常规 CI 工作流通过。
-6. 在该提交上创建带注释的 `v<version>` 标签并推送。标签触发的 `Release` 工作流会重新执行全部验证、创建 GitHub Release、上传 XPI 与对应的源码 ZIP，并核对两个线上资产的摘要。
+6. 在该提交上创建带注释的 `v<version>` 标签并推送。标签触发的 `Release` 工作流会重新执行全部验证、创建 GitHub Release、只上传 XPI、核对其线上摘要，并检查 GitHub 自动源码 ZIP 是否匹配 XPI 中的项目源码校验值。保留既有发布标签及其源码的可用性。
 
 正常发布流程中不要手工运行 `gh release create`。可手工触发 dry-run，只验证当前检出内容而不发布：
 
