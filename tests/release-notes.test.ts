@@ -62,7 +62,7 @@ describe("release notes", () => {
     )).toThrow("CHANGELOG.md contains an empty 2.0.0 release section");
   });
 
-  test("appends the full changelog comparison without a redundant commit list", () => {
+  test("groups English and Chinese and appends the comparison without redundant download links", () => {
     const changelog = `# Changelog
 
 ## 1.2.0 - 2026-09-27
@@ -70,6 +70,18 @@ describe("release notes", () => {
 ### Fixed
 
 - Fixed the popup.
+
+### 修复
+
+- 修复弹窗。
+
+### Changed
+
+- Update the guide.
+
+### 变更
+
+- 更新指南。
 
 ## 1.1.0 - 2026-09-20
 
@@ -79,13 +91,25 @@ describe("release notes", () => {
     expect(createReleaseNotes(changelog, "v1.2.0", {
       previousTag: "v1.1.0",
       repository: "example/project"
-    })).toBe(`**Install / 安装：** [Download XPI / 下载 XPI](https://github.com/example/project/releases/download/v1.2.0/zotero-annotation-markdown.xpi)
-
-Source code for developers / 开发者源码：[ZIP](https://github.com/example/project/archive/refs/tags/v1.2.0.zip) · [tar.gz](https://github.com/example/project/archive/refs/tags/v1.2.0.tar.gz)
+    })).toBe(`## English
 
 ### Fixed
 
 - Fixed the popup.
+
+### Changed
+
+- Update the guide.
+
+## 简体中文
+
+### 修复
+
+- 修复弹窗。
+
+### 变更
+
+- 更新指南。
 
 **Full Changelog**: https://github.com/example/project/compare/v1.1.0...v1.2.0
 `);

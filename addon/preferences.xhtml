@@ -2,20 +2,6 @@
       xmlns:html="http://www.w3.org/1999/xhtml"
       onload="Zotero.AnnotationMarkdownPreferences.init(document)">
   <groupbox>
-    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-general"/></label>
-    <hbox class="annotation-markdown-preference-field" align="center">
-      <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-settings-language" control="annotation-markdown-settings-language"/>
-      <menulist id="annotation-markdown-settings-language" preference="extensions.annotationMarkdown.settingsLanguage">
-        <menupopup>
-          <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-language-auto" value="auto"/>
-          <menuitem label="简体中文" value="zh-CN"/>
-          <menuitem label="English" value="en-US"/>
-        </menupopup>
-      </menulist>
-    </hbox>
-    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-language-description"/>
-  </groupbox>
-  <groupbox>
     <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-reader"/></label>
     <checkbox id="annotation-markdown-enabled"
               preference="extensions.annotationMarkdown.enabled"
@@ -152,4 +138,18 @@
     <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-native-row-description"/>
   </groupbox>
 
+  <groupbox>
+    <label><html:h2 data-annotation-markdown-l10n-id="annotation-markdown-prefs-general"/></label>
+    <hbox class="annotation-markdown-preference-field" align="center">
+      <label data-annotation-markdown-l10n-id="annotation-markdown-prefs-settings-language" control="annotation-markdown-settings-language"/>
+      <menulist id="annotation-markdown-settings-language" preference="extensions.annotationMarkdown.settingsLanguage">
+        <menupopup>
+          <menuitem data-annotation-markdown-l10n-id="annotation-markdown-prefs-language-auto" value="auto"/>
+          <menuitem label="English" value="en-US"/>
+          <menuitem label="简体中文" value="zh-CN"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+    <description class="annotation-markdown-preference-description" data-annotation-markdown-l10n-id="annotation-markdown-prefs-language-description"/>
+  </groupbox>
 </vbox>

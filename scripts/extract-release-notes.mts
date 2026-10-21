@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { createSourceLinks, releaseAssetName } from "./release-config.mts";
+import MarkdownIt from "markdown-it";
 
 export function extractReleaseNotes(changelog: string, releaseTag: string | undefined) {
   const version = String(releaseTag ?? "").replace(/^v/, "");
@@ -40,18 +40,32 @@ export function createReleaseNotes(
   releaseTag: string,
   { previousTag, repository }: {previousTag?: string; repository?: string}
 ) {
-  const notes = extractReleaseNotes(changelog, releaseTag).trimEnd();
+  const notes = groupLanguages(extractReleaseNotes(changelog, releaseTag).trimEnd());
 
   if (!previousTag || !repository) {
     throw new Error("Previous tag and repository are required");
   }
 
-  const source = createSourceLinks(String(releaseTag).replace(/^v/, ""), repository);
-  const download = `https://github.com/${repository}/releases/download/${source.tag}/${releaseAssetName}`;
-  return `**Install / 安装：** [Download XPI / 下载 XPI](${download})\n\n` +
-    `Source code for developers / 开发者源码：[ZIP](${source.zip}) · [tar.gz](${source.tar})\n\n` +
-    `${notes}\n\n` +
+  return `${notes}\n\n` +
     `**Full Changelog**: https://github.com/${repository}/compare/${previousTag}...${releaseTag}\n`;
+}
+
+function groupLanguages(notes: string): string {
+  const lines = notes.split("\n");
+  // Use parsed headings so examples inside code fences stay with their section.
+  const headings = new MarkdownIt().parse(notes, {}).flatMap(token =>
+    token.type === "heading_open" && token.tag === "h3" && token.map ? [token.map[0]] : []);
+  const starts = [...new Set([0, ...headings]), lines.length];
+  const english: string[] = [], chinese: string[] = [];
+  for (let index = 0; index < starts.length - 1; index++) {
+    const start = starts[index];
+    const section = lines.slice(start, starts[index + 1]).join("\n").trim();
+    if (!section) continue;
+    const language = /^\s{0,3}###\s+.*\p{Script=Han}/u.test(lines[start]) ? chinese : english;
+    language.push(section);
+  }
+  if (!english.length || !chinese.length) return notes;
+  return `## English\n\n${english.join("\n\n")}\n\n## 简体中文\n\n${chinese.join("\n\n")}`;
 }
 
 async function main() {

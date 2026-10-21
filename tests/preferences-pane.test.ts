@@ -252,17 +252,18 @@ describe("preferences pane", () => {
     expect([...doc.getElementById("annotation-markdown-render-strategy").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["auto", "eager", "lazy"]);
     const groups = [...doc.querySelectorAll("groupbox")];
     expect(groups.map(group => group.firstElementChild.firstElementChild.getAttribute("data-annotation-markdown-l10n-id"))).toEqual([
-      "annotation-markdown-prefs-general",
       "annotation-markdown-prefs-reader", "annotation-markdown-prefs-outline",
-      "annotation-markdown-prefs-tags", "annotation-markdown-prefs-performance"
+      "annotation-markdown-prefs-tags", "annotation-markdown-prefs-performance",
+      "annotation-markdown-prefs-general"
     ]);
-    expect([...groups[1].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
+    expect([...groups[0].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
       "annotation-markdown-enabled", "annotation-markdown-popup-enabled", "annotation-markdown-math-enabled",
       "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-mermaid-enabled", "annotation-markdown-font-scale",
       "annotation-markdown-paste-as-plain-text", "annotation-markdown-fast-editor"
     ]);
-    expect(groups[2].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();
-    expect(groups[3].querySelector("#annotation-markdown-auto-todo-cleanup")).not.toBeNull();
+    expect(groups[1].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();
+    expect(groups[2].querySelector("#annotation-markdown-auto-todo-cleanup")).not.toBeNull();
+    expect([...groups[4].querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["auto", "en-US", "zh-CN"]);
   });
 
   test.each(["en-US", "zh-CN"] as const)("localizes all pane text and caption attributes in %s", async locale => {

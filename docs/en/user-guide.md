@@ -106,7 +106,7 @@ For manual installation, download `zotero-annotation-markdown.xpi` from the [lat
 
 ## Settings
 
-Open Zotero Settings and select the **Annotation Markdown** pane. At the top, **Settings page language** offers **Follow Zotero (default)**, **简体中文** and **English**. A selection applies immediately and is remembered when the page reopens, without changing Zotero’s interface language or other plugin settings. It affects this settings page; Reader controls keep their existing language behavior. To add another language or improve wording, see the [translation contribution guide](localization.md).
+Open Zotero Settings and select the **Annotation Markdown** pane. In the **General** group at the bottom, **Settings page language** offers **Follow Zotero (default)**, **English** and **简体中文**, in that order. A selection applies immediately and is remembered when the page reopens, without changing Zotero’s interface language or other plugin settings. It affects this settings page; Reader controls keep their existing language behavior. To add another language or improve wording, see the [translation contribution guide](localization.md).
 
 The available settings control:
 
