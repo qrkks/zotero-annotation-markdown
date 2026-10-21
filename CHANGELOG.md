@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.16.2 - 2026-10-21
+
 ### Added
 
 - Add a settings-page language selector with Follow Zotero (default), Simplified Chinese and English. Apply and remember changes immediately within the plugin pane, preserving Zotero's language and other settings.
@@ -15,10 +17,12 @@
 ### Changed
 
 - Complete the Mermaid project introductions and add copyable English/Chinese workflow examples. Use diagram-neutral default names, viewer controls and image-load messages for the shared SVG/Mermaid preview.
+- Separate the highlight and link introductions, link to the supported highlight colors, and explain the markdown-it-attrs convention behind color suffixes such as `{.red}`.
 
 ### 变更
 
 - 补齐 Mermaid 项目介绍，新增可直接复制的中英文研究流程样例。SVG/Mermaid 共用预览的默认名称、查看器控件和图片加载提示统一使用通用图表文案。
+- 分开介绍高亮与链接，增加可用高亮颜色的文档入口，并说明 `{.red}` 等颜色后缀借用了 markdown-it-attrs 的语法约定。
 
 ## 0.16.1 - 2026-10-21
 
