@@ -2,13 +2,25 @@
 
 ## Unreleased
 
+## 0.16.1 - 2026-10-21
+
+### Security
+
+- Update markdown-it from 14.3.1 to 14.3.3 to fix denial-of-service vulnerabilities in link reference definitions, smart quotes, and inline HTML parsing. ([GHSA-gfr2-rv44-r23c](https://github.com/advisories/GHSA-gfr2-rv44-r23c), [GHSA-r7fv-28h4-cvq7](https://github.com/advisories/GHSA-r7fv-28h4-cvq7), [GHSA-vfgh-jcmw-g37q](https://github.com/advisories/GHSA-vfgh-jcmw-g37q))
+
+### 安全修复
+
+- 将 markdown-it 从 14.3.1 升级到 14.3.3，修复链接引用定义、智能引号及行内 HTML 解析中的拒绝服务漏洞。([GHSA-gfr2-rv44-r23c](https://github.com/advisories/GHSA-gfr2-rv44-r23c)、[GHSA-r7fv-28h4-cvq7](https://github.com/advisories/GHSA-r7fv-28h4-cvq7)、[GHSA-vfgh-jcmw-g37q](https://github.com/advisories/GHSA-vfgh-jcmw-g37q))
+
 ### Changed
 
 - Upload only the installable XPI in future releases. Use GitHub’s automatic release-tag ZIP/tar.gz for developer source downloads, retain source identity and license notices in the XPI, and add a direct XPI installation link to release notes.
+- Migrate the regression tests, regular Node build and release tools, and preference-pane source to strict TypeScript. Preserve existing preference keys, defaults, and the JavaScript entry points required by Zotero.
 
 ### 变更
 
 - 后续发布只上传可安装的 XPI，开发者源码使用 GitHub 自动生成的发布标签 ZIP/tar.gz。XPI 保留源码标识与许可声明，发布说明增加 XPI 直接安装下载链接。
+- 将回归测试、常用 Node 构建及发布工具、偏好面板源码迁移为严格 TypeScript。保留原有偏好键、默认值及 Zotero 所需的 JavaScript 入口。
 
 ## 0.16.0 - 2026-10-20
 
