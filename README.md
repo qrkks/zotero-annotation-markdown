@@ -14,6 +14,8 @@
 
 English | [简体中文](README.zh-CN.md)
 
+[Website](https://qrkks.github.io/zotero-annotation-markdown/) · [User guide](docs/en/user-guide.md)
+
 Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, LaTeX math, and experimental SVG and Mermaid diagrams. Rendering preserves the original source stored by Zotero, so it stays editable.
 
 > This project is actively developed and maintained. If you encounter a bug, rendering or compatibility issue, or have a feature request, feel free to [open an issue](https://github.com/qrkks/zotero-annotation-markdown/issues) and share your feedback. Providing your Zotero and plugin versions, reproduction steps, and minimal examples (Markdown, LaTeX, SVG, or Mermaid when applicable) can help us investigate problems more efficiently.

@@ -14,6 +14,8 @@
 
 [English](README.md) | 简体中文
 
+[官网](https://qrkks.github.io/zotero-annotation-markdown/?lang=zh-CN) · [使用指南](docs/zh-CN/user-guide.md)
+
 用 Markdown 标题、列表、彩色高亮、LaTeX 公式，以及实验性 SVG 示意图和 Mermaid 图表，让 Zotero 标注评论更清晰易读。渲染时保留 Zotero 保存的标注原文，源码仍可继续编辑。
 
 > 本项目正在持续开发和维护中。如果你遇到 Bug、渲染或兼容性问题，或者有功能建议，欢迎[提交 Issue](https://github.com/qrkks/zotero-annotation-markdown/issues) 与我们交流。提供 Zotero 和插件版本、复现步骤以及最小示例（如 Markdown、LaTeX、SVG 或 Mermaid）将有助于我们更高效地定位问题。

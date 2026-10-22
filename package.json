@@ -7,6 +7,9 @@
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
+    "site:dev": "pnpm --dir site dev",
+    "site:build": "pnpm --dir site build",
+    "site:preview": "pnpm --dir site preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && pnpm run typecheck:scripts && pnpm run typecheck:tests",
     "typecheck:tests": "tsc --project tsconfig.test.json",

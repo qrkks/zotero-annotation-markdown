@@ -24,6 +24,8 @@ Install the XPI through Zotero’s plugin manager for real-reader validation. It
 
 ## Verification
 
+The promotional GitHub Pages site lives in `site/`, with its own dependencies and deployment workflow. See the [website development notes](../../site/README.md) for local preview, browser checks, and rollback.
+
 For the Fluent resource layout, adding a language, and translation-specific checks, see [Localization and translation contributions](localization.md).
 
 Run the complete local verification pipeline before a release:

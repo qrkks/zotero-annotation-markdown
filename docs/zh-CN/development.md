@@ -24,6 +24,8 @@ dist/zotero-annotation-markdown.xpi
 
 ## 验证
 
+用于宣传导入的 GitHub Pages 官网位于 `site/`，使用独立依赖和部署工作流。本地预览、浏览器检查与回滚方法见[官网开发说明](../../site/README.md)。
+
 Fluent 资源布局、新增语言的方法及翻译专项检查，参见[本地化与翻译贡献](localization.md)。
 
 发布前运行完整的本地验证流程：
