@@ -50,6 +50,12 @@ SVG 渲染分为完整预览、带持续提示的兼容预览，以及带原因�
 
 </details>
 
+![左侧为可编辑的 Mermaid 源码，右侧为同一条标注渲染后的研究流程图，包含 Yes 和 No 条件分支](docs/images/mermaid-source-and-preview-en-ea40d9d5.webp)
+
+**Mermaid 图表**：用简短的 `mermaid` 代码块绘制带条件分支的研究流程。编辑原始源码（**左侧**），离开编辑器或按 **Esc** 后查看生成的流程图（**右侧**）。原始源码仍可继续编辑。
+
+Mermaid 渲染是默认关闭的实验性功能。在设置中开启 **渲染 Mermaid 图表（实验性）**，即可尝试[可直接复制的研究流程样例](docs/examples/mermaid-samples.md#简体中文)。Mermaid 与 SVG 共用同一个大图查看器。
+
 ## 主要功能
 
 ### 阅读预览

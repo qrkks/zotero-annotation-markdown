@@ -50,6 +50,12 @@ Click the SVG image or choose **View larger** to inspect the diagram. Use **− 
 
 </details>
 
+![Editable Mermaid source on the left and the same annotation rendered as a study workflow with Yes and No decision branches on the right](docs/images/mermaid-source-and-preview-en-ea40d9d5.webp)
+
+**Mermaid diagrams:** turn a short `mermaid` code block into a study workflow with decision branches. Edit the source (**left**), then leave the editor or press **Escape** to see the generated flowchart (**right**). The original source stays editable.
+
+Mermaid rendering is experimental and off by default. Enable **Render Mermaid diagrams (Experimental)** in Settings to try the [copyable study workflow](docs/examples/mermaid-samples.md). Mermaid uses the same larger-image viewer as SVG.
+
 ## Highlights
 
 ### Reading previews
