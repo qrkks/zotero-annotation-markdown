@@ -20,18 +20,18 @@
 
 ## 功能预览
 
-![同一条 Zotero 标注的 Markdown 源码与渲染预览，展示标题、彩色高亮和 LaTeX 公式](docs/images/source-and-preview.webp)
+![同一条 Zotero 标注的 Markdown 源码与渲染预览，展示标题、彩色高亮和 LaTeX 公式](docs/images/source-and-preview-en-b1fdb6f7.webp)
 
 **左侧**：编辑 Markdown 源码。**右侧**：阅读排版后的预览。离开编辑器或按 **Esc** 即可保存并返回预览。
 
 | 浮动大纲 | 页内标注弹窗 |
 | --- | --- |
-| <img src="docs/images/floating-outline.webp" width="420" alt="包含多级标题和彩色高亮的长标注，以及对应的浮动大纲"> | <img src="docs/images/popup-preview.webp" width="420" alt="页内标注弹窗中的 Markdown 排版、彩色高亮和 LaTeX 公式预览"> |
+| <img src="docs/images/floating-outline-en-c85cb6ee.webp" width="420" alt="包含多级标题和彩色高亮的长标注，以及对应的浮动大纲"> | <img src="docs/images/popup-preview-en-c5e0968e.webp" width="420" alt="页内标注弹窗中的 Markdown 排版、彩色高亮和 LaTeX 公式预览"> |
 | 点击大纲条目，直接跳转到标注侧栏内的对应章节。 | 在设置中开启 **Render page annotation popups as Markdown** 即可使用；该选项默认关闭。 |
 
-上面的 Markdown、大纲和弹窗截图使用演示文本，取自 Zotero 10.0.5 与 Annotation Markdown v0.11.0，预览字号设为 125%。
+所有截图均使用演示文本，取自 Zotero 10.0.6 的英文界面与 Annotation Markdown v0.16.2，预览字号设为 125%。
 
-![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的奇异值分解示意图](docs/images/svd-source-and-preview-7e2b47b8.webp)
+![左侧为可编辑的 Markdown 和 SVG 围栏源码，右侧为同一条标注渲染后的奇异值分解示意图](docs/images/svd-source-and-preview-en-45543380.webp)
 
 **SVG 示意图**：在批注中展示奇异值分解（SVD）等数学图示。编辑 Markdown 与 SVG 围栏源码（**左侧**），离开编辑器或按 **Esc** 后查看渲染结果（**右侧**）。原始 SVG 源码仍可继续编辑。
 
@@ -39,14 +39,14 @@ SVG 渲染是默认关闭的实验性功能。在设置中开启 **渲染 SVG �
 
 SVG 渲染分为完整预览、带持续提示的兼容预览，以及带原因的源码回退。兼容提示在大图查看器中也会显示，原始源码保持不变。详见[支持的 SVG 子集](docs/zh-CN/user-guide.md#svg-示意图实验性)。
 
-从 v0.14.2 起，完整 SVG 独立占一行或多行即可，不必添加围栏或空行。这些 SVD 截图使用英文演示文字，取自 Zotero 10.0.6 与 Annotation Markdown v0.15.1。
+从 v0.14.2 起，完整 SVG 独立占一行或多行即可，不必添加围栏或空行。
 
 <details>
 <summary>查看 SVG 大图查看器</summary>
 
-![左侧为 SVD 标注预览，右侧为带缩放按钮、比例显示和 Fit 按钮的大图查看器](docs/images/svg-preview-and-viewer.webp)
+![左侧为 SVD 标注预览，右侧为带缩放按钮、比例显示和 Fit 按钮的大图查看器](docs/images/svg-preview-and-viewer-en-80eeea7e.webp)
 
-点击 SVG 图片或 **View larger** 查看图形细节。v0.13.1 支持用 **− / +** 或滚轮同时缩放图片和浮层，点击 **Fit** 恢复完整视图；图片超出 Reader 可用空间后可拖动平移。按 **Esc** 或点击 **Close** 返回标注。
+点击 SVG 图片或 **View larger** 查看图形细节。用 **− / +** 或滚轮同时缩放图片和浮层，点击 **Fit** 恢复完整视图；图片超出 Reader 可用空间后可拖动平移。按 **Esc** 或点击 **Close** 返回标注。
 
 </details>
 

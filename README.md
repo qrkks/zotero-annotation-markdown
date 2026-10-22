@@ -20,18 +20,18 @@ Make Zotero annotation comments easier to read with Markdown headings, lists, co
 
 ## Preview
 
-![The same Zotero annotation as editable Markdown source and a rendered preview with headings, color highlights, and LaTeX math](docs/images/source-and-preview.webp)
+![The same Zotero annotation as editable Markdown source and a rendered preview with headings, color highlights, and LaTeX math](docs/images/source-and-preview-en-b1fdb6f7.webp)
 
 **Left:** edit the Markdown source. **Right:** read the formatted preview. Leave the editor or press **Escape** to save and return to the preview.
 
 | Floating outline | Page annotation popup |
 | --- | --- |
-| <img src="docs/images/floating-outline.webp" width="420" alt="A long annotation with nested headings, colored highlights, and its floating outline"> | <img src="docs/images/popup-preview.webp" width="420" alt="An optional page annotation popup displaying formatted Markdown, color highlights, and LaTeX math"> |
+| <img src="docs/images/floating-outline-en-c85cb6ee.webp" width="420" alt="A long annotation with nested headings, colored highlights, and its floating outline"> | <img src="docs/images/popup-preview-en-c5e0968e.webp" width="420" alt="An optional page annotation popup displaying formatted Markdown, color highlights, and LaTeX math"> |
 | Choose a heading to jump to its section within the annotation sidebar. | Enable **Render page annotation popups as Markdown** in Settings; this option is off by default. |
 
-The Markdown, outline, and popup screenshots above use demonstration text in Zotero 10.0.5 with Annotation Markdown v0.11.0. Preview font size is set to 125%.
+All screenshots use demonstration text and the English interface in Zotero 10.0.6 with Annotation Markdown v0.16.2. Preview font size is set to 125%.
 
-![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a singular value decomposition diagram on the right](docs/images/svd-source-and-preview-7e2b47b8.webp)
+![Editable Markdown and fenced SVG source on the left, and the same annotation rendered as a singular value decomposition diagram on the right](docs/images/svd-source-and-preview-en-45543380.webp)
 
 **SVG diagrams:** illustrate mathematical ideas such as singular value decomposition directly in annotation comments. Edit the Markdown and fenced SVG source (**left**), then leave the editor or press **Escape** to see the rendered diagram (**right**). The original SVG source stays editable.
 
@@ -39,14 +39,14 @@ SVG rendering is experimental and off by default. Enable **Render SVG diagrams (
 
 SVG rendering can produce a complete preview, a compatibility preview with a persistent warning, or source fallback with a reason. Compatibility warnings also appear in the larger-image viewer, and the original source stays unchanged. See the [supported SVG subset](docs/en/user-guide.md#svg-diagrams-experimental).
 
-Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators. These SVD screenshots use English demonstration text in Zotero 10.0.6 with Annotation Markdown v0.15.1.
+Since v0.14.2, complete SVGs on their own lines can render without fences or blank separators.
 
 <details>
 <summary>See the SVG larger-image viewer</summary>
 
-![The SVD annotation preview on the left and the larger-image viewer with zoom controls, a percentage indicator, and Fit on the right](docs/images/svg-preview-and-viewer.webp)
+![The SVD annotation preview on the left and the larger-image viewer with zoom controls, a percentage indicator, and Fit on the right](docs/images/svg-preview-and-viewer-en-80eeea7e.webp)
 
-Click the SVG image or choose **View larger** to inspect the diagram. In v0.13.1, use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
+Click the SVG image or choose **View larger** to inspect the diagram. Use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
 
 </details>
 
