@@ -17,6 +17,8 @@ const copy = {
     releaseNote: 'Free & open source · Download and changelog on GitHub',
     demoCaption: 'The same thought. A clearer view.', demoTitle: 'An annotation, transformed', liveDemo: 'LIVE DEMO',
     mathTab: 'Math', source: 'SOURCE', preview: 'PREVIEW', replay: 'Replay',
+    copySource: 'Copy example source', copy: 'Copy', copied: 'Copied', copyRetry: 'Retry',
+    copyError: 'Copy failed. Select the source and copy it manually.',
     markdownNote: 'Headings, lists, and highlights — right in your annotations.',
     mathNote: 'LaTeX equations, kept close to your reading.',
     svgNote: 'SVG · Experimental, off by default. Open the diagram for a closer look.',
@@ -37,6 +39,8 @@ const copy = {
     download: '获取插件', readGuide: '阅读使用指南', releaseNote: '免费开源 · 在 GitHub 下载并查看更新内容',
     demoCaption: '同一个想法，更清晰的呈现。', demoTitle: '从源码到批注预览', liveDemo: '交互演示',
     mathTab: '公式', source: '源码', preview: '预览', replay: '重播',
+    copySource: '复制示例源码', copy: '复制', copied: '已复制', copyRetry: '重试',
+    copyError: '复制失败，请选中源码后手动复制。',
     markdownNote: '标题、列表与高亮，直接呈现在批注中。', mathNote: '让 LaTeX 公式留在阅读的上下文里。',
     svgNote: 'SVG · 实验功能，默认关闭。打开大图，查看细节。', mermaidNote: 'Mermaid · 实验功能，默认关闭。用几行文字描述研究流程。',
     demoFootnote: '点击标签，看看不同内容的阅读效果。',
@@ -76,6 +80,8 @@ let renderer;
 let rendererFailed = false;
 let animationControls = [];
 let demoPlayed = false;
+let copyFeedbackTimer;
+let copyRequest = 0;
 try {
   const preferred = new URLSearchParams(location.search).get('lang') || localStorage.getItem('annotation-markdown-language');
   if (preferred === 'zh-CN') lang = preferred;
@@ -102,8 +108,43 @@ function playDemo() {
   ];
 }
 
+function resetSourceCopy() {
+  clearTimeout(copyFeedbackTimer);
+  copyRequest++;
+  const button = $('#copy-source');
+  button.disabled = false;
+  button.textContent = copy[lang].copy;
+  button.setAttribute('aria-label', copy[lang].copySource);
+  button.removeAttribute('data-copied');
+  $('#copy-status').textContent = '';
+}
+
+async function copySource() {
+  resetSourceCopy();
+  const request = copyRequest;
+  const source = $('#source-code').textContent;
+  const button = $('#copy-source');
+  button.disabled = true;
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(source);
+    copied = true;
+  } catch { /* The source remains selectable if clipboard access is unavailable. */ }
+  if (request !== copyRequest) return;
+  button.disabled = false;
+  button.textContent = copy[lang][copied ? 'copied' : 'copyRetry'];
+  button.toggleAttribute('data-copied', copied);
+  $('#copy-status').textContent = copy[lang][copied ? 'copied' : 'copyError'];
+  $('#demo-note').textContent = copy[lang][copied ? (rendererFailed ? 'demoError' : `${example}Note`) : 'copyError'];
+  copyFeedbackTimer = setTimeout(() => {
+    resetSourceCopy();
+    $('#demo-note').textContent = copy[lang][rendererFailed ? 'demoError' : `${example}Note`];
+  }, copied ? 2000 : 5000);
+}
+
 function updateExample({ motion = false } = {}) {
   stopDemoMotion();
+  resetSourceCopy();
   $('#source-code').textContent = samples[lang][example];
   $('#demo').dataset.example = example;
   $('#demo-note').textContent = copy[lang][rendererFailed ? 'demoError' : `${example}Note`];
@@ -175,6 +216,7 @@ tabs.forEach((tab, index) => {
 });
 $('#language-toggle').addEventListener('click', () => setLanguage(lang === 'en' ? 'zh-CN' : 'en', true));
 $('#replay').addEventListener('click', playDemo);
+$('#copy-source').addEventListener('click', copySource);
 reduceMotion.addEventListener('change', () => { if (reduceMotion.matches) stopDemoMotion(); });
 
 const dialog = $('#diagram-dialog');

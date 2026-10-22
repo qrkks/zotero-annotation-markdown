@@ -25,6 +25,7 @@
   p, h1, h2, h3 { margin:0; }
   .skip-link { position:fixed; top:12px; left:12px; transform:translateY(-180%); background:var(--ink); color:white; padding:12px 20px; z-index:10; }
   .skip-link:focus { transform:none; }
+  .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
   .site-shell { max-width:1440px; margin:auto; padding:0 64px; }
   .eyebrow { display:flex; gap:10px; align-items:center; color:var(--muted); font-size:var(--type-caption); font-weight:650; letter-spacing:.035em; }
   .little-line { width:22px; height:2px; background:var(--blue); }
@@ -80,7 +81,11 @@
   .pane-labels { display:grid; grid-template-columns:1fr 1fr; font-family:var(--mono); font-size:var(--type-label); font-weight:600; letter-spacing:.1em; color:var(--muted); }
   .pane-labels>span { display:flex; align-items:center; gap:6px; padding:14px 17px 9px; }
   .pane-labels>span:first-child { background:#f5f7fb; border-right:1px solid var(--rule); }
-  .pane-indicator { width:4px; height:4px; border-radius:50%; }
+  #copy-source { flex:none; margin-left:auto; margin-block:-7px; min-width:56px; min-height:28px; padding:4px 5px; border:0; border-radius:4px; background:transparent; color:var(--muted); font-family:var(--body); font-size:var(--type-caption); font-weight:600; letter-spacing:0; line-height:1.3; }
+  #copy-source:hover { color:var(--blue); background:#eaf1ff; }
+  #copy-source[data-copied] { color:#228578; }
+  #copy-source:focus-visible { outline-offset:2px; }
+  .pane-indicator { flex:none; width:4px; height:4px; border-radius:50%; }
   .source-indicator { background:#8b9db7; }
   .preview-indicator { background:#228578; }
   .demo-panes { display:grid; grid-template-columns:1fr 1fr; height:350px; }
@@ -199,6 +204,7 @@
     .demo-panes { height:340px; grid-template-columns:.92fr 1.08fr; }
     .pane-labels { grid-template-columns:.92fr 1.08fr; }
     .pane-labels>span { padding:12px 12px 8px; }
+    .pane-labels>span:first-child { gap:4px; padding-right:6px; }
     .preview-pane,.source-pane { padding:4px 12px 14px; }
     .rendered-annotation { line-height:1.7; }
     .rendered-annotation h1 { margin-bottom:15px; }
@@ -227,6 +233,7 @@
     .hero-copy h1 { font-size:42px; }
     .demo-tabs button { padding-inline:8px; }
     .demo-label { display:none; }
+    .pane-labels>span:first-child { letter-spacing:.04em; }
     html[lang=zh-CN] .hero-copy h1 { font-size:50px; }
   }
   @media(prefers-reduced-motion:reduce) {

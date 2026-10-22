@@ -52,7 +52,8 @@
                 <button id="tab-mermaid" type="button" role="tab" aria-selected="false" aria-controls="example-panel" tabindex="-1" data-example="mermaid">Mermaid</button>
               </div>
               <div id="example-panel" role="tabpanel" aria-labelledby="tab-markdown" tabindex="0">
-                <div class="pane-labels"><span><span class="pane-indicator source-indicator" aria-hidden="true"></span><span data-i18n="source">SOURCE</span></span><span><span class="pane-indicator preview-indicator" aria-hidden="true"></span><span data-i18n="preview">PREVIEW</span></span></div>
+                <div class="pane-labels"><span><span class="pane-indicator source-indicator" aria-hidden="true"></span><span data-i18n="source">SOURCE</span><button id="copy-source" type="button" aria-label="Copy example source">Copy</button></span><span><span class="pane-indicator preview-indicator" aria-hidden="true"></span><span data-i18n="preview">PREVIEW</span></span></div>
+                <span id="copy-status" class="visually-hidden" role="status"></span>
                 <div class="demo-panes">
                   <div class="source-pane"><pre><code id="source-code"># Reading notes
 
