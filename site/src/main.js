@@ -1,12 +1,13 @@
 import '@fontsource-variable/bricolage-grotesque/wght.css';
 import '@fontsource-variable/dm-sans/wght.css';
 import 'katex/dist/katex.min.css';
-import { animate, inView } from 'motion';
+import { animate } from 'motion';
 import rendererUrl from 'virtual:renderer-url';
 import svgExample from '../../docs/examples/svd.md?raw';
 import mermaidExamples from '../../docs/examples/mermaid-samples.md?raw';
 import './style.css';
 import { copy, markdownSamples, pageMetadata, site } from './content.js';
+import { initPageMotion } from './page-motion.js';
 
 const mermaidBlocks = [...mermaidExamples.matchAll(/````markdown\r?\n([\s\S]*?)\r?\n````/g)].map(match => match[1]);
 if (mermaidBlocks.length !== 2) throw new Error('Expected both documented Mermaid examples.');
@@ -168,6 +169,7 @@ dialog.addEventListener('click', event => { if (event.target === dialog) dialog.
 $('#year').textContent = new Date().getFullYear();
 document.title = pageMetadata[lang].title;
 updateExample();
+initPageMotion();
 
 // Load the production renderer after the first paint, outside the landing page bundle.
 requestAnimationFrame(() => {
@@ -181,10 +183,3 @@ requestAnimationFrame(() => {
     console.error('Annotation demo renderer could not load.', error);
   });
 });
-
-if (!reduceMotion.matches) {
-  inView('.detail-item', element => {
-    if (reduceMotion.matches) return;
-    animate(element, { opacity: [0.3, 1], y: [12, 0] }, { duration: 0.55, ease: [0.22, 1, 0.36, 1] });
-  });
-}
