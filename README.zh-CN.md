@@ -85,9 +85,9 @@ Mermaid 渲染是默认关闭的实验性功能。在设置中开启 **渲染 Me
 
 ## 安装
 
-推荐在 Zotero 插件市场中搜索 `Zotero Annotation Markdown` 并安装。
+从[最新 Release 页面](https://github.com/qrkks/zotero-annotation-markdown/releases/latest)下载 `zotero-annotation-markdown.xpi`。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
 
-也可以[直接下载 `zotero-annotation-markdown.xpi`](https://github.com/qrkks/zotero-annotation-markdown/releases/latest/download/zotero-annotation-markdown.xpi)。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
+如果已安装 [Zotero 插件市场](https://github.com/syt2/zotero-addons)，可在市场中搜索 **Zotero Annotation Markdown** 并安装。
 
 ## 文档
 

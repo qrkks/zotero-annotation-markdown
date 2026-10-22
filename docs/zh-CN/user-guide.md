@@ -100,9 +100,9 @@ SVG 图示也使用上面的图片标签。侧栏评论展开后，标签仍保�
 
 ## 安装
 
-推荐在 Zotero 插件市场中搜索 `Zotero Annotation Markdown` 并安装。
+从[最新 Release 页面](https://github.com/qrkks/zotero-annotation-markdown/releases/latest)下载 `zotero-annotation-markdown.xpi`。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
 
-也可以从[最新 GitHub Release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest)下载 `zotero-annotation-markdown.xpi`。在 Zotero 中打开 **工具 → 插件**，然后把 `.xpi` 文件拖入插件窗口。
+如果已安装 [Zotero 插件市场](https://github.com/syt2/zotero-addons)，可在市场中搜索 **Zotero Annotation Markdown** 并安装。
 
 ## 设置
 

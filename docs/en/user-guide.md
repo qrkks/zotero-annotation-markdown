@@ -100,9 +100,9 @@ The `{.red}` notation borrows the attribute-suffix convention used by [`markdown
 
 ## Installation
 
-Install `Zotero Annotation Markdown` from the Zotero Add-ons marketplace.
+Download `zotero-annotation-markdown.xpi` from the [latest release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest). In Zotero, open **Tools → Plugins**, then drag the `.xpi` file into the Plugins window.
 
-For manual installation, download `zotero-annotation-markdown.xpi` from the [latest GitHub release](https://github.com/qrkks/zotero-annotation-markdown/releases/latest). Open **Tools → Plugins** in Zotero and drag the `.xpi` file into the Plugins window.
+If you already have [Add-on Market for Zotero](https://github.com/syt2/zotero-addons) installed, search for **Zotero Annotation Markdown** in the marketplace and install it.
 
 ## Settings
 
