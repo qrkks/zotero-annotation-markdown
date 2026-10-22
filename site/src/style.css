@@ -122,6 +122,34 @@
   html[lang=zh-CN] .hero-description { line-height:1.95; max-width:350px; }
   html[lang=zh-CN] .eyebrow { letter-spacing:.06em; }
   html[lang=zh-CN] .details-heading h2 { line-height:1.45; }
+  @media(min-width:901px) {
+    .demo-caption { font-size:12px; }
+    .demo-footnote { font-size:11px; }
+    .demo-topbar { font-size:12px; }
+    .demo-label { font-size:9px; }
+    .demo-tabs button { font-size:12px; min-height:38px; }
+    .pane-labels { font-size:10px; }
+    .demo-panes { height:360px; }
+    .source-pane pre { font-size:14px; }
+    .rendered-annotation { font-size:17px; }
+    .rendered-annotation h1 { font-size:30px; }
+    .rendered-annotation h2 { font-size:20px; }
+    .rendered-annotation blockquote { font-size:14px; }
+    .annotation-markdown-svg-image { max-height:220px; }
+    .annotation-markdown-svg-open { font-size:11px; min-height:34px; }
+    .demo-bottom { font-size:11px; }
+    #replay { font-size:12px; }
+  }
+  @media(min-width:1200px) {
+    .demo-panes { height:390px; }
+    .source-pane pre { font-size:15px; }
+    .rendered-annotation { font-size:18px; }
+    .rendered-annotation h1 { font-size:32px; }
+    .rendered-annotation h2 { font-size:22px; }
+    .rendered-annotation blockquote { font-size:15px; }
+    .demo-tabs button { font-size:13px; }
+    .annotation-markdown-svg-image { max-height:260px; }
+  }
   @media(min-width:1600px) { .hero { padding-block:112px; } }
   @media(max-width:1150px) { .site-shell { padding-inline:40px; } .hero { gap:32px; padding-block:72px; } .hero-copy h1 { font-size:58px; } .hero-description { font-size:14px; } .demo-tabs { padding-inline:9px; } .demo-tabs button { padding-inline:10px; } .details { gap:24px; } .details-heading h2 { font-size:23px; } }
   @media(max-width:900px) { .hero { grid-template-columns:1fr; gap:48px; padding:58px 0 60px; } .hero-copy { max-width:650px; } .hero-copy h1 { font-size:76px; } .hero-description { max-width:510px; font-size:16px; } .hero-copy h1 br { display:none; } .title-highlight { margin-left:.1em; } .hero-copy h1 { max-width:700px; } .demo-wrap { width:100%; } .demo-panes { height:330px; } .source-pane pre { font-size:12px; } .rendered-annotation { font-size:13px; } .rendered-annotation h1 { font-size:27px; } .rendered-annotation h2 { font-size:17px; } .rendered-annotation blockquote { font-size:12px; } .preview-pane,.source-pane { padding-inline:24px; } .pane-labels>span { padding-inline:24px; } .demo-topbar { padding:16px 20px; font-size:12px; } .demo-tabs button { font-size:12px; padding:9px 15px; } .demo-bottom { font-size:11px; } .demo-footnote { font-size:11px; } .details { grid-template-columns:repeat(3,1fr); } .details-heading { grid-column:1/-1; display:flex; justify-content:space-between; align-items:baseline; gap:20px; margin-bottom:14px; } .details-heading h2 { font-size:28px; margin-top:0; } html[lang=zh-CN] .hero-copy h1 { font-size:68px; } html[lang=zh-CN] .hero-copy h1 br { display:block; } html[lang=zh-CN] .title-highlight { margin-left:0; } html[lang=zh-CN] .hero-description { max-width:510px; } }
