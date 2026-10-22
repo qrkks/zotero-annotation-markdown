@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Annotation Markdown social preview artwork</title>
+    <style>
+      @font-face { font-family:DM; src:url('../node_modules/@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2'); font-weight:100 1000; }
+      @font-face { font-family:Bricolage; src:url('../node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2'); font-weight:100 1000; }
+      * { box-sizing:border-box; }
+      body { width:1200px; height:630px; margin:0; padding:44px 48px; background:#f5f7fb; color:#192c43; font-family:DM,sans-serif; }
+      header { display:flex; align-items:center; gap:14px; }
+      header img { width:46px; height:46px; }
+      .brand { font-size:27px; letter-spacing:-.025em; }
+      .brand strong { font-weight:750; }
+      .for { margin-left:auto; font:13px Consolas,monospace; letter-spacing:.15em; color:#53667e; }
+      main { display:grid; grid-template-columns:420px 1fr; gap:40px; align-items:center; margin-top:42px; }
+      h1 { font:650 68px/1.07 Bricolage,sans-serif; letter-spacing:-.06em; margin:0; }
+      h1 span { position:relative; z-index:0; white-space:nowrap; }
+      h1 span::after { content:''; position:absolute; z-index:-1; left:0; right:-3px; bottom:7px; height:13px; background:#f4dc86; transform:rotate(-1.5deg); }
+      .description { color:#53667e; font-size:23px; line-height:1.55; margin:26px 0 0; }
+      .free { color:#2f6fef; font:12px Consolas,monospace; letter-spacing:.1em; margin-top:30px; }
+      .demo { border:1px solid #cbd7e7; border-radius:10px; background:white; overflow:hidden; box-shadow:0 14px 32px -24px #44618670; }
+      .topbar { display:flex; align-items:center; gap:9px; padding:16px; font-size:15px; font-weight:650; border-bottom:1px solid #dbe3ee; background:#fbfcfe; }
+      .dot { width:7px; height:7px; border-radius:2px; background:#e6bc4d; }
+      .live { margin-left:auto; color:#53667e; font:11px Consolas,monospace; letter-spacing:.08em; }
+      .panes { display:grid; grid-template-columns:1fr 1fr; }
+      .source, .preview { min-width:0; padding:17px; }
+      .source { background:#f5f7fb; border-right:1px solid #dbe3ee; }
+      .label { font:11px Consolas,monospace; letter-spacing:.1em; color:#53667e; margin-bottom:20px; }
+      .label::before { content:'•'; color:#8b9db7; margin-right:7px; }
+      .preview .label::before { color:#228578; }
+      pre { color:#566a84; font:15px/1.85 Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+      h2 { font-size:25px; letter-spacing:-.04em; margin:0 0 20px; }
+      ul { padding-left:18px; font-size:18px; line-height:1.6; margin:0; }
+      li { margin-bottom:13px; }
+      li::marker { color:#8b9db7; }
+      mark { background:#d9e9ff; color:inherit; padding:2px 1px; border-radius:2px; }
+      blockquote { border-left:2px solid #c6d4eb; margin:20px 0 0; padding-left:10px; font-size:16px; line-height:1.6; color:#53667e; }
+      footer { display:flex; justify-content:space-between; align-items:center; margin-top:35px; color:#53667e; font-size:13px; }
+      .formats { color:#53667e; font-size:14px; }
+    </style>
+  </head>
+  <body>
+    <header><img src="../public/icon.svg" alt="" /><div class="brand">Annotation <strong>Markdown</strong></div><span class="for">FOR ZOTERO</span></header>
+    <main>
+      <div><h1>Markdown in.<br /><span>Clarity out.</span></h1><p class="description">Clearer annotations.<br />Right inside Zotero.</p><p class="free">FREE &amp; OPEN SOURCE</p></div>
+      <div class="demo">
+        <div class="topbar"><span class="dot"></span>An annotation, transformed<span class="live">LIVE DEMO</span></div>
+        <div class="panes">
+          <div class="source"><div class="label">SOURCE</div><pre># Reading notes
+
+- **Structure** helps.
+- ==Keep ideas close.=={.blue}
+
+&gt; Stay with the paper.</pre></div>
+          <div class="preview"><div class="label">PREVIEW</div><h2>Reading notes</h2><ul><li><strong>Structure</strong> helps.</li><li><mark>Keep ideas close.</mark></li></ul><blockquote>Stay with the paper.</blockquote></div>
+        </div>
+      </div>
+    </main>
+    <footer><span class="formats">Markdown · LaTeX · Experimental SVG &amp; Mermaid</span><span>qrkks.github.io/zotero-annotation-markdown</span></footer>
+  </body>
+</html>

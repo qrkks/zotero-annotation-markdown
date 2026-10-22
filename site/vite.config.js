@@ -3,6 +3,7 @@ import { build } from 'esbuild';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { localizedPages } from './scripts/pages.js';
 
 const siteRoot = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = path.dirname(siteRoot);
@@ -82,7 +83,7 @@ async function thirdPartyNotices(inputs) {
 
 export default defineConfig({
   base: '/zotero-annotation-markdown/',
-  plugins: [annotationRenderer()],
+  plugins: [annotationRenderer(), localizedPages()],
   server: { fs: { allow: [projectRoot] } },
   build: { target: 'es2022' },
 });

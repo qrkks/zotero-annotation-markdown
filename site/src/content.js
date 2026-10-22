@@ -1,0 +1,95 @@
+export const copy = {
+  en: {
+    skip: 'Skip to content', guide: 'User guide',
+    eyebrow: 'A little more clarity. In every annotation.',
+    titleFirst: 'Markdown in.', titleSecond: 'Clarity out.',
+    description: 'Give your Zotero annotations structure, equations, and diagrams. Your ideas, easier to read. Your original source, always editable.',
+    download: 'Get the plugin', readGuide: 'Read the guide',
+    releaseNote: 'Free & open source · Download and changelog on GitHub',
+    demoCaption: 'The same thought. A clearer view.', demoTitle: 'An annotation, transformed', liveDemo: 'LIVE DEMO',
+    mathTab: 'Math', source: 'SOURCE', preview: 'PREVIEW', replay: 'Replay',
+    copySource: 'Copy example source', copy: 'Copy', copied: 'Copied', copyRetry: 'Retry',
+    copyError: 'Copy failed. Select the source and copy it manually.',
+    markdownNote: 'Headings, lists, and highlights — right in your annotations.',
+    mathNote: 'LaTeX equations, kept close to your reading.',
+    svgNote: 'SVG · Experimental, off by default. Open the diagram for a closer look.',
+    mermaidNote: 'Mermaid · Experimental, off by default. A workflow from a few lines of text.',
+    demoFootnote: 'Choose an example. See how it reads.',
+    detailsEyebrow: 'MADE FOR THE MARGINS', detailsTitle: 'Stay with the paper.\nKeep the whole idea.',
+    featureOneTitle: 'Write it your way.', featureOneBody: 'Use Markdown and LaTeX in annotation comments. Switch between source and preview as you work.',
+    featureTwoTitle: 'Follow the thread.', featureTwoBody: 'Find your place with a floating heading outline. Read previews in the sidebar and annotation popups.',
+    featureThreeTitle: 'Make room for diagrams.', featureThreeBody: 'Try SVG and Mermaid previews, with a larger diagram viewer. Both are experimental and off by default.',
+    closingEyebrow: 'YOUR NEXT READING SESSION', closingTitle: 'A clearer margin awaits.', viewRelease: 'View the latest release',
+    feedback: 'Feedback', licenses: 'Third-party notices', independent: 'An independent Zotero plugin', diagramTitle: 'Diagram preview', close: 'Close', viewLarger: 'View larger',
+    demoError: 'The interactive preview could not load. You can still read and copy the example source.',
+  },
+  'zh-CN': {
+    skip: '跳至正文', guide: '使用指南', eyebrow: '让每一条批注，都更清晰一点。',
+    titleFirst: '写下想法，', titleSecond: '读出条理。',
+    description: '在 Zotero 批注里，用 Markdown 整理思路，用公式和图表表达想法。阅读更清晰，原始源码始终可以编辑。',
+    download: '获取插件', readGuide: '阅读使用指南', releaseNote: '免费开源 · 在 GitHub 下载并查看更新内容',
+    demoCaption: '同一个想法，更清晰的呈现。', demoTitle: '从源码到批注预览', liveDemo: '交互演示',
+    mathTab: '公式', source: '源码', preview: '预览', replay: '重播',
+    copySource: '复制示例源码', copy: '复制', copied: '已复制', copyRetry: '重试',
+    copyError: '复制失败，请选中源码后手动复制。',
+    markdownNote: '标题、列表与高亮，直接呈现在批注中。', mathNote: '让 LaTeX 公式留在阅读的上下文里。',
+    svgNote: 'SVG · 实验功能，默认关闭。打开大图，查看细节。', mermaidNote: 'Mermaid · 实验功能，默认关闭。用几行文字描述研究流程。',
+    demoFootnote: '点击标签，看看不同内容的阅读效果。',
+    detailsEyebrow: '为阅读中的思考而做', detailsTitle: '留在论文旁，\n记下完整的想法。',
+    featureOneTitle: '按你的方式书写。', featureOneBody: '在批注评论里使用 Markdown 与 LaTeX，随时切换源码和预览。',
+    featureTwoTitle: '让思路有迹可循。', featureTwoBody: '用悬浮标题大纲快速定位，在侧栏和页内批注弹窗中阅读预览。',
+    featureThreeTitle: '给图表留一点空间。', featureThreeBody: '尝试 SVG 与 Mermaid 预览，并在大图查看器中阅读。两项功能均为实验性，默认关闭。',
+    closingEyebrow: '下一次阅读，就从这里开始', closingTitle: '让页边的想法，更清晰。', viewRelease: '查看最新 Release',
+    feedback: '反馈问题', licenses: '第三方许可', independent: '独立开发的 Zotero 插件', diagramTitle: '图表预览', close: '关闭', viewLarger: '查看大图',
+    demoError: '交互预览暂时无法加载，你仍然可以阅读并复制示例源码。',
+  },
+};
+
+export const site = {
+  origin: 'https://qrkks.github.io',
+  base: '/zotero-annotation-markdown/',
+  paths: { en: '/zotero-annotation-markdown/', 'zh-CN': '/zotero-annotation-markdown/zh-CN/' },
+  image: 'https://qrkks.github.io/zotero-annotation-markdown/social-preview.png',
+};
+
+export const pageMetadata = {
+  en: {
+    title: 'Zotero Annotation Markdown — Markdown & LaTeX Annotations',
+    description: 'Render Markdown and LaTeX in Zotero annotation comments. Try the live demo, keep your source editable, and download the free, open-source plugin.',
+    locale: 'en_US',
+    imageAlt: 'Markdown source and its rendered preview in Zotero Annotation Markdown.',
+    home: 'Zotero Annotation Markdown home',
+    navigation: 'Main navigation',
+    examples: 'Annotation examples',
+    switchLanguage: 'Switch to Chinese',
+    noscript: 'The interactive examples need JavaScript. You can still read about the plugin, switch languages, and download it using the links above.',
+  },
+  'zh-CN': {
+    title: 'Zotero Annotation Markdown — Zotero 批注 Markdown 与 LaTeX 插件',
+    description: '在 Zotero 批注评论中渲染 Markdown 与 LaTeX 公式，保留可编辑源码。在线体验实时演示，下载免费开源的 Zotero Annotation Markdown 插件。',
+    locale: 'zh_CN',
+    imageAlt: 'Zotero Annotation Markdown 的 Markdown 源码与渲染预览。',
+    home: 'Zotero Annotation Markdown 首页',
+    navigation: '主导航',
+    examples: '批注示例',
+    switchLanguage: 'Switch to English',
+    noscript: '交互示例需要 JavaScript。你仍然可以阅读插件介绍、切换语言，并通过上方链接下载插件。',
+  },
+};
+
+export const readingNotes = {
+  en: {
+    title: 'Reading notes', section: 'Key findings', strong: 'Structure',
+    detail: ' makes notes easier to revisit.', highlight: 'Keep evidence close.',
+    quote: 'Your original source stays editable.',
+  },
+  'zh-CN': {
+    title: '阅读笔记', section: '关键发现', strong: '结构清晰',
+    detail: '的笔记更容易回顾。', highlight: '让证据紧贴观点。',
+    quote: '原始源码始终可以编辑。',
+  },
+};
+
+export const markdownSamples = Object.fromEntries(Object.entries(readingNotes).map(([language, note]) => [language,
+  `# ${note.title}\n\n## ${note.section}\n\n- **${note.strong}**${note.detail}\n- ==${note.highlight}=={.blue}\n\n> ${note.quote}`,
+]));

@@ -39,7 +39,7 @@
   .brand small { display:block; font-family:var(--mono); font-size:var(--type-label); letter-spacing:.19em; margin-top:7px; color:var(--muted); }
   nav { display:flex; align-items:center; gap:28px; font-size:var(--type-ui); font-weight:600; }
   nav a:hover, footer a:hover { color:var(--blue); }
-  .language-toggle { border:1px solid var(--rule); background:transparent; color:var(--ink); min-width:48px; min-height:36px; border-radius:5px; font-size:var(--type-ui); }
+  .language-toggle { display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rule); background:transparent; color:var(--ink); min-width:48px; min-height:36px; border-radius:5px; font-size:var(--type-ui); }
   .language-toggle:hover { background:white; border-color:#a7bad6; }
   .hero { display:grid; grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:50px; align-items:center; padding:93px 0 96px; }
   .hero-copy h1 { font-family:var(--display); font-size:clamp(54px,5.1vw,76px); font-weight:650; line-height:1.03; letter-spacing:-.065em; margin-top:30px; }
