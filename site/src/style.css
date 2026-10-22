@@ -57,7 +57,7 @@
   .details-heading h2 { font-family:var(--display); font-size:27px; font-weight:600; line-height:1.16; letter-spacing:-.035em; margin-top:19px; white-space:pre-line; }
   .details-heading .eyebrow { font-family:var(--mono); font-size:var(--type-caption); letter-spacing:.07em; }
   .detail-number { font-family:var(--mono); font-size:var(--type-ui); color:var(--blue); }
-  .detail-item h3 { font-size:var(--type-small-title); font-weight:700; margin-top:20px; letter-spacing:-.02em; }
+  .detail-item h3 { font-size:18px; font-weight:700; margin-top:20px; letter-spacing:-.02em; }
   .detail-item p { color:var(--muted); font-size:var(--type-body); line-height:1.85; margin-top:12px; }
   .closing { border-block:1px solid var(--rule); padding:40px 0; display:flex; justify-content:space-between; gap:24px; align-items:center; }
   .closing .eyebrow { font-family:var(--mono); font-size:var(--type-caption); letter-spacing:.07em; }
@@ -211,7 +211,7 @@
     .details-heading h2 { font-size:31px; margin-top:16px; }
     .detail-item { display:grid; grid-template-columns:27px 1fr; column-gap:10px; }
     .detail-number { padding-top:3px; }
-    .detail-item h3 { margin:0; font-size:16px; }
+    .detail-item h3 { margin:0; }
     .detail-item p { grid-column:2; margin-top:8px; max-width:390px; }
     .closing { display:block; padding:32px 0; }
     .closing h2 { font-size:32px; margin-bottom:24px; }
