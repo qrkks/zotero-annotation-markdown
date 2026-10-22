@@ -48,9 +48,9 @@ jobs:
       - name: Install plugin dependencies for the shared renderer
         run: pnpm install --frozen-lockfile
       - name: Install website dependencies
-        run: pnpm --dir site install --frozen-lockfile
+        run: pnpm run site:install
       - name: Audit website dependencies
-        run: pnpm --dir site audit --prod
+        run: pnpm --dir site audit --prod --ignore-workspace
       - name: Build static website
         run: pnpm run site:build
       - name: Upload Pages artifact

@@ -7,6 +7,7 @@
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
+    "site:install": "pnpm --dir site install --ignore-workspace --frozen-lockfile",
     "site:dev": "pnpm --dir site dev",
     "site:build": "pnpm --dir site build",
     "site:preview": "pnpm --dir site preview",
