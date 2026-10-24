@@ -51,7 +51,7 @@ describe("experimental Mermaid fences", () => {
     const root = document.createElement("div"); root.innerHTML = html;
     expect(countRenderedImages(root)).toEqual({ img: 0, svg: 0, mermaid: 1 });
     expect(root.querySelector("svg, script, style, foreignObject")).toBeNull();
-    expect(root.querySelector(".annotation-markdown-svg-open")).not.toBeNull();
+    expect(root.querySelector(".annotation-markdown-svg-open")).toBeNull();
     expect(queryElement(root, "code", HTMLElement).textContent).toBe(`${source}\n`);
   });
 

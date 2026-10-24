@@ -10,13 +10,13 @@ Copy one complete block below with its copy button and paste it as plain text in
 
 用下面某个代码块的复制按钮复制完整内容，以纯文本粘贴到便签批注评论。每个复制块包含普通 Markdown 与裸 SVG，不含内层代码围栏，也没有空行分隔。完整 SVG 独立占一行或多行即可，前后不必留空行；整条评论只有完整 SVG 也可以。外层代码围栏仅用于本页展示，不属于复制后的批注内容。
 
-- Check the expected image in both the sidebar and page popup. Click the image or **View larger**, then check zoom, panning, Fit and closure.
+- Check the expected image in both the sidebar and page popup. Click the image, then check zoom, panning, Fit and closure.
 - Edit and save from text outside the image. The stored source must still contain the original raw SVG, without inserted fences. Reopen the Reader to confirm it renders again.
 - Turn SVG rendering off and on. The SVG should appear as literal code when off and as an image when on, while surrounding Markdown remains readable.
 - Paste two complete SVGs on consecutive independent lines; both should render. SVG labels are literal text, while formulas in surrounding Markdown still render.
 - Inline SVG, SVG inside list items or blockquotes, and HTML-wrapped SVG remain outside the supported scope. Explicit xml/html/text code fences continue to display source. Unsupported SVG falls back to code; incomplete fragments remain text.
 
-- 在侧栏与页内弹窗中检查预期图像。点击图片或 **View larger**，检查缩放、平移、Fit 和关闭。
+- 在侧栏与页内弹窗中检查预期图像。点击图片，检查缩放、平移、Fit 和关闭。
 - 从图像外的文字进入编辑并保存。保存的内容须保留原始裸 SVG，不应插入围栏；重开 Reader 后应再次渲染。
 - 关闭并重新开启 SVG 渲染。关闭时 SVG 显示为源码，开启时显示图片，周围 Markdown 仍可阅读。
 - 在相邻的独立行上粘贴两份完整 SVG，两张都应渲染。SVG 标签中的文字按字面显示，外围 Markdown 中的公式仍可渲染。

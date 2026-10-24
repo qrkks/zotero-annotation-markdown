@@ -8,7 +8,7 @@ const VIEWER_EVENTS = [...EVENTS, "wheel", "pointermove", "pointerup", "pointerc
 
 export function isSvgPreviewControl(target: EventTarget | null | undefined): boolean {
   const node = element(target);
-  return Boolean(node?.closest("button.annotation-markdown-svg-open, img.annotation-markdown-svg-image:not([hidden])")?.closest(".annotation-markdown-svg")?.closest("[data-annotation-markdown-preview='true'].annotation-markdown-rendered") || linkedImageControl(node));
+  return Boolean(node?.closest("img.annotation-markdown-svg-image:not([hidden])")?.closest(".annotation-markdown-svg")?.closest("[data-annotation-markdown-preview='true'].annotation-markdown-rendered") || linkedImageControl(node));
 }
 export function isSvgViewerTarget(target: EventTarget | null | undefined): boolean {
   return Boolean(element(target)?.closest(`[${VIEWER}]`));
@@ -172,7 +172,6 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, isLinkedImage
       if (target?.matches("img.annotation-markdown-svg-image") && target.closest("[data-annotation-markdown-preview='true']")) {
         const figure = target.closest(".annotation-markdown-svg");
         target.setAttribute("hidden", "");
-        figure?.querySelector(".annotation-markdown-svg-open")?.setAttribute("hidden", "");
         figure?.querySelector(".annotation-markdown-svg-warning")?.setAttribute("hidden", "");
         figure?.querySelector(".annotation-markdown-svg-fallback")?.removeAttribute("hidden");
       }
@@ -205,8 +204,7 @@ export function createSvgPreviewViewer({ document: doc, isEnabled, isLinkedImage
     if ((linked || target?.matches("img.annotation-markdown-svg-image")) &&
         ["pointerdown", "mousedown", "click"].includes(event.type) && (event as MouseEvent).button !== 0) return;
     event.stopImmediatePropagation();
-    const control = linked ?? target?.closest<HTMLButtonElement>("button.annotation-markdown-svg-open") ??
-      target?.closest(".annotation-markdown-svg")?.querySelector<HTMLButtonElement>("button.annotation-markdown-svg-open");
+    const control = linked ?? target?.closest<HTMLImageElement>("img.annotation-markdown-svg-image");
     if (event.type === "pointerdown" || event.type === "mousedown") event.preventDefault();
     if (event.type === "click" && (event as MouseEvent).button === 0) {
       event.preventDefault(); if (control) open(control);

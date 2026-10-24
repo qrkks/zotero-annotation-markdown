@@ -10,7 +10,7 @@ function fixture(width = 1000, height = 500, readerSize?: number[]) {
   const source = `\`\`\`svg\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="red"/></svg>\n\`\`\``;
   document.body.innerHTML = `<div class="annotation-markdown-rendered" data-annotation-markdown-preview="true">${createMarkdownRenderer({ isSvgEnabled: () => true }).render(source)}</div>`;
   viewer = createSvgPreviewViewer({ document, isEnabled: () => true }); viewer.start();
-  const opener = queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement); opener.click();
+  const opener = queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement); opener.click();
   const frame = queryElement(document, ".annotation-markdown-svg-viewer-frame", HTMLIFrameElement);
   const doc = frame.contentDocument, win = requireValue(doc).defaultView;
   const image = queryElement(doc, "img", HTMLImageElement), region = queryElement(doc, ".annotation-markdown-svg-viewer-region");

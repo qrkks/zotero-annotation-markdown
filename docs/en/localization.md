@@ -6,7 +6,7 @@
 
 The settings pane uses native Fluent localization. **Settings page language** defaults to **Follow Zotero** and can override this page to **简体中文** (`zh-CN`) or **English** (`en-US`) immediately. The choice is stored in `extensions.annotationMarkdown.settingsLanguage`; it does not change Zotero’s locale or other panes. English is the fallback when a translation is unavailable.
 
-This currently covers settings group headings, checkbox captions, dropdown choices, field labels, and help text. Reader controls such as the SVG viewer's **View larger**, **Fit**, and **Close** are outside this localization resource. Translating the settings file does not translate every plugin interface.
+This currently covers settings group headings, checkbox captions, dropdown choices, field labels, and help text. Reader controls such as the SVG viewer's **Fit**, and **Close** are outside this localization resource. Translating the settings file does not translate every plugin interface.
 
 UI translations live under `addon/locale/`. Documentation translations live separately under `docs/en/` and `docs/zh-CN/`; contributing an interface language does not require translating the documentation.
 

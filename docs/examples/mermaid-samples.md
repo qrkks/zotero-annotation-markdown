@@ -22,7 +22,7 @@ flowchart TD
 ```
 ````
 
-Expect a downward flowchart with separate Yes/No branches and a **MERMAID** label in the annotation header. Click the image or **View larger** to zoom and pan; Escape closes the viewer. Click text or blank preview space outside the image to edit the original source. Turning Mermaid rendering off displays the original code again.
+Expect a downward flowchart with separate Yes/No branches and a **MERMAID** label in the annotation header. Click the image to zoom and pan; Escape closes the viewer. Click text or blank preview space outside the image to edit the original source. Turning Mermaid rendering off displays the original code again.
 
 See [supported diagram types and limits](../en/user-guide.md#mermaid-diagrams-experimental). Support uses Pele and does not promise full Mermaid.js compatibility.
 
@@ -46,6 +46,6 @@ flowchart TD
 ```
 ````
 
-预期显示带“是/否”分支的纵向流程图，批注标题旁出现 **MERMAID** 标签。点击图片或 **View larger** 可缩放和平移，按 Escape 关闭查看器。点击图片外的文字或预览空白区域可编辑原始源码。关闭 Mermaid 渲染后，会重新显示原代码。
+预期显示带“是/否”分支的纵向流程图，批注标题旁出现 **MERMAID** 标签。点击图片 可缩放和平移，按 Escape 关闭查看器。点击图片外的文字或预览空白区域可编辑原始源码。关闭 Mermaid 渲染后，会重新显示原代码。
 
 支持范围见[图表类型与限制](../zh-CN/user-guide.md#mermaid-图表实验性)。该功能使用 Pele，不承诺完整兼容 Mermaid.js。

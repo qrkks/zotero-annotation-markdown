@@ -48,7 +48,7 @@ Since v0.14.2, complete SVGs on their own lines can render without fences or bla
 
 ![The SVD annotation preview on the left and the larger-image viewer with zoom controls, a percentage indicator, and Fit on the right](docs/images/svg-preview-and-viewer-en-80eeea7e.webp)
 
-Click the SVG image or choose **View larger** to inspect the diagram. Use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
+Click the SVG image to inspect the diagram. Use **− / +** or the mouse wheel to zoom the image and viewer together, **Fit** to restore a complete view, and drag to pan beyond the Reader bounds. Press **Escape** or choose **Close** to return to the annotation.
 
 </details>
 

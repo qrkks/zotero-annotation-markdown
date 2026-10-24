@@ -117,7 +117,7 @@ describe("opt-in SVG fences", () => {
     const renderer = createMarkdownRenderer({ isSvgEnabled: () => true });
     document.body.innerHTML = renderer.render(`**diagram** $x^2$\n\n${fence(simple)}\n\n${fence(simple)}`);
     expect(document.querySelectorAll(".annotation-markdown-svg-image")).toHaveLength(2);
-    expect(document.querySelectorAll(".annotation-markdown-svg-open")).toHaveLength(2);
+    expect(document.querySelectorAll(".annotation-markdown-svg-open")).toHaveLength(0);
     expect(queryElement(document, "strong", HTMLElement).textContent).toBe("diagram");
     expect(document.querySelector(".katex")).not.toBeNull();
     expect(document.querySelector("svg")).toBeNull();
@@ -246,14 +246,17 @@ describe("SVG preview lifecycle", () => {
     expect(queryElement(document, ".content").textContent).toBe(f.source);
   });
 
-  test.each([false, true].flatMap((popup: boolean) => [false, true].flatMap(fast => ["button", "image"].map(entry => [popup, fast, entry] as const))))("opens and closes a large image without editing (popup=%s fast=%s entry=%s)", async (popup: boolean,fast,entry) => {
+  test.each([false, true].flatMap((popup: boolean) => [false, true].flatMap(fast => ["Enter", " ", "image"].map(entry => [popup, fast, entry] as const))))("opens and closes a large image without editing (popup=%s fast=%s entry=%s)", async (popup: boolean,fast,entry) => {
     const f = await fixture({ popup, fast });
     try {
-      const button = queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement);
+      const button = queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement);
       const target = entry === "image" ? document.querySelector(".annotation-markdown-svg-image") : button;
       const preview = document.querySelector(".annotation-markdown-rendered");
       const src = queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).getAttribute("src");
-      for (const type of ["pointerdown","mousedown","click"]) requireValue(target).dispatchEvent(new MouseEvent(type,{ bubbles:true, button:0, cancelable:true }));
+      expect(button.tabIndex).toBe(0);
+      expect(button.getAttribute("role")).toBe("button");
+      if (entry !== "image") button.dispatchEvent(new KeyboardEvent("keydown", { key: entry, bubbles: true, cancelable: true }));
+      else for (const type of ["pointerdown","mousedown","click"]) requireValue(target).dispatchEvent(new MouseEvent(type,{ bubbles:true, button:0, cancelable:true }));
       const dialog = queryElement(document, "[data-annotation-markdown-svg-viewer]");
       expect(dialog).not.toBeNull();
       const viewerDocument = queryElement(dialog, "iframe", HTMLIFrameElement).contentDocument;
@@ -268,7 +271,7 @@ describe("SVG preview lifecycle", () => {
       button.click(); f.settings.setSvgEnabled(false); requireValue(f.controller.refresh).call(f.controller);
       expect(document.querySelector("[data-annotation-markdown-svg-viewer]")).toBeNull();
       f.settings.setSvgEnabled(true); requireValue(f.controller.refresh).call(f.controller);
-      queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).click(); f.controller.stop();
+      queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click(); f.controller.stop();
       expect(document.querySelector("[data-annotation-markdown-svg-viewer], .annotation-markdown-rendered")).toBeNull();
       expect(queryElement(document, ".content").textContent).toBe(f.source);
     } finally { f.controller.stop(); }
@@ -341,7 +344,7 @@ describe("SVG preview lifecycle", () => {
     window.addEventListener("keydown", nativeHandler, true);
     const f = await fixture({ popup: true });
     try {
-      queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).click();
+      queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click();
       const dialog = queryElement(document, "[data-annotation-markdown-svg-viewer]");
       const viewerDocument = dialog.querySelector("iframe")?.contentDocument ?? document;
       const button = dialog.querySelector("iframe")
@@ -362,7 +365,7 @@ describe("SVG preview lifecycle", () => {
   test("rebuilds viewer controls when Gecko replaces the initial blank frame document", async () => {
     const f = await fixture();
     try {
-      queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).click();
+      queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click();
       const frame = queryElement(document, "[data-annotation-markdown-svg-viewer] iframe", HTMLIFrameElement);
       const content = frame.contentDocument;
       requireValue(content).open(); requireValue(content).write("<!doctype html><html><head></head><body></body></html>"); requireValue(content).close();
@@ -386,7 +389,7 @@ describe("SVG preview lifecycle", () => {
   test.each([false, true] as const)("shows the viewer only after the final frame image is decoded (popup=%s)", async (popup: boolean) => {
     const f = await fixture({ popup });
     try {
-      queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).click();
+      queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click();
       const dialog = queryElement(document, "[data-annotation-markdown-svg-viewer]", HTMLElement);
       const frame = queryElement(dialog, "iframe", HTMLIFrameElement);
       const pending = deferViewerDecode(frame);
@@ -409,7 +412,7 @@ describe("SVG preview lifecycle", () => {
   test("a closed viewer's pending image cannot reveal or close a reopened viewer", async () => {
     const f = await fixture();
     try {
-      const button = queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement);
+      const button = queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement);
       button.click();
       const oldDialog = queryElement(document, "[data-annotation-markdown-svg-viewer]");
       const oldFrame = queryElement(oldDialog, "iframe", HTMLIFrameElement);
@@ -433,7 +436,7 @@ describe("SVG preview lifecycle", () => {
   test("a failed viewer image closes the pending dialog and restores its opener", async () => {
     const f = await fixture();
     try {
-      const button = queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement);
+      const button = queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement);
       button.click();
       const frame = queryElement(document, "[data-annotation-markdown-svg-viewer] iframe", HTMLIFrameElement);
       const pending = deferViewerDecode(frame);
@@ -448,7 +451,7 @@ describe("SVG preview lifecycle", () => {
   test("waits for image loading when decode is unavailable", async () => {
     const f = await fixture();
     try {
-      queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).click();
+      queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click();
       const dialog = queryElement(document, "[data-annotation-markdown-svg-viewer]", HTMLElement);
       const frame = queryElement(dialog, "iframe", HTMLIFrameElement);
       requireValue(frame.contentWindow).HTMLImageElement.prototype.decode = undefined;
@@ -462,7 +465,7 @@ describe("SVG preview lifecycle", () => {
   test("focus returned to a preview control does not postpone preference refresh", async () => {
     const f = await fixture();
     try {
-      const button = queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement);
+      const button = queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement);
       button.focus(); f.settings.setSvgEnabled(false); requireValue(f.controller.refresh).call(f.controller);
       expect(document.querySelector(".annotation-markdown-svg-image")).toBeNull();
     } finally { f.controller.stop(); }
@@ -473,7 +476,7 @@ describe("SVG preview lifecycle", () => {
     try {
       const image = document.querySelector(".annotation-markdown-svg-image");
       Object.defineProperties(image, { width: { value: 320 }, height: { value: 140 } });
-      queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).click();
+      queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).click();
       expect(queryElement(queryElement(document, "[data-annotation-markdown-svg-viewer] iframe", HTMLIFrameElement).contentDocument, "img", HTMLImageElement).getAttribute("width")).toBe("640");
     } finally { f.controller.stop(); }
   });
@@ -483,7 +486,7 @@ describe("SVG preview lifecycle", () => {
     try {
       queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).dispatchEvent(new Event("error"));
       expect(queryElement(document, ".annotation-markdown-svg-fallback", HTMLElement).hidden).toBe(false);
-      expect(queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).hidden).toBe(true);
+      expect(queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).hidden).toBe(true);
     } finally { f.controller.stop(); }
   });
 
@@ -529,7 +532,7 @@ describe("SVG preview lifecycle", () => {
       expect(queryElement(document, ".annotation-markdown-svg-warning", HTMLElement).hidden).toBe(true);
       expect(queryElement(document, ".annotation-markdown-svg-fallback", HTMLElement).hidden).toBe(false);
       expect(queryElement(document, ".annotation-markdown-svg-fallback code").textContent.trimEnd()).toBe(source);
-      expect(queryElement(document, ".annotation-markdown-svg-open", HTMLButtonElement).hidden).toBe(true);
+      expect(queryElement(document, ".annotation-markdown-svg-image", HTMLImageElement).hidden).toBe(true);
       f.settings.setSvgEnabled(false); requireValue(f.controller.refresh).call(f.controller);
       f.settings.setSvgEnabled(true); requireValue(f.controller.refresh).call(f.controller);
       expect(queryElement(document, ".annotation-markdown-svg-warning", HTMLElement).hidden).toBe(false);
