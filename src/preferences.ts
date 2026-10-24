@@ -151,10 +151,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
       outlineFontScaleSelect.value = String(this.getPref(this.outlineFontScalePercentKey, 100));
       autoTodoTagInput.checked = this.getPref(this.autoTodoTagKey, false);
       autoTodoCleanupInput.checked = this.getPref(this.autoTodoCleanupKey, false);
-      const syncAutoTodoControlsEnabled = () => {
-        this.setControlEnabled(autoTodoCleanupInput, autoTodoTagInput.checked);
-      };
-      syncAutoTodoControlsEnabled();
+      this.setControlEnabled(autoTodoCleanupInput, true);
       renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
       nativeRowLazyInput.checked = this.getPref(this.nativeRowLazyKey, false);
 
@@ -224,9 +221,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
 
       autoTodoTagInput.addEventListener("command", () => {
         host.Prefs.set(this.autoTodoTagKey, Boolean(autoTodoTagInput.checked), true);
-        syncAutoTodoControlsEnabled();
       });
-      autoTodoTagInput.addEventListener("syncfrompreference", syncAutoTodoControlsEnabled);
 
       autoTodoCleanupInput.addEventListener("command", () => {
         host.Prefs.set(this.autoTodoCleanupKey, Boolean(autoTodoCleanupInput.checked), true);

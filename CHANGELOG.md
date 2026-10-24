@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+## 0.16.4 - 2026-10-24
+
+### Added
+
+- Support categorized todo directives such as `t/review:` and `todo/paper/method:`, adding the `todo` root and complete path tags without changing comment source. Multiple directives share deduplicated tags.
+- Support static SVG clipping with basic shapes and local `clip-path` references, including rounded variance bars. Preserve clipping geometry and source while rejecting external, mismatched and recursive references.
+
+### Changed
+
+- Make automatic todo adding and cleanup independent, with parallel settings labels. Cleanup removes only tags no longer required by the edited comment. Preserve effective legacy choices on upgrade so previously disabled cleanup does not become active unexpectedly.
+- Remove redundant "View larger" buttons below SVG and Mermaid previews. Click the image or focus it and press Enter or Space to open the existing viewer.
+
+### Fixed
+
+- Bundle Reader styles into the plugin script instead of reading them through synchronous XMLHttpRequest at startup, preventing restart failures that leave rendering inactive and the settings pane missing.
+
+### 新增
+
+- 支持 `t/复核:`、`todo/论文/方法:` 等分类待办指令，同时生成 `todo` 根标签和完整路径标签，保留评论源码；多条指令共用的标签自动去重。
+- 支持由基本图形和图内 `clip-path` 引用组成的静态 SVG 裁剪，包括圆角方差比例条；保留裁剪几何和原始源码，拒绝外部引用、错误类型目标和循环引用。
+
+### 变更
+
+- 自动添加与自动清理待办标签改为独立控制，使用对称的并列设置名称。清理只移除修改后评论不再需要的旧指令标签；升级时保留旧版实际行为，避免原本被禁用的清理意外生效。
+- 移除 SVG、Mermaid 预览下方重复的“放大查看”按钮；点击图片，或聚焦图片后按 Enter、空格，仍可打开原有查看器。
+
+### 修复
+
+- 将 Reader 样式一并打包进插件脚本，避免启动时通过同步 XMLHttpRequest 读取样式而中断，修复重启后渲染失效、设置面板消失的问题。
+
 ## 0.16.3 - 2026-10-24
 
 ### Added

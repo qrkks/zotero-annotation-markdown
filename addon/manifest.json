@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Annotation Markdown",
-  "version": "0.16.3",
+  "version": "0.16.4",
   "description": "Render Zotero annotation comments with Markdown, LaTeX math, and experimental SVG and Mermaid diagrams, preserving editable source.",
   "author": "qrkks <qrkks3@gmail.com>",
   "icons": {

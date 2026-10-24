@@ -11,7 +11,7 @@ const PROPERTIES = new Set([
   "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray", "stroke-dashoffset", "fill-rule", "clip-rule",
   "font-size", "font-family", "font-weight", "font-style", "text-anchor", "dominant-baseline",
   "alignment-baseline", "letter-spacing", "direction", "marker-start", "marker-mid", "marker-end",
-  "stop-color", "stop-opacity"
+  "stop-color", "stop-opacity", "clip-path"
 ]);
 type Declaration = [name: string, value: string];
 type StyleSelector = { kind: "class" | "type"; name: string };

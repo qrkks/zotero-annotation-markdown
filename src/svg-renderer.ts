@@ -14,8 +14,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 export const SVG_LIMITS = { sourceChars: 32000, elements: 512, depth: 32, dimension: 4096 } as const;
 const TAGS = new Set([
   "svg", "g", "rect", "circle", "ellipse", "line", "polyline", "polygon", "path",
-  "text", "tspan", "title", "desc", "defs", "marker", "linearGradient", "radialGradient", "stop", "style"
+  "text", "tspan", "title", "desc", "defs", "marker", "linearGradient", "radialGradient", "stop", "style", "clipPath"
 ]);
+const CLIP_CHILD_TAGS = new Set(["rect", "circle", "ellipse", "line", "polyline", "polygon", "path", "title", "desc"]);
+type SvgReference = { id: string; kind: "marker" | "gradient" | "clipPath" };
 const EMPTY_EXPORT_TAGS = new Set(["metadata", "style", "mask"]);
 const ATTRS = new Set([
   "xmlns", "viewBox", "width", "height", "x", "y", "dx", "dy", "x1", "y1", "x2", "y2",
@@ -26,7 +28,7 @@ const ATTRS = new Set([
   "alignment-baseline", "letter-spacing", "preserveAspectRatio", "marker-start", "marker-mid",
   "marker-end", "markerWidth", "markerHeight", "refX", "refY", "orient", "markerUnits",
   "gradientUnits", "gradientTransform", "spreadMethod", "fx", "fy", "fr", "offset",
-  "stop-color", "stop-opacity"
+  "stop-color", "stop-opacity", "clip-path", "clipPathUnits"
 ]);
 const ID = /^[A-Za-z_][\w.-]{0,63}$/;
 const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
@@ -44,6 +46,7 @@ const ENUMS: Record<string, RegExp> = {
   "alignment-baseline": /^(auto|baseline|before-edge|text-before-edge|middle|central|after-edge|text-after-edge|ideographic|alphabetic|hanging|mathematical)$/,
   markerUnits: /^(strokeWidth|userSpaceOnUse)$/,
   gradientUnits: /^(userSpaceOnUse|objectBoundingBox)$/,
+  clipPathUnits: /^(userSpaceOnUse|objectBoundingBox)$/,
   spreadMethod: /^(pad|reflect|repeat)$/,
   preserveAspectRatio: /^(?:none|x(?:Min|Mid|Max)Y(?:Min|Mid|Max)(?:\s+(?:meet|slice))?)$/
 };
@@ -73,7 +76,7 @@ export function createSvgRenderer(windowRef: Window | null) {
       if (nodes.length > SVG_LIMITS.elements) throw new SvgPolicyError("limits", "SVG exceeds 512 elements.");
       const ids = new Map<string, Element>();
       const accessibility = createSvgAccessibility(root, ID);
-      const references: Array<{ id: string; marker: boolean }> = [];
+      const references: SvgReference[] = [];
       const normalizeFontStyles = createSvgFontStyles(windowRef.atob.bind(windowRef));
       const classStyles = createSvgClassStyles(normalizeFontStyles, (name, value, node) => {
         const ref = validateDrawingAttribute(name, value, node);
@@ -85,6 +88,10 @@ export function createSvgRenderer(windowRef: Window | null) {
       for (const node of nodes) {
         if (node.namespaceURI !== SVG_NS || (!TAGS.has(node.localName) && !EMPTY_EXPORT_TAGS.has(node.localName)) || node.prefix || (node !== root && node.localName === "svg")) {
           throw new Error(`Unsupported SVG element: ${node.localName}.`);
+        }
+        const clipPath = node.parentElement?.closest("clipPath");
+        if (clipPath && (node.parentElement !== clipPath || !CLIP_CHILD_TAGS.has(node.localName))) {
+          throw new Error("SVG clipping paths support only direct basic shapes, titles and descriptions.");
         }
         let depth = 0;
         for (let parent: Element | null = node; parent; parent = parent.parentElement) depth++;
@@ -129,8 +136,9 @@ export function createSvgRenderer(windowRef: Window | null) {
       classStyles.apply(nodes.filter(node => !EMPTY_EXPORT_TAGS.has(node.localName)));
       for (const ref of references) {
         const target = ids.get(ref.id);
-        if (!target || !(ref.marker ? target.localName === "marker" : ["linearGradient", "radialGradient"].includes(target.localName))) {
-          throw new Error("SVG references must point to a local marker or gradient.");
+        const kinds = ref.kind === "gradient" ? ["linearGradient", "radialGradient"] : [ref.kind];
+        if (!target || !kinds.includes(target.localName)) {
+          throw new Error("SVG references must point to a local element of the matching marker, gradient or clipPath type.");
         }
       }
       const { label, description } = accessibility.finish(ids);
@@ -205,18 +213,21 @@ function prepareExportExtra(node: Element, ids: Map<string, Element>, referenced
   }
 }
 
-function validateDrawingAttribute(name: string, value: string, node?: Element): { id: string; marker: boolean } | undefined {
-  if (["fill", "stroke", "stop-color"].includes(name) || name.startsWith("marker-")) {
+function validateDrawingAttribute(name: string, value: string, node?: Element): SvgReference | undefined {
+  if (["fill", "stroke", "stop-color", "clip-path"].includes(name) || name.startsWith("marker-")) {
     const ref = value.match(/^url\(#([A-Za-z_][\w.-]{0,63})\)$/);
     if (ref) {
-      if (node?.closest("marker")) throw new Error("References inside SVG markers are unsupported.");
-      return { id: ref[1], marker: name.startsWith("marker-") };
-    } else if (name.startsWith("marker-")) {
-      if (value !== "none") throw new Error("SVG markers must use a local reference.");
+      // A clipping source cannot reference any other source, preventing both
+      // self-references and multi-source cycles without expanding SVG graphs.
+      if (node?.closest("marker, clipPath")) throw new Error("References inside SVG markers or clipping paths are unsupported.");
+      return { id: ref[1], kind: name === "clip-path" ? "clipPath" : name.startsWith("marker-") ? "marker" : "gradient" };
+    } else if (name.startsWith("marker-") || name === "clip-path") {
+      if (value !== "none") throw new Error("SVG markers and clipping paths must use a local reference.");
     } else if (!/^(?:[a-z]+|#[\da-f]{3,8}|(?:rgb|rgba|hsl|hsla)\([\d.%+\-, /]+\))$/i.test(value)) {
       throw new Error("SVG paint must be a color or local gradient.");
     }
   } else if (ENUMS[name]) {
+    if (name === "clipPathUnits" && node?.localName !== "clipPath") throw new Error("clipPathUnits is only supported on SVG clipping paths.");
     if (!ENUMS[name].test(value)) throw new Error(`Unsupported SVG value: ${name}.`);
   } else if (name === "font-family") {
     if (!/^[\w\u0080-\uffff ,'"-]{1,128}$/.test(value)) throw new Error("Unsupported SVG font family.");

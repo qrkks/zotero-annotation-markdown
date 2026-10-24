@@ -14,6 +14,7 @@ await mkdir(distAddon, { recursive: true });
 
 await cp(path.join(root, "addon"), distAddon, { recursive: true });
 await appendKatexAssets();
+const styleText = await readFile(path.join(distAddon, "styles", "annotation-markdown.css"), "utf8");
 
 const result = await build({
   entryPoints: [path.join(root, "src", "plugin.ts")],
@@ -24,7 +25,9 @@ const result = await build({
   platform: "browser",
   target: ["firefox102"],
   sourcemap: false,
-  metafile: true
+  metafile: true,
+  // Load styles with the existing scriptloader, avoiding a window-bound sync XHR at startup.
+  footer: { js: `var ZoteroAnnotationMarkdownStyleText = ${JSON.stringify(styleText)};` }
 });
 
 await bundlePreferences({ root });

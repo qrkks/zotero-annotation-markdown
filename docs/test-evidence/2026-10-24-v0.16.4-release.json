@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-24",
+  "version": "0.16.4",
+  "xpi": {
+    "bytes": 1615238,
+    "sha256": "39b5557a0b5854584d2535b1362d1703422138e8a713a8ea2673a828ce78f16c",
+    "sourceSha256": "a23d904c34bd9d96e13627926484fc1a25153c0478e2dae951e5bca23a9b3fc5",
+    "repeatedPackagingMatches": true,
+    "installedPackageHashMatches": true
+  },
+  "automated": {
+    "command": "pnpm run verify",
+    "testFiles": 50,
+    "tests": 1327,
+    "passed": true,
+    "productionAudit": "No known vulnerabilities found",
+    "releaseVerification": "pnpm run release:verify v0.16.4"
+  },
+  "native": {
+    "varianceSvg": {
+      "name": "supplied-variance-svg-installed-package",
+      "passed": true,
+      "dimensions": [
+        900,
+        345
+      ],
+      "differentPixels": 0,
+      "clipPathPreserved": true,
+      "chinesePreserved": true,
+      "sourcePreserved": true,
+      "noLiveSvg": true,
+      "pixels": {
+        "corner": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "blue": [
+          37,
+          99,
+          235,
+          255
+        ],
+        "teal": [
+          13,
+          148,
+          136,
+          255
+        ],
+        "gray": [
+          148,
+          163,
+          184,
+          255
+        ]
+      },
+      "viewerOpened": true,
+      "fixtureRestored": true
+    },
+    "todo": [
+      {
+        "name": "categorized-directives",
+        "passed": true
+      },
+      {
+        "name": "selective-cleanup-keeps-shared-root",
+        "passed": true
+      },
+      {
+        "name": "cleanup-with-adding-disabled",
+        "passed": true
+      },
+      {
+        "name": "last-directive-cleanup-preserves-unrelated-tag",
+        "passed": true
+      },
+      {
+        "name": "fixture-restored",
+        "passed": true
+      }
+    ],
+    "processRestart": {
+      "passed": true,
+      "host": {
+        "zotero": "10.0.6",
+        "gecko": "140.17.0"
+      },
+      "processId": 23352,
+      "runtimeActive": true,
+      "readers": 1,
+      "previews": 3,
+      "adding": true,
+      "cleanup": true,
+      "migration": 1
+    },
+    "preferenceControlsFound": true
+  },
+  "earlierCandidate": {
+    "sha256": "96d56fa759e6c8bd83b01a15ee59d5067e942a2d5c57e1dfc9f47ce3847be414",
+    "scope": "Before adding SVG clipping; unchanged editor, preference-migration and plugin-reload paths were checked on this earlier candidate.",
+    "passedChecks": [
+      "editor-blur-save",
+      "editor-escape-save",
+      "legacy-dormant-cleanup-upgrade",
+      "plugin-reload-no-duplicate-previews",
+      "svg-image-click-opens-viewer",
+      "svg-keyboard-opens-viewer",
+      "svg-viewer-close"
+    ]
+  },
+  "scope": "Installed-XPI checks in the isolated Zotero Dev profile. Host DOM interactions use synthesized input events; Gecko decoded and rasterized the supplied SVG. Scoped release validation, not a repeat of every manual checklist scenario or a physical-input/remote-image benchmark."
+}

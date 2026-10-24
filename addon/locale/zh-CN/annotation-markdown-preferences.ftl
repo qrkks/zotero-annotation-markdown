@@ -55,11 +55,11 @@ annotation-markdown-prefs-outline-smart-numbering-description = 标题已有明�
 
 annotation-markdown-prefs-tags = 批注标签
 annotation-markdown-prefs-auto-todo-tag =
-    .label = 自动为含 TODO: 或 T: 标记行的批注添加 todo 标签
-annotation-markdown-prefs-auto-todo-description = 新建批注或修改评论并保存时，只要评论中有一行以 todo:、todo：、t: 或 t：开头，就自动给整条批注添加小写 todo 标签。允许行首缩进，不区分大小写；不会扫描历史批注。
+    .label = 根据待办指令自动添加标签
+annotation-markdown-prefs-auto-todo-description = 新建批注或修改评论并保存时，按行首的 todo: 或 t: 添加 todo 标签；t/论文/方法: 还会添加 todo/论文/方法。支持中文冒号、行首缩进及多条指令，指令前缀不区分大小写。与自动清理独立，不扫描历史批注。
 annotation-markdown-prefs-auto-todo-cleanup =
-    .label = 删除标记行时移除 todo 标签
-annotation-markdown-prefs-auto-todo-cleanup-description = 可选，仅在自动添加标签开启时生效。编辑评论后，若已无标记行，则移除小写 todo 标签，即使该标签是手动添加的。不会扫描已有批注。
+    .label = 根据待办指令自动清理标签
+annotation-markdown-prefs-auto-todo-cleanup-description = 修改评论并保存后，清理旧指令对应且新评论已不再需要的标签；还有待办指令时保留 todo。与自动添加独立，不扫描历史批注；同名手动标签也可能被清理。
 
 annotation-markdown-prefs-performance = 渲染性能
 annotation-markdown-prefs-render-strategy =

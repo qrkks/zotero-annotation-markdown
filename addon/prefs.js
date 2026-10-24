@@ -22,3 +22,4 @@ pref("extensions.annotationMarkdown.outlineExpanded", false);
 pref("extensions.annotationMarkdown.outlineFontScalePercent", 100);
 pref("extensions.annotationMarkdown.autoTodoTag", false);
 pref("extensions.annotationMarkdown.autoTodoCleanup", false);
+pref("extensions.annotationMarkdown.autoTodoPreferencesVersion", 0);

@@ -1,8 +1,32 @@
 import { describe, expect, test, vi } from "vitest";
-import { createSettings, LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY } from "../src/settings.ts";
+import { createSettings, migrateAutoTodoPreferences, LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY,
+  AUTO_TODO_TAG_PREF_KEY, AUTO_TODO_CLEANUP_PREF_KEY, AUTO_TODO_PREFERENCES_VERSION_KEY } from "../src/settings.ts";
 import type { PreferenceStore, PreferenceValue } from "../src/types.ts";
 
 describe("createSettings", () => {
+  test.each([[false, false], [false, true], [true, false], [true, true]])(
+    "migrates effective legacy todo choices once: adding=%s cleanup=%s", (adding, cleanup) => {
+      const values = new Map<string, boolean | number | string>([
+        [AUTO_TODO_TAG_PREF_KEY, adding], [AUTO_TODO_CLEANUP_PREF_KEY, cleanup]
+      ]);
+      const prefs = { get: (key: string) => values.get(key),
+        set: vi.fn((key: string, value: boolean | number | string) => {
+          values.set(key, value);
+        }) };
+      migrateAutoTodoPreferences(prefs);
+      expect(values.get(AUTO_TODO_TAG_PREF_KEY)).toBe(adding);
+      expect(values.get(AUTO_TODO_CLEANUP_PREF_KEY)).toBe(adding && cleanup);
+      expect(values.get(AUTO_TODO_PREFERENCES_VERSION_KEY)).toBe(1);
+      // A later explicit cleanup-only choice survives plugin reloads.
+      values.set(AUTO_TODO_TAG_PREF_KEY, false);
+      values.set(AUTO_TODO_CLEANUP_PREF_KEY, true);
+      prefs.set.mockClear();
+      migrateAutoTodoPreferences(prefs);
+      expect(values.get(AUTO_TODO_CLEANUP_PREF_KEY)).toBe(true);
+      expect(prefs.set).not.toHaveBeenCalled();
+    }
+  );
+
   test("defaults inferred image previews on and retains the choice independently of rendering options", () => {
     const settings = createSettings();
     expect(settings.isLinkedImagePreviewEnabled()).toBe(true);

@@ -26,7 +26,7 @@ function startup(data, reason) {
     ZoteroAnnotationMarkdownInstance = ZoteroAnnotationMarkdown.createPlugin({
       Zotero,
       window: globalThis.window,
-      styleText: readStyleTextFromURI(`${data.rootURI}styles/annotation-markdown.css`, data.rootURI),
+      styleText: rewriteRelativeFontUrls(globalThis.ZoteroAnnotationMarkdownStyleText, data.rootURI),
       diagnostics: globalThis.ZoteroAnnotationMarkdownDiagnostics
     });
     Zotero.AnnotationMarkdownRuntime = { instance: ZoteroAnnotationMarkdownInstance, shutdown };
@@ -77,24 +77,10 @@ function unregisterPreferencePane() {
   ZoteroAnnotationMarkdownPreferencePaneID = undefined;
 }
 
-function readTextFromURI(uri) {
-  const request = new XMLHttpRequest();
-  request.open("GET", uri, false);
-  request.overrideMimeType?.("text/plain");
-  request.send(null);
-
-  if (request.status && request.status >= 400) {
-    throw new Error(`Could not load ${uri}: ${request.status}`);
-  }
-
-  return request.responseText;
-}
-
-function readStyleTextFromURI(uri, rootURI) {
-  return rewriteRelativeFontUrls(readTextFromURI(uri), rootURI);
-}
-
 function rewriteRelativeFontUrls(css, rootURI) {
+  if (typeof css !== "string") {
+    throw new Error("Bundled annotation Markdown styles are missing");
+  }
   return String(css).replaceAll("url(fonts/", `url(${rootURI}styles/fonts/`);
 }
 

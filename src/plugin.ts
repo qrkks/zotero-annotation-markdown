@@ -17,6 +17,7 @@ import type {
 } from "./types.js";
 import {
   createSettings,
+  migrateAutoTodoPreferences,
   ENABLED_PREF_KEY,
   POPUP_ENABLED_PREF_KEY,
   FAST_EDITOR_PREF_KEY,
@@ -232,6 +233,7 @@ export function createPlugin({
 
   return {
     startup() {
+      migrateAutoTodoPreferences(createPrefsAdapter(Zotero));
       diagnosticsLogger.log("[annotation-markdown] startup");
       registry = makeRegistry();
       const activeRegistry = registry;

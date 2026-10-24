@@ -55,11 +55,11 @@ annotation-markdown-prefs-outline-smart-numbering-description = When a heading a
 
 annotation-markdown-prefs-tags = Annotation Tags
 annotation-markdown-prefs-auto-todo-tag =
-    .label = Automatically tag annotations containing TODO: or T: lines with todo
-annotation-markdown-prefs-auto-todo-description = When an annotation is created or its edited comment is saved, automatically add a lowercase todo tag if any comment line starts with todo:, todo：, t:, or t：. Indentation is allowed and letter case is ignored. Does not scan older annotations.
+    .label = Automatically add tags from todo directives
+annotation-markdown-prefs-auto-todo-description = On annotation creation or a saved comment edit, line-leading todo: or t: adds todo; t/paper/method: also adds todo/paper/method. Supports Chinese colons, indentation and multiple directives; prefixes are case insensitive. Independent of cleanup; does not scan older annotations.
 annotation-markdown-prefs-auto-todo-cleanup =
-    .label = Remove the todo tag when the directive is removed
-annotation-markdown-prefs-auto-todo-cleanup-description = Optional; works only with automatic tagging. After a comment edit, removes the lowercase todo tag even if it was added manually. Does not scan old annotations.
+    .label = Automatically clean up tags from todo directives
+annotation-markdown-prefs-auto-todo-cleanup-description = After a saved comment edit, remove tags required by old directives but no longer needed by the new comment; keep todo while any directive remains. Independent of automatic adding; does not scan older annotations. Manually added tags with the same names may also be removed.
 
 annotation-markdown-prefs-performance = Rendering Performance
 annotation-markdown-prefs-render-strategy =

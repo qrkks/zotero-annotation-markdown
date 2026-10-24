@@ -211,7 +211,7 @@ Zotero 特有的对象形状应保留在实际使用它们的边界附近，不�
 | `addon/styles/annotation-markdown.css` | Reader 预览、折叠、编辑、链接、代码和内容可见性样式，包括选中标注的滚动边距及受偏好开关控制的 Weavero 链接颜色变量。 |
 | `addon/icons/annotation-markdown.svg` | 插件和偏好设置面板图标。 |
 
-启动入口和默认偏好声明保留 JavaScript，由 Zotero 直接执行。构建将 `src/plugin.ts` 打包为 `dist/addon/plugin.js`，另将 `src/preferences.ts` 打包为 `dist/addon/preferences.js`，后者保留面板标记调用的全局 `Zotero.AnnotationMarkdownPreferences.init(document)` 接口。
+启动入口和默认偏好声明保留 JavaScript，由 Zotero 直接执行。构建将 `src/plugin.ts` 打包为 `dist/addon/plugin.js`，并将处理好的 CSS 作为 `ZoteroAnnotationMarkdownStyleText` 一并写入，避免应用启动时通过同步 XMLHttpRequest 读取样式；字体回退地址仍按插件根 URI 解析。另将 `src/preferences.ts` 打包为 `dist/addon/preferences.js`，保留面板标记调用的全局 `Zotero.AnnotationMarkdownPreferences.init(document)` 接口。
 
 ## 构建与维护脚本
 

@@ -1,4 +1,4 @@
-/** Keep a Zotero annotation's todo tag in step with saved comment directives. */
+/** Keep a Zotero annotation's todo tags in step with saved comment directives. */
 interface AnnotationItem {
   isAnnotation(): boolean;
   annotationComment: string;
@@ -31,16 +31,34 @@ export interface ZoteroTagApi {
 
 interface AutoTodoTagOptions {
   Zotero?: ZoteroTagApi;
+  /** Controls additions only; cleanup is independent. */
   isEnabled(): boolean;
   isCleanupEnabled?(): boolean;
   warn(message: string, error: unknown): void;
 }
 
 const TODO_TAG = "todo";
-const TODO_DIRECTIVE = /^[ \t]*(?:todo|t)[:：]/im;
+
+/** Normalize the directive prefix, preserving category spelling and case. */
+export function getTodoDirectiveTags(comment: string): Set<string> {
+  const tags = new Set<string>();
+  for (const match of comment.matchAll(/^[ \t]*(?:todo|t)(\/[^:：\r\n]*)?[:：]/gim)) {
+    const path = match[1]?.slice(1).split("/").map(segment => segment.trim());
+    // Empty categories, repeated slashes and trailing slashes are incomplete directives.
+    if (path?.some(segment => !segment)) continue;
+    tags.add(TODO_TAG);
+    if (path) tags.add(`${TODO_TAG}/${path.join("/")}`);
+  }
+  return tags;
+}
 
 export function hasTodoDirective(comment: string): boolean {
-  return TODO_DIRECTIVE.test(comment);
+  return getTodoDirectiveTags(comment).size > 0;
+}
+
+interface PendingItem {
+  requested: boolean;
+  cleanupCandidates: Set<string>;
 }
 
 /** Observe actual Zotero item saves, independent of Reader rendering or editor choice. */
@@ -55,37 +73,47 @@ export function registerAutoTodoTagger({
   }
 
   let active = true;
-  const pending = new Map<string, { requested: boolean; cleanupRequested: boolean }>();
+  const pending = new Map<string, PendingItem>();
 
-  async function processItem(id: number | string, allowCleanup: boolean): Promise<void> {
+  async function processItem(id: number | string, cleanupCandidates: Set<string>): Promise<void> {
     const item = await Zotero!.Items!.getAsync(id);
-    if (!active || !isEnabled() || !item || !item.isAnnotation()) {
+    if (!active || (!isEnabled() && !isCleanupEnabled()) || !item || !item.isAnnotation()) {
       return;
     }
 
     const tags = item.getTags();
-    if (hasTodoDirective(item.annotationComment ?? "")) {
-      if (!tags.some(({ tag }) => tag.toLowerCase() === TODO_TAG) && item.addTag(TODO_TAG)) {
-        await item.saveTx();
+    const wanted = getTodoDirectiveTags(item.annotationComment ?? "");
+    let changed = false;
+    if (isEnabled()) {
+      for (const tag of wanted) {
+        const exists = tags.some(existing => tag === TODO_TAG
+          ? existing.tag.toLowerCase() === TODO_TAG
+          : existing.tag === tag);
+        if (!exists && item.addTag(tag)) changed = true;
       }
-    } else if (allowCleanup && isCleanupEnabled() &&
-               tags.some(({ tag }) => tag === TODO_TAG) && item.removeTag(TODO_TAG)) {
-      await item.saveTx();
     }
+    if (isCleanupEnabled()) {
+      for (const tag of cleanupCandidates) {
+        if (!wanted.has(tag) && tags.some(existing => existing.tag === tag) && item.removeTag(tag)) {
+          changed = true;
+        }
+      }
+    }
+    if (changed) await item.saveTx();
   }
 
   async function processPending(
     id: number | string,
     key: string,
-    state: { requested: boolean; cleanupRequested: boolean }
+    state: PendingItem
   ): Promise<void> {
     try {
       do {
         state.requested = false;
-        const allowCleanup = state.cleanupRequested;
-        state.cleanupRequested = false;
+        const cleanupCandidates = new Set(state.cleanupCandidates);
+        state.cleanupCandidates.clear();
         try {
-          await processItem(id, allowCleanup);
+          await processItem(id, cleanupCandidates);
         } catch (error) {
           warn(`Could not update ${TODO_TAG} tag on annotation ${key}`, error);
         }
@@ -95,16 +123,16 @@ export function registerAutoTodoTagger({
     }
   }
 
-  function schedule(id: number | string, allowCleanup: boolean): void {
+  function schedule(id: number | string, cleanupCandidates: Set<string>): void {
     const key = String(id);
     const current = pending.get(key);
     if (current) {
       current.requested = true;
-      current.cleanupRequested ||= allowCleanup;
+      for (const tag of cleanupCandidates) current.cleanupCandidates.add(tag);
       return;
     }
 
-    const state = { requested: false, cleanupRequested: allowCleanup };
+    const state = { requested: false, cleanupCandidates };
     pending.set(key, state);
     // Start after the current Zotero notifier dispatch has returned.
     setTimeout(() => {
@@ -118,7 +146,7 @@ export function registerAutoTodoTagger({
 
   const observerId = Zotero.Notifier.registerObserver({
     notify(event, type, ids, extraData) {
-      if (!active || !isEnabled() || type !== "item" ||
+      if (!active || (!isEnabled() && !isCleanupEnabled()) || type !== "item" ||
           (event !== "add" && event !== "modify")) {
         return;
       }
@@ -128,8 +156,12 @@ export function registerAutoTodoTagger({
           continue;
         }
         const previousComment = extraData?.[String(id)]?.changed?.annotationComment;
-        schedule(id, event === "modify" &&
-          typeof previousComment === "string" && hasTodoDirective(previousComment));
+        const cleanupCandidates = event === "modify" && typeof previousComment === "string"
+          ? getTodoDirectiveTags(previousComment)
+          : new Set<string>();
+        if (isEnabled() || (isCleanupEnabled() && cleanupCandidates.size > 0)) {
+          schedule(id, cleanupCandidates);
+        }
       }
     }
   }, ["item"], "annotation-markdown-auto-todo-tag");

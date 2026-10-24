@@ -27,8 +27,21 @@ export const OUTLINE_EXPANDED_PREF_KEY = "extensions.annotationMarkdown.outlineE
 export const OUTLINE_FONT_SCALE_PERCENT_PREF_KEY = "extensions.annotationMarkdown.outlineFontScalePercent";
 export const AUTO_TODO_TAG_PREF_KEY = "extensions.annotationMarkdown.autoTodoTag";
 export const AUTO_TODO_CLEANUP_PREF_KEY = "extensions.annotationMarkdown.autoTodoCleanup";
+export const AUTO_TODO_PREFERENCES_VERSION_KEY = "extensions.annotationMarkdown.autoTodoPreferencesVersion";
 export const RENDER_STRATEGIES = ["auto", "eager", "lazy"] as const;
 export type RenderStrategy = (typeof RENDER_STRATEGIES)[number];
+
+/** Preserve effective legacy behavior before enabling independent cleanup. */
+export function migrateAutoTodoPreferences(prefs?: PreferenceStore): void {
+  if (!prefs?.get || !prefs.set) return;
+  const version = prefs.get(AUTO_TODO_PREFERENCES_VERSION_KEY, 0);
+  if (typeof version === "number" && version >= 1) return;
+  if (prefs.get(AUTO_TODO_TAG_PREF_KEY, false) !== true &&
+      prefs.get(AUTO_TODO_CLEANUP_PREF_KEY, false) === true) {
+    prefs.set(AUTO_TODO_CLEANUP_PREF_KEY, false);
+  }
+  prefs.set(AUTO_TODO_PREFERENCES_VERSION_KEY, 1);
+}
 
 /** Settings consumed by rendering and preference UI integration. */
 export interface Settings {

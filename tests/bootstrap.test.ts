@@ -72,7 +72,7 @@ describe("bootstrap", () => {
           }
         },
         createDiagnostics: () => ({ append: (line: string) => diagnosticLines.push(line) }),
-        readStyleTextFromURI: () => ""
+        ZoteroAnnotationMarkdownStyleText: ""
       });
       runningBootstraps.push(bootstrap);
       return bootstrap;
@@ -125,6 +125,30 @@ describe("bootstrap", () => {
     expect(source).toContain("icons/annotation-markdown.svg");
     expect(source).toContain("preferences.js");
     expect(source).toContain("preferences.css");
+  });
+
+  test("starts and registers settings when synchronous XHR is unavailable on restart", async () => {
+    const bootstrap = await loadBootstrapScript();
+    const instance = { startup: vi.fn(async () => []), shutdown: vi.fn() };
+    const createPlugin = vi.fn(() => instance);
+    const register = vi.fn(() => "pane");
+    const XMLHttpRequest = vi.fn(() => { throw new Error("NS_ERROR_ILLEGAL_DURING_SHUTDOWN"); });
+    Object.assign(bootstrap, {
+      Zotero: { PreferencePanes: { register, unregister: vi.fn() } },
+      Services: { scriptloader: { loadSubScript() {} } },
+      ZoteroAnnotationMarkdown: { createPlugin },
+      ZoteroAnnotationMarkdownStyleText: ".preview{font-family:测试;src:url(fonts/fallback.woff)}",
+      XMLHttpRequest,
+      createDiagnostics: () => ({ append() {} })
+    });
+    runningBootstraps.push(bootstrap);
+    bootstrap.startup({ rootURI: "jar:file:///profile/extensions/addon.xpi!/" }, 1);
+    expect(XMLHttpRequest).not.toHaveBeenCalled();
+    expect(createPlugin).toHaveBeenCalledWith(expect.objectContaining({
+      styleText: ".preview{font-family:测试;src:url(jar:file:///profile/extensions/addon.xpi!/styles/fonts/fallback.woff)}"
+    }));
+    expect(instance.startup).toHaveBeenCalledTimes(1);
+    expect(register).toHaveBeenCalledTimes(1);
   });
 
   test("rewrites KaTeX font URLs to plugin resource URLs before injecting styles", async () => {

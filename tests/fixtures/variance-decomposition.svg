@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="900" height="345" viewBox="0 0 900 345">
+  <rect width="900" height="345" rx="14"
+        fill="#ffffff" stroke="#e5e7eb"/>
+
+  <text x="35" y="46" font-size="21"
+        font-weight="600" fill="#111827">
+    一道题目的总方差 = 100%
+  </text>
+
+  <!-- 方差比例条：65% + 20% + 15% -->
+  <defs>
+    <clipPath id="variance-bar">
+      <rect x="35" y="75" width="830" height="65" rx="11"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#variance-bar)">
+    <!-- 全局因子 65% -->
+    <rect x="35" y="75" width="539.5" height="65"
+          fill="#2563eb"/>
+
+    <!-- 局部因子 20% -->
+    <rect x="574.5" y="75" width="166" height="65"
+          fill="#0d9488"/>
+
+    <!-- 独特变异 15% -->
+    <rect x="740.5" y="75" width="124.5" height="65"
+          fill="#94a3b8"/>
+
+    <path d="M574.5 75 V140 M740.5 75 V140"
+          stroke="#ffffff" stroke-width="2"/>
+  </g>
+
+  <!-- 比例 -->
+  <g font-size="23" font-weight="600"
+     text-anchor="middle" fill="#ffffff">
+    <text x="304.75" y="115">65%</text>
+    <text x="657.5" y="115">20%</text>
+    <text x="802.75" y="115">15%</text>
+  </g>
+
+  <!-- 图例 -->
+  <g font-size="17" fill="#1f2937">
+    <rect x="35" y="169" width="18" height="18"
+          rx="4" fill="#2563eb"/>
+    <text x="63" y="185">全局因子 65%</text>
+
+    <rect x="255" y="169" width="18" height="18"
+          rx="4" fill="#0d9488"/>
+    <text x="283" y="185">局部因子 20%</text>
+
+    <rect x="475" y="169" width="18" height="18"
+          rx="4" fill="#94a3b8"/>
+    <text x="503" y="185">独特变异 15%</text>
+  </g>
+
+  <line x1="35" y1="213" x2="865" y2="213"
+        stroke="#e5e7eb"/>
+
+  <!-- 解释 -->
+  <g font-size="17" fill="#334155">
+    <text x="35" y="250">
+      如果只考虑全局因子，就剩下 35% 没有得到解释。
+    </text>
+    <text x="35" y="281">
+      其中 20% 是局部因子还能解释的共同变异，
+    </text>
+    <text x="35" y="312">
+      15% 才是最终的独特变异。
+    </text>
+  </g>
+
+  <text x="865" y="331" text-anchor="end"
+        font-size="12" fill="#94a3b8">
+    假想数据，仅用于说明方差分解
+  </text>
+</svg>

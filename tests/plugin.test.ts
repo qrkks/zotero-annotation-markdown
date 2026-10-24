@@ -3,6 +3,31 @@ import { createPlugin } from "../src/plugin.ts";
 import { fixtureRect, queryElement, requireElement, requireValue } from "./helpers/dom.ts";
 
 describe("createPlugin", () => {
+  test("migrates dormant legacy cleanup before observing annotation saves", async () => {
+    const values = new Map<string, boolean | number | string>([
+      ["extensions.annotationMarkdown.autoTodoTag", false],
+      ["extensions.annotationMarkdown.autoTodoCleanup", true]
+    ]);
+    const set = vi.fn((key: string, value: boolean | number | string, global: boolean) => {
+      expect(global).toBe(true);
+      values.set(key, value);
+    });
+    const plugin = createPlugin({ Zotero: {
+      Prefs: { get: (key, global) => global ? values.get(key) : undefined, set },
+      Notifier: {
+        registerObserver: vi.fn(() => {
+          expect(values.get("extensions.annotationMarkdown.autoTodoCleanup")).toBe(false);
+          return "todo-observer";
+        }),
+        unregisterObserver: vi.fn()
+      }
+    }, registryFactory: () => ({ register: vi.fn(), shutdown: vi.fn() }) });
+    await plugin.startup();
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoCleanup", false, true);
+    expect(set).toHaveBeenCalledWith("extensions.annotationMarkdown.autoTodoPreferencesVersion", 1, true);
+    plugin.shutdown();
+  });
+
   test("registers and removes the saved-annotation todo observer", async () => {
     const unregisterObserver = vi.fn();
     const Zotero = {

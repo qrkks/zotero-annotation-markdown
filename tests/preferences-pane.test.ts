@@ -88,7 +88,7 @@ describe("preferences pane", () => {
     expect(Zotero.Prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
   });
 
-  test("syncs todo cleanup availability from external parent changes without resetting its choice", async () => {
+  test("keeps todo cleanup available independently of automatic adding", async () => {
     const set = vi.fn();
     const preferences = await loadPreferencesScript({ Prefs: {
       get: (key, global) => global && key === "extensions.annotationMarkdown.autoTodoCleanup" ? true : undefined,
@@ -103,7 +103,10 @@ describe("preferences pane", () => {
     const cleanup = requireValue(controls.get("annotation-markdown-auto-todo-cleanup"));
     expect(parent.checked).toBe(false);
     expect(cleanup.checked).toBe(true);
-    expect(cleanup.disabled).toBe(true);
+    expect(cleanup.disabled).toBe(false);
+    cleanup.dispatch("command");
+    expect(set).toHaveBeenCalledExactlyOnceWith("extensions.annotationMarkdown.autoTodoCleanup", true, true);
+    set.mockClear();
 
     parent.checked = true;
     parent.dispatch("syncfrompreference");
@@ -113,8 +116,8 @@ describe("preferences pane", () => {
 
     parent.checked = false;
     parent.dispatch("syncfrompreference");
-    expect(cleanup.disabled).toBe(true);
-    expect(cleanup.getAttribute("disabled")).toBe("true");
+    expect(cleanup.disabled).toBe(false);
+    expect(cleanup.getAttribute("disabled")).toBeNull();
     expect(cleanup.checked).toBe(true);
     expect(set).not.toHaveBeenCalled();
   });
@@ -432,7 +435,7 @@ describe("preferences pane", () => {
     expect(outlineFontScaleSelect.value).toBe("100");
     expect(autoTodoTagInput.checked).toBe(false);
     expect(autoTodoCleanupInput.checked).toBe(false);
-    expect(autoTodoCleanupInput.disabled).toBe(true);
+    expect(autoTodoCleanupInput.disabled).toBe(false);
     expect(renderStrategySelect.value).toBe("auto");
     expect(nativeRowLazyInput.checked).toBe(false);
   });

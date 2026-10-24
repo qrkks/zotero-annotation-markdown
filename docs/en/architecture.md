@@ -211,7 +211,7 @@ Host-specific Zotero shapes should stay close to the boundary that consumes them
 | `addon/styles/annotation-markdown.css` | Reader preview, folding, editing, link, code, and content-visibility styles, including selected-row scroll margins and preference-gated Weavero link-color variables. |
 | `addon/icons/annotation-markdown.svg` | Add-on and preference-pane icon. |
 
-The bootstrap and default-preference declarations remain JavaScript because Zotero executes them directly. The build bundles `src/plugin.ts` into `dist/addon/plugin.js` and `src/preferences.ts` separately into `dist/addon/preferences.js`. The latter keeps the global `Zotero.AnnotationMarkdownPreferences.init(document)` interface used by the pane markup.
+The bootstrap and default-preference declarations remain JavaScript because Zotero executes them directly. The build bundles `src/plugin.ts` into `dist/addon/plugin.js`, including the prepared CSS as `ZoteroAnnotationMarkdownStyleText`, so bootstrap does not need synchronous XMLHttpRequest to load styles during application startup. Font fallback URLs are resolved against the add-on root URI. It bundles `src/preferences.ts` separately into `dist/addon/preferences.js`, keeping the global `Zotero.AnnotationMarkdownPreferences.init(document)` interface used by the pane markup.
 
 ## Build and maintenance scripts
 

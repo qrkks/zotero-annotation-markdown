@@ -74,7 +74,7 @@ Mermaid rendering is experimental and off by default. Enable **Render Mermaid di
 
 - **Floating outline:** navigate headings with adjustable outline text size and optional hierarchical numbers. Image sections show `IMG`, `SVG`, `MERMAID`, or their combinations with separate counts on hover; matching page and sidebar labels report annotation totals. Smart numbering skips any sibling group containing an already-numbered heading, along with its descendants.
 - **Fast source editing:** edit original Markdown with a [fast comment editor](docs/en/user-guide.md#why-the-replacement-editor-can-be-faster), with a native-editor fallback when unavailable.
-- **Todo tags:** optionally add `todo` tags from `todo:` or `t:` lines in saved comments.
+- **Todo tags:** manage `todo` tags from `todo:` or `t:` lines in saved comments; `t/paper/method:` adds both `todo` and `todo/paper/method`, with independent automatic adding and cleanup options.
 - **Tag-filter acceleration (Experimental):** accelerate clearing tag filters in very large annotation lists when the Reader passes compatibility checks. Off by default, with native fallback otherwise.
 
 ### Settings and compatibility
