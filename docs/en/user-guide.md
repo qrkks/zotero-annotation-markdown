@@ -15,6 +15,8 @@
 
 ### Image links
 
+**Automatically preview image links** in **Reader Annotations** is on by default. Turn it off to restore ordinary links in sidebar and page-popup previews and stop their automatic preview requests. Open Readers update immediately, including their **IMG** labels and outline counts. Explicit Markdown images such as `![description](https://example.org/photo.jpg)` and Google source icons keep their existing behavior. The saved Markdown remains unchanged.
+
 A paragraph consisting only of a Markdown link, reference-style link, or bare URL previews the image when its HTTP(S) path ends in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.avif`, or `.bmp`. HTTPS links under `images.openai.com/static-rsc/` and versioned paths such as `/static-rsc-4/` are also recognized without a file extension. Sentence links, headings, tight list items, code examples, and other web links keep their normal layout.
 
 Images load lazily and fit the annotation preview width. Click a loaded image, or focus its preview link and press Enter or Space, to open the larger-image viewer shared with SVG and Mermaid. It fits the image to the available space and provides **− / +**, **Fit**, wheel zoom and drag panning. Close it with **Close**, Escape or the backdrop; keyboard focus returns to the preview link. Normal scrolling over the sidebar image still scrolls the annotation. Image viewing works independently of the SVG and Mermaid switches and reuses the loaded preview data.
@@ -22,6 +24,8 @@ Images load lazily and fit the annotation preview width. Click a loaded image, o
 The original link and its formatted caption remain below the image; choosing the caption opens the original URL through the existing link handler. If the image cannot load, only its caption link remains. This applies to sidebar and page-popup Markdown previews without changing the stored Markdown. Explicit `![description](https://example.org/photo.jpg)` images keep their existing behavior.
 
 Image data is fetched when a preview approaches the viewport and kept only in a bounded memory cache; repeated links reuse it and no attachment is created. Responses must be a supported raster image up to 8 MiB, with a 15-second request timeout. Unsupported or unavailable responses keep their original caption link.
+
+Each Reader starts at most four distinct preview requests at a time. Unloading cancels active requests and drops queued work. Automatic image and source-icon previews use anonymous requests without Zotero's ambient cookies; images that require a logged-in session may retain their caption link instead.
 
 Standalone Google source-icon links under `https://www.google.com/s2/favicons` or `https://google.com/s2/favicons`, with a valid `domain` or `domain_url` parameter, appear as 16-pixel favicon links. A following short plain-text site name (up to 100 characters, with optional bold or emphasis) is shown on the same line; headings, multiline prose, sentences ending in punctuation, and other links remain separate. Icons load lazily through the same bounded host cache. If fetching or decoding fails, the original link text remains available alongside the site name. The stored Markdown is unchanged. These source icons do not contribute to annotation or section image counts.
 
@@ -116,6 +120,7 @@ The available settings control:
 - using the fast comment editor, enabled by default with Zotero's native editor available as a fallback;
 - LaTeX math rendering;
 - math rendering output: standard rendering by default, or optional native MathML;
+- automatically previewing standalone image links while keeping the original link, enabled by default;
 - showing a floating outline for annotations with multiple headings, enabled by default;
 - supplementing eligible outline heading groups with hierarchical numbers, disabled by default;
 - respecting existing heading numbers with a nested smart setting, enabled by default when heading numbers are shown;
@@ -143,6 +148,10 @@ Settings are saved automatically. Markdown preview font size is in **Reader Anno
 ## Preview and editing states
 
 When an annotation is not being edited, its comment is shown as a rendered preview. Selecting a sidebar comment opens the faster source editor by default; changes save when focus leaves the editor or when Escape is pressed. Disable **Use the fast annotation comment editor** to restore Zotero's native sidebar editing path. Collapsed sidebar annotations retain Zotero's compact presentation.
+
+Reloading or disabling the add-on, or switching off all Markdown rendering, also attempts to save the fast-editor draft before cleanup. If saving fails, the textarea and an unsaved-status message remain available. Press Escape to retry, or copy the draft before closing the Reader. Unsaved text is not treated as committed content.
+
+If Zotero replaces the edited row before a save fails, the unsaved draft appears in a small recovery editor. Retry saving or copy the draft before closing the Reader.
 
 Enable **Render page annotation popups as Markdown** to render page annotation popup comments as Markdown. It is an independent option and is off by default. When disabled, popup sizing, positioning, display, and preview rendering remain fully native. Fast editing follows **Use the fast annotation comment editor** independently: a newly opened empty popup enters the fast textarea after Zotero's layout settles, while clicking existing popup content enters it on demand. The textarea saves once on blur or Escape; disabling fast editing or lacking Reader update capability keeps Zotero's native popup editor. When Markdown popup rendering is enabled, popups use a stable wider width that shrinks for narrow Reader windows, and the preview adds comfortable inner spacing. Long comments scroll within a viewport-bounded area instead of being clipped; dragging or clicking that scrollbar keeps the preview open. The popup stays transparent until the current annotation preview has rendered and its geometry is stable. On initial opening and annotation switches, it waits for the new content and positions the final popup size at the current annotation, avoiding a later jump after expensive formula rendering. Empty comments that automatically enter the fast editor also wait for the textarea size to settle before appearing.
 

@@ -58,6 +58,144 @@ describe("createPlugin", () => {
     );
   });
 
+  test("reconciles only genuine close notifications after Zotero updates its Reader roster", async () => {
+    const first = { itemID: 1, document }, second = { itemID: 1, document };
+    const readers = [first, second];
+    let notify: ((event: string, type: string, ids: Array<number | string>) => void) | undefined;
+    const reconcile = vi.fn();
+    const unregisterObserver = vi.fn();
+    const plugin = createPlugin({
+      Zotero: {
+        Reader: { getOpenReaders: () => readers },
+        Notifier: {
+          registerObserver: vi.fn((observer, types, id) => {
+            expect(types).toEqual(["file", "tab"]);
+            expect(id).toBe("annotation-markdown-reader-lifecycle");
+            notify = observer.notify;
+            return "reader-lifecycle";
+          }),
+          unregisterObserver
+        }
+      },
+      registryFactory: () => ({ register: vi.fn(), reconcile, shutdown: vi.fn() })
+    });
+    await plugin.startup();
+
+    notify!("select", "tab", ["tab-1"]);
+    notify!("modify", "file", [1]);
+    await Promise.resolve();
+    expect(reconcile).not.toHaveBeenCalled();
+
+    // Reader.uninit emits close/file before the host removes its roster entry.
+    notify!("close", "file", [1]);
+    expect(reconcile).not.toHaveBeenCalled();
+    readers.shift();
+    await Promise.resolve();
+    expect(reconcile).toHaveBeenCalledExactlyOnceWith([second]);
+    plugin.shutdown();
+    expect(unregisterObserver).toHaveBeenCalledExactlyOnceWith("reader-lifecycle");
+  });
+
+  test("does not invent an empty Reader roster when enumeration is unavailable", async () => {
+    const reconcile = vi.fn();
+    const registerObserver = vi.fn();
+    const plugin = createPlugin({
+      Zotero: { Notifier: { registerObserver, unregisterObserver: vi.fn() } },
+      registryFactory: () => ({ register: vi.fn(), reconcile, shutdown: vi.fn() })
+    });
+    await plugin.startup();
+    expect(registerObserver).not.toHaveBeenCalled();
+    expect(reconcile).not.toHaveBeenCalled();
+    plugin.shutdown();
+  });
+
+  test("closing one Reader restores its source while another Reader of the same item stays rendered", async () => {
+    const makeDocument = () => {
+      const doc = document.implementation.createHTMLDocument();
+      doc.body.innerHTML = '<div class="annotation selected" data-sidebar-annotation-id="a1"><div class="comment"><div class="content">**source**</div></div></div>';
+      return doc;
+    };
+    const first = { document: makeDocument(), itemID: 1 };
+    const second = { document: makeDocument(), itemID: 1 };
+    const readers = [first, second];
+    let notify: ((event: string, type: string, ids: Array<number | string>) => void) | undefined;
+    const plugin = createPlugin({
+      Zotero: {
+        Reader: { _readers: readers },
+        Notifier: {
+          registerObserver: observer => { notify = observer.notify; return "reader-lifecycle"; },
+          unregisterObserver: vi.fn()
+        }
+      },
+      logger: { log: vi.fn(), warn: vi.fn() }
+    });
+    await plugin.startup();
+    const remainingPreview = queryElement(second.document, "[data-annotation-markdown-preview]");
+    expect(first.document.querySelector("[data-annotation-markdown-preview]")).not.toBeNull();
+
+    notify!("close", "file", [1]);
+    readers.shift();
+    await Promise.resolve();
+
+    expect(first.document.querySelector("[data-annotation-markdown-preview]")).toBeNull();
+    expect(queryElement(first.document, ".content", HTMLElement).hidden).toBe(false);
+    expect(second.document.querySelector("[data-annotation-markdown-preview]")).toBe(remainingPreview);
+    plugin.shutdown();
+  });
+
+  test("ignores a queued close reconciliation after shutdown and isolates observer cleanup failures", async () => {
+    let notify: ((event: string, type: string, ids: Array<number | string>) => void) | undefined;
+    const reconcile = vi.fn(), shutdown = vi.fn();
+    const warn = vi.fn();
+    const plugin = createPlugin({
+      Zotero: {
+        Reader: { _readers: [] },
+        Notifier: {
+          registerObserver: observer => { notify = observer.notify; return "reader-lifecycle"; },
+          unregisterObserver: () => { throw new Error("notifier already destroyed"); }
+        }
+      },
+      logger: { log: vi.fn(), warn },
+      registryFactory: () => ({ register: vi.fn(), reconcile, shutdown })
+    });
+    await plugin.startup();
+    notify!("close", "tab", ["tab-1"]);
+    expect(() => plugin.shutdown()).not.toThrow();
+    await Promise.resolve();
+    expect(reconcile).not.toHaveBeenCalled();
+    expect(shutdown).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("lifecycle observer"), expect.any(Error));
+  });
+
+  test("does not create DOM integrations when a Reader closes before readiness settles", async () => {
+    let resolveReader: (() => void) | undefined;
+    let notify: ((event: string, type: string, ids: Array<number | string>) => void) | undefined;
+    const readDocument = vi.fn(() => document);
+    const reader = {
+      get document() { return readDocument(); },
+      _waitForReader: () => new Promise<void>(resolve => { resolveReader = resolve; })
+    };
+    const readers = [reader];
+    const plugin = createPlugin({
+      Zotero: {
+        Reader: { _readers: readers },
+        Notifier: {
+          registerObserver: observer => { notify = observer.notify; return "reader-lifecycle"; },
+          unregisterObserver: vi.fn()
+        }
+      },
+      logger: { log: vi.fn(), warn: vi.fn() }
+    });
+    const startup = plugin.startup();
+    notify!("close", "file", [1]);
+    readers.pop();
+    await Promise.resolve();
+    resolveReader!();
+    await startup;
+    expect(readDocument).not.toHaveBeenCalled();
+    plugin.shutdown();
+  });
+
   test("startup logs reader integration diagnostics", () => {
     const log = vi.fn();
     const Zotero = {
@@ -854,6 +992,12 @@ describe("createPlugin", () => {
     observers.get("extensions.annotationMarkdown.mermaidEnabled")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
+    expect(Zotero.Prefs.registerObserver).toHaveBeenCalledWith(
+      "extensions.annotationMarkdown.linkedImagePreviewEnabled", expect.any(Function), true
+    );
+    observers.get("extensions.annotationMarkdown.linkedImagePreviewEnabled")();
+    expect(refresh).toHaveBeenCalled();
+    refresh.mockClear();
     observers.get("extensions.annotationMarkdown.renderStrategy")();
     expect(refresh).toHaveBeenCalled();
     refresh.mockClear();
@@ -886,6 +1030,9 @@ describe("createPlugin", () => {
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.mermaidEnabled"
+    );
+    expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
+      "observer:extensions.annotationMarkdown.linkedImagePreviewEnabled"
     );
     expect(Zotero.Prefs.unregisterObserver).toHaveBeenCalledWith(
       "observer:extensions.annotationMarkdown.renderStrategy"
@@ -1095,6 +1242,24 @@ describe("createPlugin", () => {
 
     expect(() => plugin.shutdown()).not.toThrow();
     expect(Zotero.Reader.unregisterEventListener).toHaveBeenCalledWith("renderToolbar", expect.any(Function));
+    expect(shutdown).toHaveBeenCalledOnce();
+  });
+
+  test("shutdown releases every preference observer and the registry when one preference cleanup throws", async () => {
+    const shutdown = vi.fn(), unregisterObserver = vi.fn((id: unknown) => {
+      if (id === "extensions.annotationMarkdown.enabled") throw new Error("dead preference observer");
+    });
+    const registerObserver = vi.fn((key: string) => key);
+    const plugin = createPlugin({
+      Zotero: { Prefs: { registerObserver, unregisterObserver } },
+      registryFactory: () => ({ register: vi.fn(), shutdown }),
+      logger: { log: vi.fn(), warn: vi.fn() }
+    });
+    await plugin.startup();
+
+    expect(() => plugin.shutdown()).not.toThrow();
+
+    expect(unregisterObserver).toHaveBeenCalledTimes(registerObserver.mock.calls.length);
     expect(shutdown).toHaveBeenCalledOnce();
   });
 });

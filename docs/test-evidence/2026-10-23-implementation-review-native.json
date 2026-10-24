@@ -1,0 +1,200 @@
+{
+  "date": "2026-10-23",
+  "version": "10.0.6",
+  "gecko": "140",
+  "installedXpiSha256": "aa4f3d761b2529482fa347cb66aeb65a734338aa64e4ac9b86f2f57d5054b3ed",
+  "checks": [
+    {
+      "name": "installed-runtime-shutdown-saves-draft",
+      "passed": true,
+      "saved": true,
+      "editorRemoved": true
+    },
+    {
+      "name": "native-network-primitives",
+      "passed": true,
+      "result": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "four concurrent native-realm loads, queue dedupe and cached reuse",
+            "pass": true,
+            "details": {
+              "maximumConcurrent": 4,
+              "distinctRequests": 7,
+              "previews": 8,
+              "nativeAbortSignal": true,
+              "cachedReuse": true
+            }
+          },
+          {
+            "name": "anonymous HTTP options and native signal cancel in-flight XHRs while dropping queued work",
+            "pass": true,
+            "details": {
+              "requestsStarted": 4,
+              "requestsCancelled": 4,
+              "queuedDropped": 3,
+              "anonymous": true,
+              "actualNetworkRequests": 0
+            }
+          },
+          {
+            "name": "immediate shutdown prevents deferred starts",
+            "pass": true,
+            "details": {
+              "requestsStarted": 0
+            }
+          },
+          {
+            "name": "native signal listeners are released after successful mocked HTTP",
+            "pass": true,
+            "details": {
+              "successfulRequests": 1,
+              "cancellationAfterCompletion": 0,
+              "preAbortedSkipped": true
+            }
+          }
+        ],
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Zotero/10.0.6",
+        "actualNetworkRequests": 0,
+        "libraryWrites": 0
+      }
+    },
+    {
+      "name": "native-lifecycle-primitives",
+      "passed": true,
+      "result": {
+        "ok": true,
+        "environment": {
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Zotero/10.0.6",
+          "nativeDocument": "HTMLDocument"
+        },
+        "scope": "Detached native scratch documents and mock host roster/notifier; no Zotero library or real Reader changes",
+        "tests": [
+          {
+            "name": "rejected startup cleans partial resources and retries",
+            "ok": true,
+            "details": {
+              "starts": 2,
+              "failedStops": 1,
+              "healthyStops": 1
+            }
+          },
+          {
+            "name": "late failure cannot remove a newer registration",
+            "ok": true,
+            "details": {
+              "creations": 2,
+              "oldStops": 1,
+              "newStops": 1,
+              "refreshes": 1
+            }
+          },
+          {
+            "name": "closed pending Reader cancels once and cannot revive",
+            "ok": true,
+            "details": {
+              "starts": 1,
+              "cancellations": 1,
+              "stops": 1
+            }
+          },
+          {
+            "name": "production plugin reconciles native scratch Readers by identity",
+            "ok": true,
+            "details": {
+              "closedSourceRestored": true,
+              "sameItemReaderPreserved": true,
+              "staleEventIgnored": true,
+              "afterShutdown": {
+                "notifierObservers": 0,
+                "readerListeners": 0,
+                "preferenceObservers": 0
+              }
+            }
+          },
+          {
+            "name": "production plugin cancels closed Reader before DOM readiness",
+            "ok": true,
+            "details": {
+              "documentReads": 0
+            }
+          }
+        ],
+        "warnings": []
+      }
+    },
+    {
+      "name": "installed-runtime-failed-save-retains-draft",
+      "passed": true,
+      "retained": true,
+      "status": true
+    },
+    {
+      "name": "installed-plugin-reload-failed-draft-retry",
+      "passed": true,
+      "saved": true,
+      "editorRemoved": true,
+      "storedWasUnchanged": true
+    },
+    {
+      "name": "actual-duplicate-reader-close",
+      "passed": true,
+      "originalPresent": true,
+      "temporaryRemoved": true,
+      "originalPreviewUnchanged": true,
+      "temporaryStyleRemoved": true,
+      "closedDocumentUnavailable": false,
+      "events": [
+        {
+          "phase": "sync",
+          "type": "tab",
+          "originalPresent": true,
+          "temporaryPresent": false,
+          "count": 1
+        },
+        {
+          "phase": "microtask",
+          "type": "tab",
+          "originalPresent": true,
+          "temporaryPresent": false,
+          "count": 1
+        },
+        {
+          "phase": "sync",
+          "type": "file",
+          "originalPresent": true,
+          "temporaryPresent": false,
+          "count": 1
+        },
+        {
+          "phase": "microtask",
+          "type": "file",
+          "originalPresent": true,
+          "temporaryPresent": false,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "actual-late-sidebar-native-row-probe",
+      "passed": true,
+      "waitedMs": 136684,
+      "rowsBefore": 0,
+      "activeBefore": false,
+      "rowsAfter": 19,
+      "activeAfter": true
+    }
+  ],
+  "restoration": {
+    "annotationsUnchanged": 19,
+    "totalAnnotations": 19,
+    "changedAnnotationCount": 0,
+    "prefMismatches": [],
+    "readerCount": 1,
+    "originalReaderPreserved": true,
+    "editorCount": 0,
+    "scratchCount": 0
+  },
+  "scope": "Installed-XPI Reader checks plus explicitly labeled native-realm mock HTTP/lifecycle tests. No full-process restart, heap profile, physical-input or remote-image HTTP claim."
+}

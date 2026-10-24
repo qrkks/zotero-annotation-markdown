@@ -138,7 +138,7 @@ test("defers small icon requests until visible, including wrapped Gecko targets"
     requireValue(intersect)([{ target: new Proxy(requireValue(link), {}), isIntersecting: true }]);
     await vi.waitFor(() => expect(queryElement(root, "img", HTMLImageElement).getAttribute("src")).toBe("data:image/png;base64,AQID"));
     expect(unobserve).toHaveBeenCalledWith(link);
-    expect(load).toHaveBeenCalledExactlyOnceWith(favicon);
+    expect(load).toHaveBeenCalledExactlyOnceWith(favicon, expect.any(AbortSignal));
   } finally { loader.stop(); }
 });
 

@@ -1,0 +1,157 @@
+{
+  "date": "2026-10-24",
+  "pluginVersion": "0.16.2",
+  "host": {
+    "zotero": "10.0.6",
+    "gecko": "140"
+  },
+  "preference": "extensions.annotationMarkdown.linkedImagePreviewEnabled",
+  "defaultEnabled": true,
+  "checks": [
+    {
+      "name": "default-on-in-installed-reader",
+      "passed": true,
+      "state": {
+        "pref": true,
+        "inferred": 1,
+        "explicit": 1,
+        "inferredLoaded": false,
+        "storedSourceMatches": true,
+        "badge": "This annotation contains 2 images",
+        "outlineImageBadges": 2,
+        "requests": [
+          {
+            "method": "GET",
+            "anonymous": true,
+            "cancelled": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "native-preference-control",
+      "passed": true,
+      "localName": "checkbox",
+      "label": "Automatically preview image links",
+      "checked": true
+    },
+    {
+      "name": "native-checkbox-disables-preview-and-cancels-request",
+      "passed": true,
+      "state": {
+        "pref": false,
+        "inferred": 0,
+        "explicit": 1,
+        "inferredLoaded": false,
+        "storedSourceMatches": true,
+        "badge": "This annotation contains 1 image",
+        "outlineImageBadges": 1,
+        "requests": [
+          {
+            "method": "GET",
+            "anonymous": true,
+            "cancelled": true
+          }
+        ],
+        "sourceDomUnchanged": true
+      }
+    },
+    {
+      "name": "native-checkbox-reenables-preview-and-refreshes-counts",
+      "passed": true,
+      "state": {
+        "pref": true,
+        "inferred": 1,
+        "explicit": 1,
+        "inferredLoaded": true,
+        "storedSourceMatches": true,
+        "badge": "This annotation contains 2 images",
+        "outlineImageBadges": 2,
+        "requests": [
+          {
+            "method": "GET",
+            "anonymous": true,
+            "cancelled": true
+          },
+          {
+            "method": "GET",
+            "anonymous": true,
+            "cancelled": false
+          }
+        ],
+        "sourceDomUnchanged": true
+      }
+    },
+    {
+      "name": "disabled-preference-survives-full-plugin-reload",
+      "passed": true,
+      "state": {
+        "pref": false,
+        "inferred": 0,
+        "explicit": 1,
+        "inferredLoaded": false,
+        "storedSourceMatches": true,
+        "badge": "This annotation contains 1 image",
+        "outlineImageBadges": 1,
+        "requests": [
+          {
+            "method": "GET",
+            "anonymous": true,
+            "cancelled": true
+          },
+          {
+            "method": "GET",
+            "anonymous": true,
+            "cancelled": false
+          }
+        ],
+        "sourceDomUnchanged": true
+      }
+    }
+  ],
+  "restoration": {
+    "totalAnnotations": 19,
+    "changedAnnotations": 0,
+    "persistedChangedAnnotations": 0,
+    "prefUserValueRestored": true,
+    "defaultEnabled": true,
+    "originalReaderPreserved": true,
+    "readerCount": 1,
+    "httpRestored": true,
+    "preferenceWindowClosed": true,
+    "editorCount": 0,
+    "persistedMatchedAnnotations": 19,
+    "inMemoryOnlyAnnotations": 0,
+    "qaRemoved": true
+  },
+  "network": {
+    "mockedHTTP": true,
+    "hostRequestCalls": 2,
+    "actualRemoteRequests": 0
+  },
+  "scope": "Installed-XPI checks in the real Dev Reader and native XUL preferences, using programmatic commands and a mocked HTTP response. Plugin reload tested; physical input, full-process restart and remote HTTP compatibility are outside this run.",
+  "automated": {
+    "testFiles": 49,
+    "tests": 1267,
+    "verifyPassed": true,
+    "localReleaseVerifyPassed": true
+  },
+  "localXpi": {
+    "bytes": 1344900,
+    "sha256": "2f719f2e1bbb92f86483fd41db4892a2a6731a9e6502d47fd727bddc8d55e90c",
+    "sourceSha256": "3c12f52496068334b3e23ba9e63730b4bd8e314f4c8f8f403503db50955366b9",
+    "installedHashMatched": true
+  },
+  "layoutFollowUp": {
+    "order": ["svgEnabled", "mermaidEnabled", "linkedImagePreviewEnabled"],
+    "nativePaneVerified": true,
+    "descriptionsFollowControls": true,
+    "preferencePreserved": true,
+    "focusedTestsPassed": 33,
+    "localPackageVerificationPassed": true,
+    "bytes": 1344900,
+    "sha256": "2f719f2e1bbb92f86483fd41db4892a2a6731a9e6502d47fd727bddc8d55e90c",
+    "sourceSha256": "3c12f52496068334b3e23ba9e63730b4bd8e314f4c8f8f403503db50955366b9",
+    "installedHashMatched": true
+  }
+}

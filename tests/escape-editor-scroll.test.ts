@@ -7,6 +7,7 @@ import { fixtureRect, queryElement, requireElement, requireValue } from "./helpe
 
 let controller: ReaderController | undefined;
 let frames: Map<number, FrameRequestCallback> | undefined;
+let allowFixtureSave: (() => void) | undefined;
 beforeEach(() => {
   vi.useFakeTimers();
   frames = new Map();
@@ -17,7 +18,10 @@ beforeEach(() => {
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(id => requireValue(frames).delete(id));
 });
 afterEach(() => {
+  allowFixtureSave?.();
   controller?.stop();
+  controller = undefined;
+  allowFixtureSave = undefined;
   vi.restoreAllMocks(); vi.useRealTimers();
   document.body.innerHTML = "";
 });
@@ -42,6 +46,7 @@ async function setup({ saved = true, top = -100, height = 800 } = {}) {
   scroller.scrollTo = vi.fn();
   let enabled = true;
   const commitComment = vi.fn(() => saved);
+  allowFixtureSave = () => { commitComment.mockReturnValue(true); };
   const adapter = createAnnotationSidebarAdapter({document, isFastEditorEnabled:()=>true, commitComment});
   controller = createReaderController({reader:{document},adapter,renderer:{render:s=>`<p>${s}</p>`},
     settings:createSettingsStub({isEnabled:()=>enabled}),MutationObserver:window.MutationObserver,IntersectionObserver:missingIntersectionObserver});

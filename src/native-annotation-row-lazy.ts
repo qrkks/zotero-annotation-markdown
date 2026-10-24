@@ -24,6 +24,8 @@ interface ReaderPageWindow {
 
 interface CreateNativeAnnotationRowLazyControllerOptions {
   getPageWindow(): unknown;
+  document?: Document;
+  MutationObserver?: typeof MutationObserver;
   hostVersion?: string;
   isEnabled(): boolean;
   logger?: Logger;
@@ -39,6 +41,8 @@ const MAX_TRANSIENT_RETRIES = 20;
 
 export function createNativeAnnotationRowLazyController({
   getPageWindow,
+  document: documentRef,
+  MutationObserver: MutationObserverRef,
   hostVersion,
   isEnabled,
   logger
@@ -48,6 +52,33 @@ export function createNativeAnnotationRowLazyController({
   let loggedFailureReason = "";
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let retryAttempts = 0;
+  let rowObserver: MutationObserver | undefined;
+
+  function stopWatchingRows(): void {
+    rowObserver?.disconnect();
+    rowObserver = undefined;
+  }
+
+  function watchForRows(): void {
+    if (rowObserver || !documentRef || !MutationObserverRef) return;
+    // A Reader toolbar can mount long before its annotation sidebar. Retain a
+    // narrow discovery path after the timed startup probes have been exhausted.
+    const observer = new MutationObserverRef(records => {
+      if (rowObserver !== observer || !isEnabled()) return;
+      const rowsAppeared = records.some(record => Array.from(record.addedNodes).some(node => {
+        if (!node || node.nodeType !== 1 || !node.isConnected) return false;
+        const element = node as Element;
+        return element.matches("#annotations.annotations .annotation") ||
+          Boolean(element.querySelector("#annotations.annotations .annotation"));
+      }));
+      if (!rowsAppeared) return;
+      clearRetry();
+      retryAttempts = 0;
+      controller.refresh();
+    });
+    rowObserver = observer;
+    observer.observe(documentRef, { childList: true, subtree: true });
+  }
 
   function clearRetry(): void {
     if (retryTimer !== undefined) {
@@ -83,6 +114,7 @@ export function createNativeAnnotationRowLazyController({
     refresh() {
       if (!isEnabled()) {
         clearRetry();
+        stopWatchingRows();
         retryAttempts = 0;
         stopRuntime();
         return;
@@ -91,6 +123,7 @@ export function createNativeAnnotationRowLazyController({
       const candidate = getPageWindow() as ReaderPageWindow | null | undefined;
       const pageWindow = candidate?.wrappedJSObject ?? candidate;
       if (!pageWindow?.eval) {
+        stopWatchingRows();
         stopRuntime();
         return;
       }
@@ -104,6 +137,8 @@ export function createNativeAnnotationRowLazyController({
           NATIVE_ANNOTATION_ROW_LAZY_PAGE_SOURCE
         ) as PageRuntime | undefined;
         if (typeof installed?.start !== "function" || typeof installed?.stop !== "function") {
+          clearRetry();
+          stopWatchingRows();
           return;
         }
         // Own the runtime before initialization so any partial hook can be
@@ -120,14 +155,21 @@ export function createNativeAnnotationRowLazyController({
           }
           stopRuntime();
           if (result?.reason === "annotation-row") {
+            watchForRows();
             scheduleRetry();
+          } else {
+            clearRetry();
+            stopWatchingRows();
           }
           return;
         }
         clearRetry();
+        stopWatchingRows();
         retryAttempts = 0;
         loggedFailureReason = "";
       } catch (error) {
+        clearRetry();
+        stopWatchingRows();
         stopRuntime();
         logger?.warn?.(
           "[annotation-markdown] native row lazy rendering fell back to Zotero",
@@ -138,6 +180,7 @@ export function createNativeAnnotationRowLazyController({
 
     stop() {
       clearRetry();
+      stopWatchingRows();
       retryAttempts = 0;
       stopRuntime();
     }

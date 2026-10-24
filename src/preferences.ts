@@ -41,6 +41,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
     mathOutputKey: "extensions.annotationMarkdown.mathOutput",
     svgEnabledKey: "extensions.annotationMarkdown.svgEnabled",
     mermaidEnabledKey: "extensions.annotationMarkdown.mermaidEnabled",
+    linkedImagePreviewEnabledKey: "extensions.annotationMarkdown.linkedImagePreviewEnabled",
     outlineEnabledKey: "extensions.annotationMarkdown.outlineEnabled",
     outlineNumberingKey: "extensions.annotationMarkdown.outlineNumbering",
     outlineSmartNumberingKey: "extensions.annotationMarkdown.outlineSmartNumbering",
@@ -79,6 +80,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
       const mathOutputSelect = getXulElement<PreferenceSelect>(documentRef, "annotation-markdown-math-output");
       const svgEnabledInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-svg-enabled");
       const mermaidEnabledInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-mermaid-enabled");
+      const linkedImagePreviewEnabledInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-linked-image-preview-enabled");
       const outlineEnabledInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-outline-enabled");
       const outlineNumberingOption = getXulElement<PreferenceElement>(documentRef, "annotation-markdown-outline-numbering-option");
       const outlineNumberingInput = getXulElement<PreferenceCheckbox>(documentRef, "annotation-markdown-outline-numbering");
@@ -119,6 +121,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
       mathEnabledInput.checked = this.getPref(this.mathEnabledKey, true);
       if (svgEnabledInput) svgEnabledInput.checked = this.getPref(this.svgEnabledKey, false);
       if (mermaidEnabledInput) mermaidEnabledInput.checked = this.getPref(this.mermaidEnabledKey, false);
+      if (linkedImagePreviewEnabledInput) linkedImagePreviewEnabledInput.checked = this.getPref(this.linkedImagePreviewEnabledKey, true);
       mathOutputSelect.value = this.getPref(this.mathOutputKey, "htmlAndMathml") === "mathml"
         ? "mathml"
         : "htmlAndMathml";
@@ -127,6 +130,7 @@ export function createPreferencePane(host: PreferencePaneHost) {
         this.setControlEnabled(mathEnabledInput, renderingEnabled);
         if (svgEnabledInput) this.setControlEnabled(svgEnabledInput, renderingEnabled);
         if (mermaidEnabledInput) this.setControlEnabled(mermaidEnabledInput, renderingEnabled);
+        if (linkedImagePreviewEnabledInput) this.setControlEnabled(linkedImagePreviewEnabledInput, renderingEnabled);
         this.setDependentOptionEnabled(mathOutputOption, mathOutputSelect,
           renderingEnabled && mathEnabledInput.checked);
       };
@@ -147,7 +151,10 @@ export function createPreferencePane(host: PreferencePaneHost) {
       outlineFontScaleSelect.value = String(this.getPref(this.outlineFontScalePercentKey, 100));
       autoTodoTagInput.checked = this.getPref(this.autoTodoTagKey, false);
       autoTodoCleanupInput.checked = this.getPref(this.autoTodoCleanupKey, false);
-      autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
+      const syncAutoTodoControlsEnabled = () => {
+        this.setControlEnabled(autoTodoCleanupInput, autoTodoTagInput.checked);
+      };
+      syncAutoTodoControlsEnabled();
       renderStrategySelect.value = this.getPref(this.renderStrategyKey, "auto");
       nativeRowLazyInput.checked = this.getPref(this.nativeRowLazyKey, false);
 
@@ -187,6 +194,9 @@ export function createPreferencePane(host: PreferencePaneHost) {
       mermaidEnabledInput?.addEventListener("command", () => {
         host.Prefs.set(this.mermaidEnabledKey, Boolean(mermaidEnabledInput.checked), true);
       });
+      linkedImagePreviewEnabledInput?.addEventListener("command", () => {
+        host.Prefs.set(this.linkedImagePreviewEnabledKey, Boolean(linkedImagePreviewEnabledInput.checked), true);
+      });
       mathEnabledInput.addEventListener("syncfrompreference", syncMathControlsEnabled);
 
       mathOutputSelect.addEventListener("command", () => {
@@ -214,8 +224,9 @@ export function createPreferencePane(host: PreferencePaneHost) {
 
       autoTodoTagInput.addEventListener("command", () => {
         host.Prefs.set(this.autoTodoTagKey, Boolean(autoTodoTagInput.checked), true);
-        autoTodoCleanupInput.disabled = !autoTodoTagInput.checked;
+        syncAutoTodoControlsEnabled();
       });
+      autoTodoTagInput.addEventListener("syncfrompreference", syncAutoTodoControlsEnabled);
 
       autoTodoCleanupInput.addEventListener("command", () => {
         host.Prefs.set(this.autoTodoCleanupKey, Boolean(autoTodoCleanupInput.checked), true);

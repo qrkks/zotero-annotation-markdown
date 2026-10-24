@@ -10,6 +10,7 @@ pref("extensions.annotationMarkdown.mathEnabled", true);
 pref("extensions.annotationMarkdown.mathOutput", "htmlAndMathml");
 pref("extensions.annotationMarkdown.svgEnabled", false);
 pref("extensions.annotationMarkdown.mermaidEnabled", false);
+pref("extensions.annotationMarkdown.linkedImagePreviewEnabled", true);
 pref("extensions.annotationMarkdown.performanceDiagnostics", false);
 pref("extensions.annotationMarkdown.lightweightMode", false);
 pref("extensions.annotationMarkdown.renderStrategy", "auto");

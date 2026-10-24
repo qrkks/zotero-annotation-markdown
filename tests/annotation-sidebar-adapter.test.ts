@@ -707,6 +707,203 @@ describe("createAnnotationSidebarAdapter", () => {
     expect(comment.classList.contains("annotation-markdown-editing")).toBe(false);
   });
 
+  test("saves a changed draft once before reset removes the editor", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content">old</div></div>
+      </div>
+    `;
+    const commitComment = vi.fn(() => true);
+    const endKeyboardGuard = vi.fn();
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment,
+      beginFastEditorKeyboardGuard: () => endKeyboardGuard
+    });
+    const comment = queryElement(document, ".comment", HTMLElement);
+    adapter.applyRenderedHtml(comment, "<p>old</p>");
+    adapter.tryShowFastEditorForAnnotationID("a1");
+    const textarea = queryElement(comment, "textarea", HTMLTextAreaElement);
+    textarea.value = "saved during reset";
+    const closed = vi.fn();
+    comment.addEventListener("annotation-markdown-fast-editor-closed", closed);
+
+    adapter.clearRenderedState(document);
+    adapter.clearRenderedState(document);
+    await Promise.resolve();
+
+    expect(commitComment).toHaveBeenCalledExactlyOnceWith("a1", "saved during reset");
+    expect(closed).toHaveBeenCalledOnce();
+    expect(endKeyboardGuard).toHaveBeenCalledOnce();
+    expect(adapter.hasActiveFastEditor()).toBe(false);
+    expect(comment.querySelector("textarea")).toBeNull();
+    expect(comment.querySelector(".annotation-markdown-rendered")).toBeNull();
+    expect(queryElement(comment, ".content", HTMLElement).hidden).toBe(false);
+    expect(comment.classList.contains("annotation-markdown-editing")).toBe(false);
+  });
+
+  test.each(["false", "throw"] as const)("preserves an unsaved draft across reset and a new bundle when saving returns %s", async failure => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content">old</div></div>
+      </div>
+    `;
+    let canSave = false;
+    const commitComment = vi.fn(() => {
+      if (!canSave && failure === "throw") throw new Error("host unavailable");
+      return canSave;
+    });
+    const endKeyboardGuard = vi.fn();
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment,
+      beginFastEditorKeyboardGuard: () => endKeyboardGuard,
+      getLocale: () => "zh-CN"
+    });
+    const comment = queryElement(document, ".comment", HTMLElement);
+    adapter.applyRenderedHtml(comment, "<p>old</p>");
+    adapter.tryShowFastEditorForAnnotationID("a1");
+    const textarea = queryElement(comment, "textarea", HTMLTextAreaElement);
+    textarea.value = "unsaved draft";
+    const closed = vi.fn();
+    comment.addEventListener("annotation-markdown-fast-editor-closed", closed);
+
+    expect(() => adapter.clearRenderedState(document)).not.toThrow();
+    expect(commitComment).toHaveBeenCalledTimes(1);
+    expect(textarea.isConnected).toBe(true);
+    expect(textarea.value).toBe("unsaved draft");
+    expect(queryElement(comment, "[role='status']").textContent).toContain("更改尚未保存");
+    expect(queryElement(comment, ".content", HTMLElement).textContent).toBe("old");
+    expect(comment.hasAttribute("data-annotation-markdown-fast-editor-committed")).toBe(false);
+    expect(endKeyboardGuard).not.toHaveBeenCalled();
+    expect(closed).not.toHaveBeenCalled();
+
+    // A new bootstrap bundle has different module-local WeakMaps, while the old
+    // editor still owns the only copy of the changed draft and its save bridge.
+    vi.resetModules();
+    const reloaded = await import("../src/annotation-sidebar-adapter.ts");
+    const replacementCommit = vi.fn(() => true);
+    const replacement = reloaded.createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment: replacementCommit,
+      getLocale: () => "zh-CN"
+    });
+    replacement.clearRenderedState(document);
+    replacement.applyRenderedHtml(comment, "<p>must not overwrite the draft</p>");
+
+    expect(commitComment).toHaveBeenCalledTimes(2);
+    expect(replacementCommit).not.toHaveBeenCalled();
+    expect(replacement.hasActiveFastEditor()).toBe(true);
+    expect(replacement.findCommentNodes()).not.toContain(comment);
+    expect(queryElement(comment, "textarea", HTMLTextAreaElement)).toBe(textarea);
+    expect(textarea.value).toBe("unsaved draft");
+    expect(queryElement(comment, ".content", HTMLElement).textContent).toBe("old");
+    expect(queryElement(comment, "[role='status']").textContent).toContain("更改尚未保存");
+    expect(closed).not.toHaveBeenCalled();
+
+    canSave = true;
+    expect(replacement.closeActiveFastEditor()).toBe(true);
+    replacement.clearRenderedState(document);
+    await Promise.resolve();
+    expect(commitComment).toHaveBeenCalledTimes(3);
+    expect(commitComment).toHaveBeenLastCalledWith("a1", "unsaved draft");
+    expect(replacementCommit).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledOnce();
+    expect(endKeyboardGuard).toHaveBeenCalledOnce();
+    expect(textarea.isConnected).toBe(false);
+  });
+
+  test("preserves a legacy editor draft when its owning cleanup listener is unavailable", () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment annotation-markdown-editing annotation-markdown-fast-editing">
+          <div class="content" hidden data-annotation-markdown-source-hidden="true">old</div>
+          <div data-annotation-markdown-fast-editor="true"><textarea>legacy unsaved draft</textarea></div>
+        </div>
+      </div>
+    `;
+    const adapter = createAnnotationSidebarAdapter({ document, getLocale: () => "en-US" });
+    const comment = queryElement(document, ".comment", HTMLElement);
+    const textarea = queryElement(comment, "textarea", HTMLTextAreaElement);
+
+    adapter.clearRenderedState(document);
+
+    expect(textarea.isConnected).toBe(true);
+    expect(textarea.value).toBe("legacy unsaved draft");
+    expect(adapter.isEditable(comment)).toBe(true);
+    expect(adapter.closeActiveFastEditor()).toBe(false);
+    expect(queryElement(comment, ".content", HTMLElement).hidden).toBe(true);
+    expect(queryElement(comment, "[role='status']").textContent).toContain("Changes have not been saved");
+    expect(comment.hasAttribute("data-annotation-markdown-fast-editor-committed")).toBe(false);
+  });
+
+  test("recovers a failed detached draft without preserving stale host rows or blocking other reset cleanup", async () => {
+    document.body.innerHTML = `
+      <div data-annotation-id="a1" class="annotation selected">
+        <div class="comment"><div class="content">old</div></div>
+      </div>
+      <div data-annotation-id="a2" class="annotation">
+        <div class="comment"><div class="content">other source</div></div>
+      </div>
+    `;
+    let canSave = false;
+    const commitComment = vi.fn(() => canSave);
+    const adapter = createAnnotationSidebarAdapter({
+      document,
+      isFastEditorEnabled: () => true,
+      commitComment,
+      getLocale: () => "zh-CN"
+    });
+    const oldRow = queryElement(document, "[data-annotation-id='a1']", HTMLElement);
+    const oldSource = queryElement(oldRow, ".content", HTMLElement);
+    adapter.tryShowFastEditorForAnnotationID("a1");
+    const editor = queryElement(oldRow, "[data-annotation-markdown-fast-editor]", HTMLElement);
+    const textarea = queryElement(editor, "textarea", HTMLTextAreaElement);
+    textarea.value = "detached unsaved draft";
+    const newRow = document.createElement("div");
+    newRow.setAttribute("data-annotation-id", "a1");
+    newRow.className = "annotation selected";
+    newRow.innerHTML = '<div class="comment"><div class="content">native replacement</div></div>';
+
+    oldRow.replaceWith(newRow);
+    await vi.waitFor(() => expect(editor.parentElement).toBe(document.body));
+
+    expect(commitComment).toHaveBeenCalledExactlyOnceWith("a1", "detached unsaved draft");
+    expect(oldRow.isConnected).toBe(false);
+    expect(oldSource.textContent).toBe("old");
+    expect(editor.getAttribute("role")).toBe("region");
+    expect(editor.getAttribute("aria-label")).toBe("未保存的批注草稿");
+    expect(editor.style.position).toBe("fixed");
+    expect(textarea.value).toBe("detached unsaved draft");
+    const otherComment = queryElement(document, "[data-annotation-id='a2'] .comment", HTMLElement);
+    adapter.applyRenderedHtml(otherComment, "<p>other preview</p>");
+
+    adapter.clearRenderedState(document);
+
+    expect(editor.parentElement).toBe(document.body);
+    expect(textarea.value).toBe("detached unsaved draft");
+    expect(queryElement(editor, "[role='status']").textContent).toContain("更改尚未保存");
+    expect(otherComment.querySelector(".annotation-markdown-rendered")).toBeNull();
+    expect(queryElement(otherComment, ".content", HTMLElement).hidden).toBe(false);
+    expect(commitComment).toHaveBeenCalledTimes(2);
+
+    const closed = vi.fn();
+    document.body.addEventListener("annotation-markdown-fast-editor-closed", closed, { once: true });
+    canSave = true;
+    textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await Promise.resolve();
+
+    expect(commitComment).toHaveBeenCalledTimes(3);
+    expect(closed).toHaveBeenCalledOnce();
+    expect(editor.isConnected).toBe(false);
+    expect(adapter.hasActiveFastEditor()).toBe(false);
+    expect(queryElement(newRow, ".content").textContent).toBe("native replacement");
+    expect(oldSource.textContent).toBe("old");
+  });
+
   test("opens before Zotero marks the native content as editable", () => {
     document.body.innerHTML = `
       <div data-sidebar-annotation-id="a1" class="annotation selected">

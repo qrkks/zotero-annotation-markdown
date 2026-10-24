@@ -15,6 +15,8 @@ export interface PreferenceStore {
 /** Lifecycle exposed by one controller attached to one Zotero Reader. */
 export interface ReaderController {
   start(): void | PromiseLike<void>;
+  /** Cancel deferred setup without requiring an in-flight start to have settled. */
+  cancelStart?(): void;
   renderNow(): void;
   stop(): void;
   refresh?(): void;
@@ -29,6 +31,8 @@ export interface MarkdownRenderer {
 export interface ReaderRegistry<Reader> {
   register(reader: Reader | null | undefined): PromiseLike<void>;
   unregister(reader: Reader): void;
+  /** Release controllers whose Reader is absent from the host's current roster. */
+  reconcile(openReaders: Iterable<Reader>): void;
   shutdown(): void;
   refresh(): void;
 }

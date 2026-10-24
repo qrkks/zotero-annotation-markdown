@@ -157,6 +157,61 @@ describe("createNativeAnnotationRowLazyController", () => {
     expect(stop).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
+
+  test("arms when the sidebar mounts after the bounded startup retries expire", async () => {
+    vi.useFakeTimers();
+    const start = vi.fn(() => document.querySelector("#annotations.annotations .annotation")
+      ? { active: true }
+      : { active: false, reason: "annotation-row" });
+    const pageWindow = { eval: vi.fn(() => ({ start, stop: vi.fn() })) };
+    const controller = createNativeAnnotationRowLazyController({
+      getPageWindow: () => pageWindow,
+      document,
+      MutationObserver: window.MutationObserver,
+      isEnabled: () => true
+    });
+    try {
+      controller.refresh();
+      vi.advanceTimersByTime(6000);
+      expect(start).toHaveBeenCalledTimes(21);
+      expect(vi.getTimerCount()).toBe(0);
+
+      document.body.innerHTML = '<div class="annotation-popup"><div class="annotation"></div></div>';
+      await Promise.resolve();
+      expect(start).toHaveBeenCalledTimes(21);
+
+      const sidebar = document.createElement("div");
+      sidebar.id = "annotations";
+      sidebar.className = "annotations";
+      sidebar.innerHTML = '<div class="annotation" data-sidebar-annotation-id="late"></div>';
+      document.body.append(sidebar);
+      await Promise.resolve();
+      expect(start).toHaveBeenCalledTimes(22);
+      expect(vi.getTimerCount()).toBe(0);
+
+      sidebar.append(document.createElement("div"));
+      await Promise.resolve();
+      expect(start).toHaveBeenCalledTimes(22);
+    } finally { controller.stop(); }
+  });
+
+  test("does not rearm from a late sidebar mount after stopping", async () => {
+    vi.useFakeTimers();
+    const start = vi.fn(() => ({ active: false, reason: "annotation-row" }));
+    const controller = createNativeAnnotationRowLazyController({
+      getPageWindow: () => ({ eval: () => ({ start, stop: vi.fn() }) }),
+      document,
+      MutationObserver: window.MutationObserver,
+      isEnabled: () => true
+    });
+    controller.refresh();
+    controller.stop();
+    document.body.innerHTML = '<div id="annotations" class="annotations"><div class="annotation"></div></div>';
+    await Promise.resolve();
+    vi.advanceTimersByTime(6000);
+    expect(start).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
 
 describe("native annotation row lazy page runtime", () => {

@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+## 0.16.3 - 2026-10-24
+
+### Added
+
+- Add **Automatically preview image links**, enabled by default, after the SVG and Mermaid options. Turn it off to restore standalone image links and cancel their preview requests. Open sidebar and page-popup previews, IMG labels and outline counts update immediately; explicit Markdown images and source icons retain their existing behavior.
+- Add a bilingual project website with copyable examples and release/documentation links, and refresh README screenshots and installation guidance.
+
+### Changed
+
+- Limit automatic image and source-icon previews to four concurrent requests per Reader, reuse repeated URLs, and cancel active/queued work on shutdown. Preview requests are anonymous; images requiring a logged-in session may fall back to their original links.
+
+### Fixed
+
+- Save changed fast-editor drafts before runtime shutdown or disabling rendering. Retain drafts and a retry status when saving fails, including plugin reloads and native comment-row replacement.
+- Clean up closed Readers independently, release partially initialized controllers after failed startup, and allow retry without old asynchronous work removing a newer registration.
+- Activate experimental native row acceleration when a sidebar opens after the initial startup probes have finished.
+- Refresh the TODO cleanup control's enabled state when its parent preference changes externally, preserving the stored choice.
+
+### Security
+
+- Update DOMPurify from 3.4.16 to 3.4.17 and retain the existing final HTML sanitization boundary.
+
+### 新增
+
+- 新增默认开启的 **自动预览图片链接**，位于 SVG、Mermaid 选项之后。关闭后独立图片链接恢复为普通链接，并取消对应预览请求。已打开的侧栏和页内弹窗、IMG 标签及大纲计数立即更新；显式 Markdown 图片和来源图标保持原有行为。
+- 新增双语项目官网，提供可复制样例及发布、文档入口，并更新 README 截图和安装指引。
+
+### 变更
+
+- 自动图片和来源图标预览限制为每个 Reader 最多四个请求并发，重复 URL 复用结果，关闭时取消活动及排队任务。预览使用匿名请求，需要登录会话的图片可能回退为原始链接。
+
+### 修复
+
+- 关闭运行时或禁用渲染前保存快速编辑器中已修改的草稿。保存失败时保留草稿和重试提示，覆盖插件重载及原生评论行被替换的情况。
+- 独立清理已关闭的 Reader，启动失败后释放部分创建的 controller 并允许重试，避免旧异步流程删除新登记。
+- 侧栏在初始启动探测结束后才打开时，仍能激活实验性原生行加速。
+- 外部修改父偏好后同步更新 TODO 清理控件的启用状态，并保留存储选择。
+
+### 安全
+
+- 将 DOMPurify 从 3.4.16 更新至 3.4.17，保留最终 HTML 净化边界。
+
 ## 0.16.2 - 2026-10-21
 
 ### Added

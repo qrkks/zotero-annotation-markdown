@@ -42,6 +42,8 @@ const FAST_EDITING_CLASS = "annotation-markdown-fast-editing";
 const FAST_EDITOR_ATTRIBUTE = "data-annotation-markdown-fast-editor";
 const FAST_EDITOR_CLOSING_ATTRIBUTE = "data-annotation-markdown-fast-editor-closing";
 const FAST_EDITOR_COMMITTED_ATTRIBUTE = "data-annotation-markdown-fast-editor-committed";
+const FAST_EDITOR_CLEANUP_EVENT = "annotation-markdown-fast-editor-cleanup";
+const FAST_EDITOR_SAVE_ERROR_ATTRIBUTE = "data-annotation-markdown-fast-editor-save-error";
 const POPUP_KEYBOARD_SCOPE_ATTRIBUTE = "data-annotation-markdown-popup-keyboard-scope";
 const WEAVERO_LINK_COLORS_CLASS = "annotation-markdown-weavero-link-colors";
 const SVG_BADGE_ATTRIBUTE = "data-annotation-markdown-svg-badge";
@@ -186,8 +188,8 @@ export function createAnnotationSidebarAdapter({
         return true;
       }
 
-      const session = fastEditorSessionByDocument.get(node.ownerDocument);
-      if (session?.editor.isConnected && node.contains(session.editor)) {
+      // A failed draft can outlive the bundle that created its session.
+      if (node.querySelector(`[${FAST_EDITOR_ATTRIBUTE}='true']`)) {
         return true;
       }
 
@@ -365,12 +367,18 @@ export function createAnnotationSidebarAdapter({
         return;
       }
       pendingCommittedSourceByAnnotationID.clear();
+      const retainedComments = new Set<HTMLElement>();
 
       // Remove only plugin-owned DOM so disable/re-enable restores the host view.
       for (const editor of queryHtmlElements(
         queryRoot,
         `[${FAST_EDITOR_ATTRIBUTE}='true']`
       )) {
+        if (!requestFastEditorCleanup(editor)) {
+          retainedComments.add(this.getCommentNodeForTarget(editor) ?? editor);
+          showFastEditorSaveError(editor, getLocale?.());
+          continue;
+        }
         const session = fastEditorSessionByDocument.get(editor.ownerDocument);
         if (session?.editor === editor) {
           session.removalObserver?.disconnect();
@@ -380,11 +388,13 @@ export function createAnnotationSidebarAdapter({
         endFastEditorKeyboardGuard(editor);
         editor.remove();
       }
+      const preservesDraft = (node: HTMLElement) => [...retainedComments].some(comment => comment.contains(node));
 
       for (const preview of queryHtmlElements(
         queryRoot,
         `[${PREVIEW_ATTRIBUTE}='true'], .annotation-markdown-rendered, [${OUTLINE_ATTRIBUTE}='true']`
       )) {
+        if (preservesDraft(preview)) continue;
         appliedHtmlByPreview.delete(preview);
         preview.remove();
       }
@@ -396,6 +406,7 @@ export function createAnnotationSidebarAdapter({
         queryRoot,
         `[${RENDERED_ATTRIBUTE}], [${SOURCE_ATTRIBUTE}], [${SUPPRESS_UNTIL_ATTRIBUTE}], [${FAST_EDITOR_COMMITTED_ATTRIBUTE}], .${EDITING_CLASS}, .${FAST_EDITING_CLASS}`
       )) {
+        if (preservesDraft(node)) continue;
         node.classList.remove(EDITING_CLASS);
         node.classList.remove(FAST_EDITING_CLASS);
         node.removeAttribute(RENDERED_ATTRIBUTE);
@@ -410,6 +421,7 @@ export function createAnnotationSidebarAdapter({
       }
 
       for (const node of queryHtmlElements(queryRoot, `[${SOURCE_HIDDEN_ATTRIBUTE}='true']`)) {
+        if (preservesDraft(node)) continue;
         showSourceNode(node);
       }
     },
@@ -423,7 +435,7 @@ export function createAnnotationSidebarAdapter({
         isFastEditorEnabled() &&
         canUseFastEditor(node, commitComment)
       ) {
-        showFastEditor(node, this, beginFastEditorKeyboardGuard);
+        showFastEditor(node, this, beginFastEditorKeyboardGuard, getLocale);
         return true;
       }
 
@@ -475,7 +487,7 @@ export function createAnnotationSidebarAdapter({
         return false;
       }
 
-      showFastEditor(comment, this, beginFastEditorKeyboardGuard);
+      showFastEditor(comment, this, beginFastEditorKeyboardGuard, getLocale);
       return true;
     },
 
@@ -493,7 +505,7 @@ export function createAnnotationSidebarAdapter({
         return false;
       }
 
-      showFastEditor(comment, this, beginFastEditorKeyboardGuard);
+      showFastEditor(comment, this, beginFastEditorKeyboardGuard, getLocale);
       return true;
     },
 
@@ -519,7 +531,7 @@ export function createAnnotationSidebarAdapter({
         return false;
       }
 
-      showFastEditor(comment, this, beginFastEditorKeyboardGuard);
+      showFastEditor(comment, this, beginFastEditorKeyboardGuard, getLocale);
       return true;
     },
 
@@ -628,11 +640,13 @@ export function createAnnotationSidebarAdapter({
       }
 
       const session = fastEditorSessionByDocument.get(documentRef);
-      return session ? session.close() : true;
+      if (session) return session.close();
+      const editor = documentRef.querySelector<HTMLElement>(`[${FAST_EDITOR_ATTRIBUTE}='true']`);
+      return editor ? requestFastEditorCleanup(editor) : true;
     },
 
     hasActiveFastEditor() {
-      return Boolean(documentRef && fastEditorSessionByDocument.get(documentRef)?.editor.isConnected);
+      return Boolean(documentRef?.querySelector(`[${FAST_EDITOR_ATTRIBUTE}='true']`));
     },
 
     getPreviewScrollbar,
@@ -750,7 +764,8 @@ export function createAnnotationSidebarAdapter({
 function showFastEditor(
   node: HTMLElement,
   adapter: AnnotationSidebarAdapter,
-  beginFastEditorKeyboardGuard?: () => (() => void) | void
+  beginFastEditorKeyboardGuard?: () => (() => void) | void,
+  getLocale?: () => string | undefined
 ): void {
   const existingEditor = node.querySelector(`[${FAST_EDITOR_ATTRIBUTE}='true']`);
   if (isHTMLElement(existingEditor)) {
@@ -811,12 +826,18 @@ function showFastEditor(
     adapter,
     annotationID,
     originalSource,
-    reason
+    reason,
+    getLocale?.()
   );
   const session: FastEditorSession = {
     editor,
     close: commitAndClose
   };
+  // DOM listeners survive a new bundle's module-local WeakMaps. Let the owning
+  // session save before another instance removes its editor during cleanup.
+  editor.addEventListener(FAST_EDITOR_CLEANUP_EVENT, event => {
+    if (!session.close()) event.preventDefault();
+  });
   const MutationObserverRef = documentRef.defaultView?.MutationObserver;
   if (MutationObserverRef && documentRef.body) {
     session.removalObserver = new MutationObserverRef(() => {
@@ -914,6 +935,7 @@ function showFastEditor(
   adapter.suppressRendering(node, 60_000);
 
   runAfterLayout(node, () => {
+    if (!editor.isConnected || !node.isConnected) return;
     resizeFastEditor(textarea);
     textarea.focus({ preventScroll: true });
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
@@ -921,7 +943,9 @@ function showFastEditor(
     if (viewportAnchor) {
       // Gecko can apply focus/scroll anchoring one frame after the textarea's
       // own layout, especially in a large annotation sidebar.
-      runAfterLayout(node, () => restoreFastEditorViewportAnchor(viewportAnchor));
+      runAfterLayout(node, () => {
+        if (editor.isConnected && node.isConnected) restoreFastEditorViewportAnchor(viewportAnchor);
+      });
     }
   });
 }
@@ -932,7 +956,8 @@ function closeFastEditor(
   adapter: AnnotationSidebarAdapter,
   annotationID: string,
   originalSource: string,
-  reason?: "escape"
+  reason?: "escape",
+  locale?: string
 ): boolean {
   if (editor.getAttribute(FAST_EDITOR_CLOSING_ATTRIBUTE) === "true") {
     return false;
@@ -945,9 +970,18 @@ function closeFastEditor(
 
   textarea?.blur();
   if (committed) {
-    if (!adapter.commitComment(annotationID, source)) {
+    let saved = false;
+    try {
+      saved = adapter.commitComment(annotationID, source);
+    } catch {
+      // The draft must remain available when the host update bridge throws.
+    }
+    if (!saved) {
       editor.removeAttribute(FAST_EDITOR_CLOSING_ATTRIBUTE);
-      runAfterLayout(node, () => textarea?.focus({ preventScroll: true }));
+      showFastEditorSaveError(editor, locale);
+      runAfterLayout(node, () => {
+        if (editor.isConnected) textarea?.focus({ preventScroll: true });
+      });
       return false;
     }
     node.setAttribute(SOURCE_ATTRIBUTE, source);
@@ -982,6 +1016,57 @@ function closeFastEditor(
   endFastEditorKeyboardGuard(editor);
   editor.remove();
   return true;
+}
+
+function requestFastEditorCleanup(editor: HTMLElement): boolean {
+  const EventRef = editor.ownerDocument.defaultView?.Event ?? globalThis.Event;
+  const permitted = editor.dispatchEvent(new EventRef(FAST_EDITOR_CLEANUP_EVENT, { cancelable: true }));
+  // Unknown older sessions have no cleanup listener. Preserve their textarea
+  // rather than assuming its value has already been accepted by Zotero.
+  return permitted && (!editor.parentNode || !editor.querySelector("textarea"));
+}
+
+function showFastEditorSaveError(editor: HTMLElement, locale?: string): void {
+  const textarea = editor.querySelector("textarea");
+  if (!textarea) return;
+  const chinese = imageLocale(editor.ownerDocument, locale).toLowerCase().startsWith("zh");
+  const existing = editor.querySelector<HTMLElement>(`[${FAST_EDITOR_SAVE_ERROR_ATTRIBUTE}]`);
+  const status = existing ?? editor.ownerDocument.createElement("div");
+  status.setAttribute(FAST_EDITOR_SAVE_ERROR_ATTRIBUTE, "true");
+  status.setAttribute("role", "status");
+  status.textContent = chinese
+    ? "更改尚未保存。请保留此草稿，或在关闭阅读器前复制内容。"
+    : "Changes have not been saved. Keep this draft open, or copy it before closing the Reader.";
+  // Shutdown removes the Reader stylesheet; recovery must stay readable.
+  editor.style.display = "block";
+  textarea.style.display = "block";
+  textarea.style.width = "100%";
+  textarea.style.boxSizing = "border-box";
+  textarea.style.minHeight = "4em";
+  status.style.whiteSpace = "normal";
+  status.style.fontSize = "0.9em";
+  status.style.marginTop = "0.4em";
+  if (!existing) editor.append(status);
+  if (!editor.isConnected && editor.ownerDocument.body?.isConnected) {
+    // React can replace the old comment before its pending draft is accepted.
+    // Retain just our editor, not the detached host row, until retry succeeds.
+    editor.setAttribute("role", "region");
+    editor.setAttribute("aria-label", chinese ? "未保存的批注草稿" : "Unsaved annotation draft");
+    Object.assign(editor.style, {
+      position: "fixed",
+      bottom: "1em",
+      left: "1em",
+      right: "1em",
+      maxHeight: "40vh",
+      overflow: "auto",
+      zIndex: "2147483647",
+      padding: "0.75em",
+      backgroundColor: "Canvas",
+      color: "CanvasText",
+      border: "1px solid GrayText"
+    });
+    editor.ownerDocument.body.append(editor);
+  }
 }
 
 function focusFastEditor(editor: HTMLElement): void {

@@ -39,6 +39,7 @@ interface CreateMarkdownRendererOptions {
   isMathEnabled?: () => boolean;
   isSvgEnabled?: () => boolean;
   isMermaidEnabled?: () => boolean;
+  isLinkedImagePreviewEnabled?: () => boolean;
   deferLinkedImages?: boolean;
   getMathOutput?: () => MathOutput;
   windowRef?: Window | null;
@@ -70,17 +71,18 @@ export function createMarkdownRenderer({
   isMathEnabled = () => true,
   isSvgEnabled = () => false,
   isMermaidEnabled = () => false,
+  isLinkedImagePreviewEnabled = () => true,
   deferLinkedImages = false,
   windowRef = globalThis.window
 }: CreateMarkdownRendererOptions = {}): MarkdownRenderer {
   const renderSvg = createSvgRenderer(windowRef);
   const renderMermaid = createMermaidRenderer(windowRef, renderSvg);
   const protectRawSvgBlocks = createRawSvgBlockProtector();
-  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages, isMermaidEnabled, renderMermaid);
+  const plainMarkdown = markdown ?? createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages, isMermaidEnabled, renderMermaid, isLinkedImagePreviewEnabled);
   // Separate default engines let math be disabled again after the plugin has
   // been loaded without leaving texmath rules attached to the plain renderer.
   const mathCapableMarkdown = mathMarkdown ?? (
-    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages, isMermaidEnabled, renderMermaid)
+    markdown ? plainMarkdown : createDefaultMarkdownEngine(isSvgEnabled, renderSvg, deferLinkedImages, isMermaidEnabled, renderMermaid, isLinkedImagePreviewEnabled)
   );
   const purifier = createPurifier(windowRef);
   // texmath retains this options object, so live switches do not rebuild its rules.
@@ -141,12 +143,12 @@ function wrapMathmlDisplayMath(html: string): string {
 }
 
 function createDefaultMarkdownEngine(isSvgEnabled: () => boolean, renderSvg: ReturnType<typeof createSvgRenderer>, deferLinkedImages: boolean,
-  isMermaidEnabled: () => boolean, renderMermaid: ReturnType<typeof createMermaidRenderer>): MarkdownIt {
+  isMermaidEnabled: () => boolean, renderMermaid: ReturnType<typeof createMermaidRenderer>, isLinkedImagePreviewEnabled: () => boolean): MarkdownIt {
   const markdown = new MarkdownIt(DEFAULT_MARKDOWN_OPTIONS);
   markdown.use(markdownItCjkFriendly);
   markdown.use(markdownItMark);
   markdown.use(markdownItMarkColors);
-  installLinkedImagePreviews(markdown, deferLinkedImages);
+  installLinkedImagePreviews(markdown, deferLinkedImages, isLinkedImagePreviewEnabled);
   installSourceFavicons(markdown, deferLinkedImages);
   markdown.linkify.add("zotero:", "http:");
   const originalFence = markdown.renderer.rules.fence!;

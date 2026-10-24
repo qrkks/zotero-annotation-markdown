@@ -88,6 +88,37 @@ describe("preferences pane", () => {
     expect(Zotero.Prefs.set).toHaveBeenCalledWith("extensions.annotationMarkdown.enabled", false, true);
   });
 
+  test("syncs todo cleanup availability from external parent changes without resetting its choice", async () => {
+    const set = vi.fn();
+    const preferences = await loadPreferencesScript({ Prefs: {
+      get: (key, global) => global && key === "extensions.annotationMarkdown.autoTodoCleanup" ? true : undefined,
+      set
+    } });
+    const controls = new Map<string, PreferenceInput>();
+    preferences.init({ getElementById(id: string) {
+      if (!controls.has(id)) controls.set(id, createInput());
+      return controls.get(id);
+    } });
+    const parent = requireValue(controls.get("annotation-markdown-auto-todo-tag"));
+    const cleanup = requireValue(controls.get("annotation-markdown-auto-todo-cleanup"));
+    expect(parent.checked).toBe(false);
+    expect(cleanup.checked).toBe(true);
+    expect(cleanup.disabled).toBe(true);
+
+    parent.checked = true;
+    parent.dispatch("syncfrompreference");
+    expect(cleanup.disabled).toBe(false);
+    expect(cleanup.getAttribute("disabled")).toBeNull();
+    expect(cleanup.checked).toBe(true);
+
+    parent.checked = false;
+    parent.dispatch("syncfrompreference");
+    expect(cleanup.disabled).toBe(true);
+    expect(cleanup.getAttribute("disabled")).toBe("true");
+    expect(cleanup.checked).toBe(true);
+    expect(set).not.toHaveBeenCalled();
+  });
+
   test("defaults smart avoidance on and gates it by both parent choices without resetting it", async () => {
     const f = await mathPreferenceFixture(true, false, true);
     const outline = f.controls.get("annotation-markdown-outline-enabled");
@@ -166,6 +197,41 @@ describe("preferences pane", () => {
     expect(source).toContain(`preference="extensions.annotationMarkdown.${kind}Enabled"`);
     expect(source).toContain(`data-annotation-markdown-l10n-id="annotation-markdown-prefs-${kind}-enabled"`);
   });
+  test.each([undefined, false, true] as const)("restores automatic image-link previews or defaults them on: %s", async stored => {
+    const f = await mathPreferenceFixture(true, false, true, stored);
+    const input = requireValue(f.controls.get("annotation-markdown-linked-image-preview-enabled"));
+    expect(input.checked).toBe(stored ?? true);
+    expect(input.disabled).toBe(false);
+    expect(f.set).not.toHaveBeenCalled();
+    input.checked = !input.checked;
+    input.dispatch("command");
+    expect(f.set).toHaveBeenCalledExactlyOnceWith("extensions.annotationMarkdown.linkedImagePreviewEnabled", input.checked, true);
+  });
+  test("keeps the image-link choice when both rendering scopes are off and restores availability on external changes", async () => {
+    const f = await mathPreferenceFixture(false, false, true);
+    const input = requireValue(f.controls.get("annotation-markdown-linked-image-preview-enabled"));
+    const sidebar = requireValue(f.controls.get("annotation-markdown-enabled"));
+    const popup = requireValue(f.controls.get("annotation-markdown-popup-enabled"));
+    expect(input.checked).toBe(true);
+    expect(input.disabled).toBe(true);
+    popup.checked = true;
+    popup.dispatch("syncfrompreference");
+    expect(input.disabled).toBe(false);
+    input.checked = false;
+    input.dispatch("command");
+    popup.checked = false;
+    popup.dispatch("syncfrompreference");
+    expect(input.disabled).toBe(true);
+    expect(input.checked).toBe(false);
+    sidebar.checked = true;
+    sidebar.dispatch("command");
+    expect(input.disabled).toBe(false);
+    expect(input.checked).toBe(false);
+    expect(f.set).toHaveBeenCalledWith("extensions.annotationMarkdown.linkedImagePreviewEnabled", false, true);
+    expect(f.set).not.toHaveBeenCalledWith("extensions.annotationMarkdown.linkedImagePreviewEnabled", true, true);
+    const defaults = await readFile(path.join(process.cwd(), "addon", "prefs.js"), "utf8");
+    expect(defaults).toContain('pref("extensions.annotationMarkdown.linkedImagePreviewEnabled", true);');
+  });
   test.each([
     [false, false, false], [false, false, true],
     [true, false, false], [true, false, true],
@@ -230,7 +296,7 @@ describe("preferences pane", () => {
     const keys = {
       "settings-language": "settingsLanguage",
       enabled: "enabled", "popup-enabled": "popupEnabled", "math-enabled": "mathEnabled",
-      "math-output": "mathOutput", "svg-enabled": "svgEnabled", "mermaid-enabled": "mermaidEnabled", "font-scale": "fontScalePercent",
+      "math-output": "mathOutput", "svg-enabled": "svgEnabled", "mermaid-enabled": "mermaidEnabled", "linked-image-preview-enabled": "linkedImagePreviewEnabled", "font-scale": "fontScalePercent",
       "paste-as-plain-text": "pasteAsPlainText", "fast-editor": "fastEditor",
       "outline-enabled": "outlineEnabled", "outline-numbering": "outlineNumbering", "outline-font-scale": "outlineFontScalePercent",
       "outline-smart-numbering": "outlineSmartNumbering",
@@ -258,7 +324,7 @@ describe("preferences pane", () => {
     ]);
     expect([...groups[0].querySelectorAll("[preference]")].map(control => control.id)).toEqual([
       "annotation-markdown-enabled", "annotation-markdown-popup-enabled", "annotation-markdown-math-enabled",
-      "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-mermaid-enabled", "annotation-markdown-font-scale",
+      "annotation-markdown-math-output", "annotation-markdown-svg-enabled", "annotation-markdown-mermaid-enabled", "annotation-markdown-linked-image-preview-enabled", "annotation-markdown-font-scale",
       "annotation-markdown-paste-as-plain-text", "annotation-markdown-fast-editor"
     ]);
     expect(groups[1].querySelector("#annotation-markdown-outline-font-scale")).not.toBeNull();
@@ -298,6 +364,8 @@ describe("preferences pane", () => {
       expect(element.hasAttribute("data-annotation-markdown-l10n-id"), element.outerHTML).toBe(true);
     }
     expect(doc.getElementById("annotation-markdown-enabled").getAttribute("label")).toBe(locale === "zh-CN" ? "将侧栏批注评论渲染为 Markdown" : "Render sidebar annotation comments as Markdown");
+    expect(doc.getElementById("annotation-markdown-linked-image-preview-enabled").getAttribute("label"))
+      .toBe(locale === "zh-CN" ? "自动预览图片链接" : "Automatically preview image links");
     expect(doc.querySelector('[data-annotation-markdown-l10n-id="annotation-markdown-prefs-math-output"]').getAttribute("value")).toBe(locale === "zh-CN" ? "公式渲染方式" : "Math rendering");
     expect(doc.getElementById("annotation-markdown-math-output").getAttribute("preference")).toBe("extensions.annotationMarkdown.mathOutput");
     expect([...doc.getElementById("annotation-markdown-math-output").querySelectorAll("menuitem")].map(item => item.getAttribute("value"))).toEqual(["htmlAndMathml", "mathml"]);
@@ -528,13 +596,14 @@ describe("preferences pane", () => {
   });
 });
 
-async function mathPreferenceFixture(sidebar: boolean, popup: boolean, math: boolean) {
+async function mathPreferenceFixture(sidebar: boolean, popup: boolean, math: boolean, linkedImagePreviewEnabled?: boolean) {
   const values: Record<string, unknown> = {
     "extensions.annotationMarkdown.enabled": sidebar,
     "extensions.annotationMarkdown.popupEnabled": popup,
     "extensions.annotationMarkdown.mathEnabled": math,
     "extensions.annotationMarkdown.mathOutput": "mathml"
   };
+  if (linkedImagePreviewEnabled !== undefined) values["extensions.annotationMarkdown.linkedImagePreviewEnabled"] = linkedImagePreviewEnabled;
   const set = vi.fn();
   const preferences = await loadPreferencesScript({ Prefs: { get: (key, global) => global ? values[key] : undefined, set } });
   const controls = new Map<string, PreferenceInput>();

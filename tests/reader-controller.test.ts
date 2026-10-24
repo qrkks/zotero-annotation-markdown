@@ -6,6 +6,58 @@ import { fixtureRect, queryElement, requireElement, requireValue } from "./helpe
 import { createSettingsStub, missingIntersectionObserver, missingMutationObserver } from "./helpers/stubs.ts";
 
 describe("createReaderController", () => {
+  test.each(["stop", "disable rendering"])("commits a changed fast-editor draft before %s", async action => {
+    document.body.innerHTML = '<div data-annotation-id="a1" class="annotation selected"><div class="comment"><div class="content">old source</div></div></div>';
+    let enabled = true;
+    const commitComment = vi.fn(() => true);
+    const adapter = createAnnotationSidebarAdapter({ document, isFastEditorEnabled: () => true, commitComment });
+    const controller = createReaderController({
+      reader: { document }, adapter,
+      renderer: { render: source => `<p>${source}</p>` },
+      settings: createSettingsStub({ isEnabled: () => enabled, isPopupEnabled: () => false }),
+      MutationObserver: missingMutationObserver,
+      IntersectionObserver: missingIntersectionObserver
+    });
+    try {
+      await controller.start();
+      expect(adapter.showSourceForEditing(queryElement(document, ".comment", HTMLElement))).toBe(true);
+      queryElement(document, "textarea", HTMLTextAreaElement).value = "changed draft";
+      if (action === "stop") controller.stop();
+      else { enabled = false; controller.refresh?.(); }
+      expect(commitComment).toHaveBeenCalledExactlyOnceWith("a1", "changed draft");
+      expect(document.querySelector("textarea")).toBeNull();
+    } finally { controller.stop(); }
+  });
+
+  test.each(["stop", "disable rendering"])("retains a failed draft and allows retry after %s", async action => {
+    document.body.innerHTML = '<div data-annotation-id="a1" class="annotation selected"><div class="comment"><div class="content">old source</div></div></div>';
+    let enabled = true;
+    const commitComment = vi.fn(() => false);
+    const adapter = createAnnotationSidebarAdapter({ document, isFastEditorEnabled: () => true, commitComment });
+    const controller = createReaderController({
+      reader: { document }, adapter,
+      renderer: { render: source => `<p>${source}</p>` },
+      settings: createSettingsStub({ isEnabled: () => enabled, isPopupEnabled: () => false }),
+      MutationObserver: missingMutationObserver,
+      IntersectionObserver: missingIntersectionObserver
+    });
+    try {
+      await controller.start();
+      adapter.showSourceForEditing(queryElement(document, ".comment", HTMLElement));
+      const textarea = queryElement(document, "textarea", HTMLTextAreaElement);
+      textarea.value = "recoverable draft";
+      if (action === "stop") controller.stop();
+      else { enabled = false; controller.refresh?.(); }
+      expect(textarea.isConnected).toBe(true);
+      expect(textarea.value).toBe("recoverable draft");
+      expect(queryElement(document, ".content").textContent).toBe("old source");
+      commitComment.mockReturnValue(true);
+      textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+      expect(commitComment).toHaveBeenLastCalledWith("a1", "recoverable draft");
+      expect(document.querySelector("textarea")).toBeNull();
+    } finally { commitComment.mockReturnValue(true); controller.stop(); }
+  });
+
   test("lets outline controls receive pointerdown instead of consuming it at root capture", async () => {
     document.body.innerHTML = "";
     const controller = createReaderController({

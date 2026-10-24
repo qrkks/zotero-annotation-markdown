@@ -12,6 +12,38 @@ const render = (source: string) => {
 afterEach(() => { document.body.innerHTML = ""; });
 
 describe("standalone image-link previews", () => {
+  test.each(["", "Formula $a^2$\n\n"])("switches inferred previews on, off and on with the same renderer (%s)", prefix => {
+    let enabled = true;
+    const renderer = createMarkdownRenderer({ isLinkedImagePreviewEnabled: () => enabled });
+    const source = `${prefix}[Photo](${openaiImage})`;
+    const root = document.createElement("div");
+    root.innerHTML = renderer.render(source);
+    expect(root.querySelector("figure.annotation-markdown-linked-image img")).not.toBeNull();
+
+    enabled = false;
+    root.innerHTML = renderer.render(source);
+    expect(root.querySelector("figure.annotation-markdown-linked-image")).toBeNull();
+    expect(root.querySelector("img")).toBeNull();
+    expect(queryElement(root, "p a").getAttribute("href")).toBe(openaiImage);
+    expect(queryElement(root, "p a").textContent).toBe("Photo");
+    if (prefix) expect(root.querySelector(".katex")).not.toBeNull();
+
+    enabled = true;
+    root.innerHTML = renderer.render(source);
+    expect(root.querySelector("figure.annotation-markdown-linked-image img")).not.toBeNull();
+  });
+
+  test("keeps explicit Markdown images and source favicons when inferred previews are disabled", () => {
+    const renderer = createMarkdownRenderer({ isLinkedImagePreviewEnabled: () => false });
+    const root = document.createElement("div");
+    const favicon = "https://www.google.com/s2/favicons?domain=example.org";
+    root.innerHTML = renderer.render(`[Photo](${openaiImage})\n\n![Explicit image](https://example.org/ordinary.png)\n\n[Source](${favicon})`);
+    expect(root.querySelector("figure.annotation-markdown-linked-image")).toBeNull();
+    expect(queryElement(root, 'img[alt="Explicit image"]').getAttribute("src")).toBe("https://example.org/ordinary.png");
+    expect(queryElement(root, "img.annotation-markdown-favicon-image").getAttribute("src")).toBe(favicon);
+    expect(root.querySelectorAll("img")).toHaveLength(2);
+  });
+
   test.each([
     openaiImage, "https://images.openai.com/static-rsc/sample-image",
     "https://example.org/photo.jpg", "https://example.org/PHOTO.PNG?size=large#image",

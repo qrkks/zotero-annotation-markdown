@@ -20,8 +20,9 @@ export function isImageLink(value: string): boolean {
   }
 }
 
-export function installLinkedImagePreviews(markdown: MarkdownIt, deferLoading = false): void {
+export function installLinkedImagePreviews(markdown: MarkdownIt, deferLoading = false, isEnabled: () => boolean = () => true): void {
   markdown.core.ruler.after("text_join", "annotation_markdown_linked_images", state => {
+    if (!isEnabled()) return;
     for (let index = 0; index < state.tokens.length - 2; index++) {
       const opening = state.tokens[index], inline = state.tokens[index + 1], closing = state.tokens[index + 2];
       if (opening.type !== "paragraph_open" || opening.hidden || inline.type !== "inline" || closing.type !== "paragraph_close") continue;

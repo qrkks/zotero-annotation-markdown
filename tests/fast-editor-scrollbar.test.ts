@@ -8,9 +8,16 @@ import { fixtureRect, queryElement, requireElement, requireValue } from "./helpe
 const settle = () => new Promise(resolve => setTimeout(resolve, 50));
 let controller: ReaderController | undefined;
 let hostFocus: ((event: FocusEvent) => void) | undefined;
+let allowFixtureSave: (() => void) | undefined;
 afterEach(() => {
+  // Failed-save tests intentionally retain their editor; release it at the
+  // fixture boundary instead of recovering its draft into the next test's DOM.
+  allowFixtureSave?.();
   controller?.stop();
   if (hostFocus) window.removeEventListener("focusin", hostFocus);
+  controller = undefined;
+  hostFocus = undefined;
+  allowFixtureSave = undefined;
   vi.restoreAllMocks();
 });
 
@@ -37,6 +44,7 @@ async function openEditor(overlay = false) {
   });
   window.addEventListener("focusin", hostFocus);
   const commitComment = vi.fn(() => true);
+  allowFixtureSave = () => { commitComment.mockReturnValue(true); };
   const adapter = createAnnotationSidebarAdapter({ document, isFastEditorEnabled: () => true, commitComment });
   controller = createReaderController({
     reader: { document }, adapter, renderer: { render: (source: string) => `<p>${source}</p>` },
@@ -174,7 +182,7 @@ describe("fast editor scrollbar focus without refocusing", () => {
     expect(document.activeElement).toBe(f.textarea);
   });
 
-  test("stop clears parked sessions and pending scrollbar callbacks", async () => {
+  test("stop saves the parked draft and clears pending scrollbar callbacks", async () => {
     const f = await openEditor();
     f.pointer("pointerdown");
     requireElement(f.sidebar, HTMLElement).focus();
@@ -183,7 +191,8 @@ describe("fast editor scrollbar focus without refocusing", () => {
     await settle();
     expect(document.querySelector("textarea")).toBeNull();
     expect(f.focus).not.toHaveBeenCalled();
+    expect(f.commitComment).toHaveBeenCalledExactlyOnceWith("a1", "draft with selected text");
     window.dispatchEvent(new Event("blur"));
-    expect(f.commitComment).not.toHaveBeenCalled();
+    expect(f.commitComment).toHaveBeenCalledOnce();
   });
 });

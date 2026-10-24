@@ -27,6 +27,7 @@ import {
   MATH_OUTPUT_PREF_KEY,
   SVG_ENABLED_PREF_KEY,
   MERMAID_ENABLED_PREF_KEY,
+  LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY,
   NATIVE_ROW_LAZY_PREF_KEY,
   OUTLINE_ENABLED_PREF_KEY,
   OUTLINE_NUMBERING_PREF_KEY,
@@ -61,6 +62,7 @@ interface AnnotationManagerLike {
 
 interface PluginRegistry {
   register(reader: ReaderLike | null | undefined): void | PromiseLike<void>;
+  reconcile?(openReaders: Iterable<ReaderLike>): void;
   shutdown(): void;
   refresh?(): void;
 }
@@ -163,6 +165,7 @@ export function createPlugin({
   let readerEventHandler: ReaderEventHandler | undefined;
   let preferenceObserverIds: unknown[] = [];
   let stopAutoTodoTagger: (() => void) | undefined;
+  let stopReaderLifecycleObserver: (() => void) | undefined;
   const diagnosticsLogger = createLogger(Zotero, logger, diagnostics);
   const settings = createSettings({ prefs: createPrefsAdapter(Zotero) });
 
@@ -204,6 +207,7 @@ export function createPlugin({
               getMathOutput: () => settings.getMathOutput(),
               isSvgEnabled: () => settings.isSvgEnabled(),
               isMermaidEnabled: () => settings.isMermaidEnabled(),
+              isLinkedImagePreviewEnabled: () => settings.isLinkedImagePreviewEnabled(),
               deferLinkedImages: Boolean(Zotero?.HTTP),
               windowRef: readerWindow
             }),
@@ -231,6 +235,12 @@ export function createPlugin({
       diagnosticsLogger.log("[annotation-markdown] startup");
       registry = makeRegistry();
       const activeRegistry = registry;
+      stopReaderLifecycleObserver = registerReaderLifecycleObserver(
+        Zotero,
+        activeRegistry,
+        () => registry === activeRegistry,
+        (error) => diagnosticsLogger.warn("Could not reconcile closed Zotero Readers", error)
+      );
       preferenceObserverIds = registerPreferenceObservers(
         Zotero,
         () => activeRegistry.refresh?.()
@@ -281,9 +291,21 @@ export function createPlugin({
         }
       } finally {
         // Reader teardown must still run when Zotero rejects listener cleanup during shutdown.
-        unregisterPreferenceObservers(Zotero, preferenceObserverIds);
+        unregisterPreferenceObservers(Zotero, preferenceObserverIds, (error) => (
+          diagnosticsLogger.warn("Could not unregister Zotero Annotation Markdown preference observer", error)
+        ));
         preferenceObserverIds = [];
-        stopAutoTodoTagger?.();
+        try {
+          stopReaderLifecycleObserver?.();
+        } catch (error) {
+          diagnosticsLogger.warn("Could not unregister Zotero Annotation Markdown Reader lifecycle observer", error);
+        }
+        stopReaderLifecycleObserver = undefined;
+        try {
+          stopAutoTodoTagger?.();
+        } catch (error) {
+          diagnosticsLogger.warn("Could not unregister Zotero Annotation Markdown todo observer", error);
+        }
         stopAutoTodoTagger = undefined;
         readerEventHandler = undefined;
         registry?.shutdown();
@@ -299,11 +321,13 @@ function createDeferredReaderController(
   onError: (error: unknown) => void
 ): ReaderController {
   let controller: ReaderController | undefined;
+  let cancelled = false;
 
   return {
     start() {
       return Promise.resolve(getReaderReadyPromise(reader))
         .then(() => {
+          if (cancelled) return;
           controller = controllerFactory();
           return controller.start();
         })
@@ -316,10 +340,14 @@ function createDeferredReaderController(
     renderNow() {
       controller?.renderNow();
     },
+    cancelStart() {
+      cancelled = true;
+    },
     refresh() {
       controller?.refresh?.();
     },
     stop() {
+      cancelled = true;
       controller?.stop();
       controller = undefined;
     }
@@ -405,6 +433,7 @@ function registerPreferenceObservers(
     [MATH_OUTPUT_PREF_KEY, true],
     [SVG_ENABLED_PREF_KEY, true],
     [MERMAID_ENABLED_PREF_KEY, true],
+    [LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY, true],
     [OUTLINE_ENABLED_PREF_KEY, true],
     [OUTLINE_NUMBERING_PREF_KEY, true],
     [OUTLINE_SMART_NUMBERING_PREF_KEY, true],
@@ -428,15 +457,62 @@ function registerPreferenceObservers(
 
 function unregisterPreferenceObservers(
   Zotero: ZoteroApi | undefined,
-  observerIds: unknown[]
+  observerIds: unknown[],
+  onError: (error: unknown) => void
 ): void {
   if (!Zotero?.Prefs?.unregisterObserver) {
     return;
   }
 
   for (const observerId of observerIds) {
-    Zotero.Prefs.unregisterObserver(observerId);
+    try {
+      Zotero.Prefs.unregisterObserver(observerId);
+    } catch (error) {
+      onError(error);
+    }
   }
+}
+
+function registerReaderLifecycleObserver(
+  Zotero: ZoteroApi | undefined,
+  registry: PluginRegistry,
+  isActive: () => boolean,
+  onError: (error: unknown) => void
+): (() => void) | undefined {
+  const readerApi = Zotero?.Reader;
+  const notifier = Zotero?.Notifier;
+  // An unavailable enumeration API cannot prove that every Reader has closed.
+  if (!registry.reconcile || !notifier?.registerObserver || !readerApi || (
+    typeof readerApi.getOpenReaders !== "function" &&
+    !Array.isArray(readerApi._readers) && !(readerApi._readers instanceof Map)
+  )) return;
+
+  let active = true;
+  let queued = false;
+  const observerId = notifier.registerObserver({
+    notify(event, type) {
+      if (!active || !isActive() || event !== "close" ||
+          (type !== "file" && type !== "tab") || queued) return;
+      queued = true;
+      // Zotero 9/10 uninit emits close/file before removing the Reader from its
+      // roster. Reconcile object identity after that synchronous host close path,
+      // preserving any other window that reads the same attachment. Tab selection
+      // and docShell visibility changes are deliberately not destruction signals.
+      void Promise.resolve().then(() => {
+        queued = false;
+        if (!active || !isActive()) return;
+        try {
+          registry.reconcile?.(collectOpenReaders(Zotero));
+        } catch (error) {
+          onError(error);
+        }
+      });
+    }
+  }, ["file", "tab"], "annotation-markdown-reader-lifecycle");
+  return () => {
+    active = false;
+    notifier.unregisterObserver(observerId);
+  };
 }
 
 function createLogger(

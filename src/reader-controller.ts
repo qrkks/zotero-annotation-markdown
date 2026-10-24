@@ -74,6 +74,7 @@ interface CachedRender {
   mathOutput: string;
   svgEnabled: boolean;
   mermaidEnabled: boolean;
+  linkedImagePreviewEnabled: boolean;
   html: string;
   sizeBytes?: number;
 }
@@ -129,7 +130,7 @@ interface CreateReaderControllerOptions {
   offscreenRenderMaxBytes?: number;
   hostVersion?: string;
   getLocale?(): string | undefined;
-  loadLinkedImage?(url: string): PromiseLike<string>;
+  loadLinkedImage?(url: string, signal?: AbortSignal): PromiseLike<string>;
   readerReady?: boolean;
 }
 
@@ -225,7 +226,8 @@ export function createReaderController({
   let addedCommentScanTimer: number | undefined;
   let lazyRenderDiagnosticSamples: RenderDiagnosticSample[] = [];
   const renderCache = new Map<RenderCacheKey, CachedRender>();
-  const renderedState = new WeakMap<HTMLElement, Pick<CachedRender, "source" | "mathEnabled" | "mathOutput" | "svgEnabled" | "mermaidEnabled">>();
+  const renderedState = new WeakMap<HTMLElement, Pick<CachedRender, "source" | "mathEnabled" | "mathOutput" | "svgEnabled" | "mermaidEnabled" | "linkedImagePreviewEnabled">>();
+  let mountedLinkedImagePreviewEnabled = settings.isLinkedImagePreviewEnabled?.() ?? true;
   const renderCacheMaxBytes = Math.max(0, Number(renderCacheMaxBytesOverride) || 0);
   const offscreenRenderMaxBytes = Math.max(0, Number(offscreenRenderMaxBytesOverride) || 0);
   const renderedNodeWeights = new WeakMap<HTMLElement, number>();
@@ -240,7 +242,9 @@ export function createReaderController({
   const documentRef = root?.ownerDocument ?? reader.document ?? globalThis.document;
   const windowRef = documentRef.defaultView ?? globalThis.window;
   const linkedImages = loadLinkedImage ? createLinkedImageLoader({
-    load: loadLinkedImage, IntersectionObserver: windowRef?.IntersectionObserver
+    load: loadLinkedImage, IntersectionObserver: windowRef?.IntersectionObserver,
+    isImageEnabled: image => !image.matches(".annotation-markdown-linked-image-content") ||
+      (settings.isLinkedImagePreviewEnabled?.() ?? true)
   }) : undefined;
   const svgViewer = createSvgPreviewViewer({
     document: documentRef,
@@ -281,6 +285,8 @@ export function createReaderController({
     windowRef.cancelIdleCallback?.bind(windowRef) as CancelIdleCallbackLike | undefined;
   const nativeRowLazyController = createNativeAnnotationRowLazyController({
     getPageWindow: () => reader._iframeWindow ?? windowRef,
+    document: documentRef,
+    MutationObserver: MutationObserverRef,
     hostVersion,
     isEnabled: () => (
       settings.isEnabled() && Boolean(settings.isNativeRowLazyEnabled?.())
@@ -333,14 +339,15 @@ export function createReaderController({
       const mathOutput = settings.getMathOutput?.() ?? "htmlAndMathml";
       const svgEnabled = Boolean(settings.isSvgEnabled?.());
       const mermaidEnabled = Boolean(settings.isMermaidEnabled?.());
+      const linkedImagePreviewEnabled = settings.isLinkedImagePreviewEnabled?.() ?? true;
       const cached = getCachedRender(node);
-      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput && cached?.svgEnabled === svgEnabled && cached?.mermaidEnabled === mermaidEnabled) {
+      if (cached?.source === source && cached?.mathEnabled === mathEnabled && cached?.mathOutput === mathOutput && cached?.svgEnabled === svgEnabled && cached?.mermaidEnabled === mermaidEnabled && cached?.linkedImagePreviewEnabled === linkedImagePreviewEnabled) {
         cachedRender = true;
         renderedNodeWeights.set(node, cached.sizeBytes ?? estimateRenderCacheBytes(cached));
         const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
         adapter.applyRenderedHtml(node, cached.html);
         linkedImages?.observe(node);
-        renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled });
+        renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled, linkedImagePreviewEnabled });
         if (diagnosticsEnabled) {
           domDurationMs = Math.max(0, nowRef() - domStartedAt);
           return createRenderDiagnosticSample();
@@ -353,11 +360,11 @@ export function createReaderController({
       if (diagnosticsEnabled) {
         markdownDurationMs = Math.max(0, nowRef() - markdownStartedAt);
       }
-      setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled, html });
+      setCachedRender(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled, linkedImagePreviewEnabled, html });
       const domStartedAt = diagnosticsEnabled ? nowRef() : 0;
       adapter.applyRenderedHtml(node, html);
       linkedImages?.observe(node);
-      renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled });
+      renderedState.set(node, { source, mathEnabled, mathOutput, svgEnabled, mermaidEnabled, linkedImagePreviewEnabled });
       if (diagnosticsEnabled) {
         domDurationMs = Math.max(0, nowRef() - domStartedAt);
         return createRenderDiagnosticSample();
@@ -425,6 +432,7 @@ export function createReaderController({
     },
 
     refresh() {
+      linkedImages?.refresh();
       svgViewer.close(false);
       imageBadgeCache.clear();
       svgBadges.refresh();
@@ -1370,6 +1378,7 @@ export function createReaderController({
     nodes: HTMLElement[],
     { force = false }: { force?: boolean } = {}
   ): HandleCommentResult {
+    refreshMountedLinkedImagePreviews();
     // Popups are short-lived and Zotero can reuse the same DOM node for a new
     // annotation. Render them immediately instead of waiting for a visibility
     // callback that may never fire again for an already-observed node.
@@ -1423,6 +1432,22 @@ export function createReaderController({
       handled += 1;
     }
     return handled;
+  }
+
+  function refreshMountedLinkedImagePreviews(): void {
+    const enabled = settings.isLinkedImagePreviewEnabled?.() ?? true;
+    if (mountedLinkedImagePreviewEnabled === enabled) return;
+    mountedLinkedImagePreviewEnabled = enabled;
+    // Existing offscreen previews and their retained IMG counts must follow a
+    // setting change without waiting for another intersection callback. Keep
+    // released previews as placeholders after recalculating their counts.
+    for (const node of adapter.findCommentNodes(root)) {
+      if (!adapter.hasPreview?.(node) || adapter.isEditable(node)) continue;
+      const wasPlaceholder = Boolean(node.querySelector("[data-annotation-markdown-placeholder='true']"));
+      renderNode(node);
+      if (wasPlaceholder) adapter.releaseRenderedHtml?.(node);
+    }
+    linkedImages?.refresh();
   }
 
   function canLazyRender(): boolean {
@@ -2283,7 +2308,8 @@ export function createReaderController({
       rendered.mathEnabled === Boolean(settings.isMathEnabled?.() ?? true) &&
       rendered.mathOutput === (settings.getMathOutput?.() ?? "htmlAndMathml") &&
       rendered.svgEnabled === Boolean(settings.isSvgEnabled?.()) &&
-      rendered.mermaidEnabled === Boolean(settings.isMermaidEnabled?.());
+      rendered.mermaidEnabled === Boolean(settings.isMermaidEnabled?.()) &&
+      rendered.linkedImagePreviewEnabled === (settings.isLinkedImagePreviewEnabled?.() ?? true);
   }
 
   function getCachedRender(node: HTMLElement): CachedRender | undefined {

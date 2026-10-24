@@ -1,8 +1,38 @@
 import { describe, expect, test, vi } from "vitest";
-import { createSettings } from "../src/settings.ts";
+import { createSettings, LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY } from "../src/settings.ts";
 import type { PreferenceStore, PreferenceValue } from "../src/types.ts";
 
 describe("createSettings", () => {
+  test("defaults inferred image previews on and retains the choice independently of rendering options", () => {
+    const settings = createSettings();
+    expect(settings.isLinkedImagePreviewEnabled()).toBe(true);
+    settings.setLinkedImagePreviewEnabled(false);
+    settings.setEnabled(false);
+    settings.setPopupEnabled(true);
+    expect(settings.isLinkedImagePreviewEnabled()).toBe(false);
+    settings.setLinkedImagePreviewEnabled(true);
+    expect(settings.isLinkedImagePreviewEnabled()).toBe(true);
+  });
+
+  test("persists inferred image preview choices without rewriting other preferences", () => {
+    const values = new Map<string, PreferenceValue>();
+    const prefs = {
+      get: vi.fn<NonNullable<PreferenceStore["get"]>>((key, fallback) => values.get(key) ?? fallback),
+      set: vi.fn<NonNullable<PreferenceStore["set"]>>((key, value) => { values.set(key, value); })
+    };
+    const settings = createSettings({ prefs });
+    expect(settings.isLinkedImagePreviewEnabled()).toBe(true);
+    expect(prefs.set).not.toHaveBeenCalled();
+    settings.setLinkedImagePreviewEnabled(false);
+    expect(createSettings({ prefs }).isLinkedImagePreviewEnabled()).toBe(false);
+    expect(prefs.get).toHaveBeenCalledWith(LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY, true);
+    expect(prefs.set).toHaveBeenCalledExactlyOnceWith(LINKED_IMAGE_PREVIEW_ENABLED_PREF_KEY, false);
+  });
+
+  test.each([undefined, "false", 0])("keeps inferred image previews enabled for missing or invalid values (%s)", value => {
+    expect(createSettings({ prefs: { get: () => value } }).isLinkedImagePreviewEnabled()).toBe(true);
+  });
+
   test("defaults smart numbering on and retains its saved choice independently of parent options", () => {
     const settings = createSettings();
     expect(settings.isOutlineSmartNumberingEnabled()).toBe(true);
