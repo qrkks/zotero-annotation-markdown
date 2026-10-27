@@ -85,5 +85,8 @@ export default defineConfig({
   base: '/zotero-annotation-markdown/',
   plugins: [annotationRenderer(), localizedPages()],
   server: { fs: { allow: [projectRoot] } },
-  build: { target: 'es2022' },
+  build: {
+    target: 'es2022',
+    rollupOptions: { input: { main: path.join(siteRoot, 'index.html'), support: path.join(siteRoot, 'support.html') } },
+  },
 });

@@ -25,9 +25,15 @@ English is served at the project root and Chinese at `zh-CN/`. Both are complete
 
 The page also has a staggered headline reveal and marker stroke, a compact glass header on scroll, feature hover treatments, button feedback, and a closing-section reveal. Moving the mouse into the headline replays the marker stroke once; leaving it lets the stroke finish. The header keeps its original layout space while its inner bar contracts, so content does not jump. Section reveals run once; hover movement is limited to fine pointers. With reduced motion enabled, text and rules remain visible, decorative movement is disabled, and the compact header changes immediately. Check both languages at narrow phone widths and verify that the sticky header leaves dialogs, keyboard focus, and fragment links usable.
 
+## Voluntary support
+
+The support page is served at `support/` in English and `zh-CN/support/` in Chinese. Both are static HTML, including the payment image, voluntary-support explanation, language links, and image download. The landing page, both READMEs, and `.github/FUNDING.yml` link to these pages. The original owner-supplied Alipay image is `public/alipay-support.jpg`; keep its QR code intact when replacing it. No payment API or payment-status tracking is used.
+
+`support.html` and `src/content.js` contain the page and its translations. The small `src/support.js` entry shares the local fonts and styles and preserves language-query links without loading the annotation demo renderer. The support page can receive an additional payment option, such as Ko-fi, when that account is ready. Browser verification should include saving the image, returning home, and switching languages at desktop and phone widths. Actual payment acceptance and account permissions are managed in Alipay.
+
 ## Search and link previews
 
-The build emits localized titles/descriptions, self-referencing canonicals, reciprocal `hreflang` links, Open Graph and Twitter cards, factual SoftwareApplication data, and a two-page `sitemap.xml`. The build check verifies the generated HTML without executing JavaScript, local asset paths under the GitHub Pages prefix, and the social image. It runs as part of `site:build` and the Website workflow.
+The build emits localized titles/descriptions, self-referencing canonicals, reciprocal `hreflang` links, Open Graph and Twitter cards, factual SoftwareApplication data on the home pages, WebPage data on the support pages, and a four-page `sitemap.xml`. The build check verifies the generated HTML without executing JavaScript, local asset paths under the GitHub Pages prefix, the payment image/download, and the social image. It runs as part of `site:build` and the Website workflow.
 
 The shared 1200×630 image is `public/social-preview.png`. Its editable HTML/CSS source is `artwork/social-preview.html`; it is artwork rather than a public landing page. To regenerate it, serve `site/` with a local static server, open `/artwork/social-preview.html` at a 1200×630 viewport, wait for the local fonts, capture a PNG, and replace the public image. The template uses the existing icon and locally installed fonts.
 

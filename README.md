@@ -14,7 +14,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-[Website](https://qrkks.github.io/zotero-annotation-markdown/) · [User guide](docs/en/user-guide.md)
+[Website](https://qrkks.github.io/zotero-annotation-markdown/) · [User guide](docs/en/user-guide.md) · [Support](https://qrkks.github.io/zotero-annotation-markdown/support/)
 
 Make Zotero annotation comments easier to read with Markdown headings, lists, color highlights, LaTeX math, and experimental SVG and Mermaid diagrams. Rendering preserves the original source stored by Zotero, so it stays editable.
 
@@ -99,6 +99,12 @@ If you already have [Add-on Market for Zotero](https://github.com/syt2/zotero-ad
 - [Localization and translation contributions](docs/en/localization.md)
 - [Performance diagnostics](docs/en/performance-diagnostics.md)
 - [Documentation index and translation policy](docs/README.md)
+
+## Support the project
+
+If this plugin helps with your reading, you can [support its development and maintenance via Alipay](https://qrkks.github.io/zotero-annotation-markdown/support/). Contributions are entirely voluntary, with any amount you choose. The plugin is free and open source, with all features available to everyone.
+
+Reporting issues, improving the documentation, and sharing the plugin are also welcome ways to help.
 
 ## Quick development
 

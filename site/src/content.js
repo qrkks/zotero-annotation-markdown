@@ -1,6 +1,15 @@
 export const copy = {
   en: {
     skip: 'Skip to content', guide: 'User guide',
+    support: 'Support', backHome: 'Back to the plugin',
+    supportEyebrow: 'THANK YOU FOR READING WITH US', supportTitle: 'Support the project.',
+    supportIntro: 'If Annotation Markdown helps with your reading, you can support its ongoing development and maintenance.',
+    supportVoluntary: 'Contributions are entirely optional. Choose any amount. The plugin is free and open source, with all features available to everyone.',
+    supportOtherTitle: 'There are other ways to help.',
+    supportOtherBody: 'Report a bug, suggest an improvement, contribute to the documentation, or share the plugin with someone who might find it useful.',
+    alipayTitle: 'Support via Alipay', alipayInstructions: 'Scan the code with Alipay and choose your amount.',
+    alipayAlt: 'Alipay QR code for supporting Zotero Annotation Markdown', saveAlipayCode: 'Save payment code',
+    alipayPhone: 'On your phone, save the image, then open Alipay → Scan → Album and select it.',
     eyebrow: 'A little more clarity. In every annotation.',
     titleFirst: 'Markdown in.', titleSecond: 'Clarity out.',
     description: 'Give your Zotero annotations structure, equations, and diagrams. Your ideas, easier to read. Your original source, always editable.',
@@ -25,6 +34,15 @@ export const copy = {
   },
   'zh-CN': {
     skip: '跳至正文', guide: '使用指南', eyebrow: '让每一条批注，都更清晰一点。',
+    support: '支持项目', backHome: '返回插件首页',
+    supportEyebrow: '感谢你，让阅读中的想法更清晰', supportTitle: '支持项目，\n让维护继续。',
+    supportIntro: '如果 Annotation Markdown 对你的阅读有帮助，欢迎支持插件的后续开发与维护。',
+    supportVoluntary: '赞助完全自愿，金额由你决定。插件免费开源，所有用户都可以使用完整功能。',
+    supportOtherTitle: '支持，也可以有其他方式。',
+    supportOtherBody: '反馈问题、提出建议、完善文档，或把插件分享给需要的人，都是对项目的支持。',
+    alipayTitle: '通过支付宝支持', alipayInstructions: '打开支付宝扫一扫，输入你希望赞助的金额。',
+    alipayAlt: '用于支持 Zotero Annotation Markdown 的支付宝收款码', saveAlipayCode: '保存收款码',
+    alipayPhone: '在手机上浏览时，可先保存图片，再打开支付宝 → 扫一扫 → 相册，选择这张图片。',
     titleFirst: '写下想法，', titleSecond: '读出条理。',
     description: '在 Zotero 批注里，用 Markdown 整理思路，用公式和图表表达想法。阅读更清晰，原始源码始终可以编辑。',
     download: '获取插件', readGuide: '阅读使用指南', releaseNote: '免费开源 · 在 GitHub 下载并查看更新内容',
@@ -49,6 +67,7 @@ export const site = {
   origin: 'https://qrkks.github.io',
   base: '/zotero-annotation-markdown/',
   paths: { en: '/zotero-annotation-markdown/', 'zh-CN': '/zotero-annotation-markdown/zh-CN/' },
+  supportPaths: { en: '/zotero-annotation-markdown/support/', 'zh-CN': '/zotero-annotation-markdown/zh-CN/support/' },
   image: 'https://qrkks.github.io/zotero-annotation-markdown/social-preview.png',
 };
 
@@ -74,6 +93,19 @@ export const pageMetadata = {
     examples: '批注示例',
     switchLanguage: 'Switch to English',
     noscript: '交互示例需要 JavaScript。你仍然可以阅读插件介绍、切换语言，并通过上方链接下载插件。',
+  },
+};
+
+export const supportMetadata = {
+  en: {
+    ...pageMetadata.en,
+    title: 'Support Zotero Annotation Markdown',
+    description: 'Support the ongoing development and maintenance of Zotero Annotation Markdown with a voluntary contribution via Alipay.',
+  },
+  'zh-CN': {
+    ...pageMetadata['zh-CN'],
+    title: '支持项目 — Zotero Annotation Markdown',
+    description: '通过支付宝自愿支持 Zotero Annotation Markdown 的后续开发与维护，金额自定。插件免费开源，所有用户均可使用完整功能。',
   },
 };
 
