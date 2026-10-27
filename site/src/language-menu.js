@@ -14,6 +14,8 @@ export function initLanguageMenu(documentRef = document) {
     function sync() {
       const option = select.selectedOptions[0];
       current.textContent = option.dataset.short || option.textContent;
+      current.hidden = select.value === 'auto';
+      button.dataset.mode = select.value;
       button.setAttribute('aria-label', `${label.textContent}: ${option.textContent}`);
       for (const item of items) item.setAttribute('aria-checked', String(item.dataset.languageMode === select.value));
     }

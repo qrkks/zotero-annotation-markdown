@@ -48,6 +48,8 @@
   .language-control [hidden] { display:none; }
   .language-picker { position:relative; }
   .language-button { display:inline-flex; align-items:center; gap:7px; width:max-content; min-height:36px; padding:7px 8px; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--ink); font:inherit; font-size:14px; font-weight:600; line-height:1.4; white-space:nowrap; }
+  .language-button[data-mode=auto] { justify-content:center; width:36px; padding:7px; }
+  .language-button[data-mode=auto] .language-chevron { display:none; }
   .language-button:is(:hover,[aria-expanded=true]) { color:#2458c2; background:#eaf1ff; border-color:#dce7fa; }
   .language-symbol { display:inline-flex; align-items:center; gap:1px; font-size:12px; font-weight:500; color:var(--muted); }
   .language-symbol>span { font-size:9px; align-self:flex-end; margin-bottom:-1px; }
@@ -298,6 +300,7 @@
     .nav-github span { display:none; }
     .language-toggle { min-width:42px; }
     .language-button { font-size:13px; min-height:38px; }
+    .language-button[data-mode=auto] { width:38px; }
     .language-option { min-height:40px; }
     .hero { padding-top:43px; gap:40px; }
     .hero-copy h1 { font-size:clamp(42px,12.5vw,54px); margin-top:24px; }
