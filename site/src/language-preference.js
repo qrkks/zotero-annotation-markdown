@@ -1,62 +1,78 @@
 // Self-contained so the static build can run this in <head>, before paint.
 export function initSiteLanguage({ paths, base, storageKey }, view = window) {
   const supported = language => Object.hasOwn(paths, language);
+  const validMode = mode => mode === 'auto' || supported(mode);
+  let storageAvailable = true;
   const save = language => {
     try {
       view.localStorage.setItem(storageKey, language);
+      storageAvailable = true;
       return true;
-    } catch { return false; }
+    } catch { storageAvailable = false; return false; }
+  };
+  const browserLanguage = () => {
+    const languages = view.navigator.languages?.length ? view.navigator.languages : [view.navigator.language];
+    for (const language of languages) {
+      if (/^zh(?:-|$)/i.test(language)) return 'zh-CN';
+      if (/^en(?:-|$)/i.test(language)) return 'en';
+    }
+    return 'en';
   };
   const current = new URL(view.location.href);
   const requested = current.searchParams.get('lang');
+  let saved;
+  try {
+    const value = view.localStorage.getItem(storageKey);
+    if (validMode(value)) saved = value;
+  } catch { storageAvailable = false; }
+  // A first visit to a translated URL stays in that language. Once a mode is
+  // chosen, it governs both pages, keeping the selection and content consistent.
+  let mode = validMode(requested) ? requested : saved ?? (current.pathname === paths['zh-CN'] ? 'zh-CN' : 'auto');
+  if (validMode(requested) || (!saved && mode === 'auto')) save(mode);
 
-  if (supported(requested)) {
-    save(requested);
-    const destination = new URL(current);
-    destination.pathname = paths[requested];
+  function navigate() {
+    const before = new URL(view.location.href);
+    const destination = new URL(before);
+    destination.pathname = paths[mode === 'auto' ? browserLanguage() : mode];
     destination.searchParams.delete('lang');
-    if (destination.pathname !== current.pathname) {
+    if (!storageAvailable) destination.searchParams.set('lang', mode);
+    if (destination.pathname !== before.pathname) {
       view.location.replace(destination.href);
-      return;
+      return true;
     }
-    // Do not reload the same page, including when storage is unavailable.
-    view.history.replaceState(view.history.state, '', destination.href);
-  } else if (current.pathname === paths.en) {
-    let preferred;
-    try {
-      const saved = view.localStorage.getItem(storageKey);
-      if (supported(saved)) preferred = saved;
-    } catch { /* Private browsing may disable storage. */ }
-    let internalNavigation = false;
-    try {
-      const referrer = new URL(view.document.referrer);
-      internalNavigation = referrer.origin === current.origin && referrer.pathname.startsWith(base);
-    } catch { /* A direct visit has no referrer. */ }
-    if (!preferred && !internalNavigation) {
-      const languages = view.navigator.languages?.length ? view.navigator.languages : [view.navigator.language];
-      for (const language of languages) {
-        if (/^zh(?:-|$)/i.test(language)) { preferred = 'zh-CN'; break; }
-        if (/^en(?:-|$)/i.test(language)) { preferred = 'en'; break; }
-      }
-    }
-    if (preferred && preferred !== 'en') {
-      const destination = new URL(current);
-      destination.pathname = paths[preferred];
-      view.location.replace(destination.href);
-      return;
-    }
+    if (destination.href !== before.href) view.history.replaceState(view.history.state, '', destination.href);
+    return false;
   }
+  if (navigate()) return;
+
+  function showPicker() {
+    const picker = view.document.querySelector('#language-select');
+    if (!picker) return;
+    picker.value = mode;
+    picker.hidden = false;
+    view.document.querySelector('#language-toggle').hidden = true;
+    view.document.documentElement.dataset.languagePicker = '';
+  }
+  if (view.document.readyState === 'loading') view.document.addEventListener('DOMContentLoaded', showPicker, { once: true });
+  else showPicker();
+
+  view.document.addEventListener('change', event => {
+    if (event.target?.id !== 'language-select' || !validMode(event.target.value)) return;
+    mode = event.target.value;
+    save(mode);
+    navigate();
+  });
+  view.addEventListener?.('languagechange', () => { if (mode === 'auto') navigate(); });
 
   view.document.addEventListener('click', event => {
-    const link = event.target?.closest?.('#language-toggle');
-    if (!link || !supported(link.hreflang)) return;
+    const link = event.target?.closest?.('a[href]');
+    if (!link) return;
     const destination = new URL(link.href);
-    if (destination.origin !== current.origin || destination.pathname !== paths[link.hreflang]) return;
-    destination.search = view.location.search;
-    destination.hash = view.location.hash;
-    destination.searchParams.delete('lang');
-    // Keep an explicit choice working even when saving it is blocked.
-    if (!save(link.hreflang)) destination.searchParams.set('lang', link.hreflang);
-    link.href = destination.href;
+    if (destination.origin !== current.origin || !destination.pathname.startsWith(base)) return;
+    // Preserve the chosen mode through internal links when storage is blocked.
+    if (!storageAvailable && (Object.values(paths).includes(destination.pathname) || link.matches('.brand, .home-link, .support-link'))) {
+      destination.searchParams.set('lang', mode);
+      link.href = destination.href;
+    }
   });
 }

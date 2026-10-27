@@ -26,7 +26,15 @@
         <nav aria-label="Main navigation">
           <a class="nav-docs docs-link" href="https://github.com/qrkks/zotero-annotation-markdown/blob/main/docs/en/user-guide.md" data-i18n="guide">User guide</a>
           <a class="nav-github" href="https://github.com/qrkks/zotero-annotation-markdown">GitHub <span aria-hidden="true">↗</span></a>
-          <a id="language-toggle" class="language-toggle" href="/zotero-annotation-markdown/zh-CN/" aria-label="Switch to Chinese" lang="zh-CN" hreflang="zh-CN">中文</a>
+          <div class="language-control">
+            <label for="language-select" class="visually-hidden" data-i18n="languageLabel">Language</label>
+            <select id="language-select" class="language-select" hidden>
+              <option value="auto" data-i18n="languageAuto">Follow system</option>
+              <option value="en" lang="en">English</option>
+              <option value="zh-CN" lang="zh-CN">简体中文</option>
+            </select>
+            <a id="language-toggle" class="language-toggle" href="/zotero-annotation-markdown/zh-CN/" aria-label="Switch to Chinese" lang="zh-CN" hreflang="zh-CN">中文</a>
+          </div>
         </nav>
         </div>
       </header>

@@ -44,6 +44,10 @@
   nav a:hover, footer a:hover { color:var(--blue); }
   .language-toggle { display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--rule); background:transparent; color:var(--ink); min-width:48px; min-height:36px; border-radius:5px; font-size:var(--type-ui); }
   .language-toggle:hover { background:white; border-color:#a7bad6; }
+  .language-control { display:flex; align-items:center; flex:none; }
+  .language-control [hidden] { display:none; }
+  .language-select { width:132px; min-height:38px; border:1px solid var(--rule); border-radius:5px; padding:6px 8px; color:var(--ink); background:white; font:inherit; cursor:pointer; touch-action:manipulation; }
+  .language-select:hover { border-color:#a7bad6; }
   .hero { display:grid; grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:50px; align-items:center; padding:93px 0 96px; }
   .hero-copy h1 { font-family:var(--display); font-size:clamp(54px,5.1vw,76px); font-weight:650; line-height:1.03; letter-spacing:-.065em; margin-top:30px; }
   .title-highlight { display:inline-block; position:relative; z-index:0; }
@@ -278,8 +282,10 @@
     .brand small { margin-top:5px; letter-spacing:.12em; }
     nav { gap:16px; }
     .nav-docs { display:none; }
+    html[data-language-picker] .nav-github { display:none; }
     .nav-github span { display:none; }
     .language-toggle { min-width:42px; }
+    .language-select { width:124px; font-size:13px; }
     .hero { padding-top:43px; gap:40px; }
     .hero-copy h1 { font-size:clamp(42px,12.5vw,54px); margin-top:24px; }
     .hero-copy h1 br { display:block; }
@@ -318,6 +324,7 @@
     html[lang=zh-CN] .closing h2 { font-size:28px; }
   }
   @media(max-width:360px) {
+    .brand { font-size:11px; }
     .site-shell { padding-inline:16px; }
     nav { gap:10px; }
     .hero-copy h1 { font-size:42px; }

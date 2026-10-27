@@ -1,6 +1,6 @@
 export const copy = {
   en: {
-    skip: 'Skip to content', guide: 'User guide',
+    skip: 'Skip to content', guide: 'User guide', languageLabel: 'Language', languageAuto: 'Follow system',
     support: 'Support', backHome: 'Back to the plugin',
     supportEyebrow: 'THANK YOU FOR READING WITH US', supportTitle: 'Support the project.',
     supportIntro: 'If Annotation Markdown helps with your reading, you can support its ongoing development and maintenance.',
@@ -33,7 +33,7 @@ export const copy = {
     demoError: 'The interactive preview could not load. You can still read and copy the example source.',
   },
   'zh-CN': {
-    skip: '跳至正文', guide: '使用指南', eyebrow: '让每一条批注，都更清晰一点。',
+    skip: '跳至正文', guide: '使用指南', languageLabel: '语言', languageAuto: '跟随系统', eyebrow: '让每一条批注，都更清晰一点。',
     support: '支持项目', backHome: '返回插件首页',
     supportEyebrow: '感谢你，让阅读中的想法更清晰', supportTitle: '支持项目，\n让维护继续。',
     supportIntro: '如果 Annotation Markdown 对你的阅读有帮助，欢迎支持插件的后续开发与维护。',
