@@ -18,6 +18,8 @@ for (const variant of variants) {
   const dom = new JSDOM(html);
   const document = dom.window.document;
   assert.equal(document.documentElement.lang, variant.language);
+  assert.equal(document.querySelectorAll('#language-preference').length, 1);
+  assert.equal(document.querySelector('meta[charset]').nextElementSibling.id, 'language-preference');
   assert.match(document.title, variant.support ? /Zotero Annotation Markdown/ : /Zotero Annotation Markdown.*LaTeX/);
   assert.match(document.querySelector('meta[name=description]').content, /Zotero/);
   assert.ok(document.head.querySelector('meta[name=google-site-verification]')?.content, 'Search Console verification tag must remain published');

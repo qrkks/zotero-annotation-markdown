@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import { copy, markdownSamples, pageMetadata, readingNotes, site, supportMetadata } from '../src/content.js';
+import { initSiteLanguage } from '../src/language-preference.js';
 
 const languages = ['en', 'zh-CN'];
 const pageUrl = (language, support = false) => site.origin + (support ? site.supportPaths : site.paths)[language];
@@ -14,6 +15,15 @@ function renderPage(html, language) {
   const nextLanguage = language === 'en' ? 'zh-CN' : 'en';
   document.documentElement.lang = language;
   document.title = metadata.title;
+  document.querySelector('#language-preference')?.remove();
+  const languageScript = document.createElement('script');
+  languageScript.id = 'language-preference';
+  languageScript.textContent = `(${initSiteLanguage.toString()})(${JSON.stringify({
+    paths: isSupport ? site.supportPaths : site.paths,
+    base: site.base,
+    storageKey: 'annotation-markdown-language',
+  })});`;
+  document.querySelector('meta[charset]').after(languageScript);
   for (const element of document.querySelectorAll('[data-i18n]')) {
     const text = copy[language][element.dataset.i18n];
     if (typeof text !== 'string') throw new Error(`Missing ${language} translation: ${element.dataset.i18n}`);

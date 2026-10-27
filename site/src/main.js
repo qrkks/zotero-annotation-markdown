@@ -6,7 +6,7 @@ import rendererUrl from 'virtual:renderer-url';
 import svgExample from '../../docs/examples/svd.md?raw';
 import mermaidExamples from '../../docs/examples/mermaid-samples.md?raw';
 import './style.css';
-import { copy, markdownSamples, pageMetadata, site } from './content.js';
+import { copy, markdownSamples, pageMetadata } from './content.js';
 import { initPageMotion } from './page-motion.js';
 
 const mermaidBlocks = [...mermaidExamples.matchAll(/````markdown\r?\n([\s\S]*?)\r?\n````/g)].map(match => match[1]);
@@ -37,15 +37,6 @@ let animationControls = [];
 let demoPlayed = false;
 let copyFeedbackTimer;
 let copyRequest = 0;
-// Keep existing query links working while language-specific URLs stay stable.
-const legacyLanguage = new URLSearchParams(location.search).get('lang');
-if (legacyLanguage === 'en' || legacyLanguage === 'zh-CN') {
-  const destination = new URL(location.href);
-  destination.pathname = site.paths[legacyLanguage];
-  destination.searchParams.delete('lang');
-  location.replace(destination.href);
-}
-
 function stopDemoMotion() {
   animationControls.forEach(control => control.stop());
   animationControls = [];
