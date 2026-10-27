@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "node --test scripts/language.test.js && vite build && node scripts/check-build.js",
+    "build": "node --test scripts/language.test.js scripts/language-menu.test.js && vite build && node scripts/check-build.js",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

@@ -26,9 +26,19 @@
               <label for="language-select" class="visually-hidden" data-i18n="languageLabel">Language</label>
               <select id="language-select" class="language-select" hidden>
                 <option value="auto" data-i18n="languageAuto">Follow system</option>
-                <option value="en" lang="en">English</option>
-                <option value="zh-CN" lang="zh-CN">简体中文</option>
+                <option value="en" lang="en" data-short="EN">English</option>
+                <option value="zh-CN" lang="zh-CN" data-short="中文">简体中文</option>
               </select>
+              <div id="language-picker" class="language-picker" hidden>
+                <button id="language-button" class="language-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="language-menu">
+                  <span class="language-symbol" aria-hidden="true">文<span>A</span></span><span id="language-current">System</span><span class="language-chevron" aria-hidden="true"></span>
+                </button>
+                <div id="language-menu" class="language-menu" role="menu" aria-label="Language" hidden>
+                  <button class="language-option" type="button" role="menuitemradio" aria-checked="true" data-language-mode="auto" tabindex="-1"><span data-i18n="languageAuto">Follow system</span><span class="language-check" aria-hidden="true">✓</span></button>
+                  <button class="language-option" type="button" role="menuitemradio" aria-checked="false" data-language-mode="en" tabindex="-1"><span lang="en">English</span><span class="language-check" aria-hidden="true">✓</span></button>
+                  <button class="language-option" type="button" role="menuitemradio" aria-checked="false" data-language-mode="zh-CN" tabindex="-1"><span lang="zh-CN">简体中文</span><span class="language-check" aria-hidden="true">✓</span></button>
+                </div>
+              </div>
               <a id="language-toggle" class="language-toggle" href="/zotero-annotation-markdown/zh-CN/support/" aria-label="Switch to Chinese" lang="zh-CN" hreflang="zh-CN">中文</a>
             </div>
           </nav>

@@ -36,6 +36,9 @@ for (const variant of variants) {
   assert.deepEqual([...document.querySelectorAll('#language-select option')].map(option => option.value), ['auto', 'en', 'zh-CN']);
   assert.ok(document.querySelector('label[for="language-select"]').textContent);
   assert.equal(document.querySelector('#language-select').hidden, true);
+  assert.equal(document.querySelector('#language-picker').hidden, true);
+  assert.equal(document.querySelector('#language-button').getAttribute('aria-controls'), 'language-menu');
+  assert.equal(document.querySelectorAll('#language-menu [role=menuitemradio]').length, 3);
   assert.equal(document.querySelector('#language-toggle').getAttribute('href'), translations.find(target => target !== variant).path);
   if (variant.support) {
     const image = document.querySelector('.alipay-code');

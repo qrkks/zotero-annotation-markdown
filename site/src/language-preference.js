@@ -49,9 +49,7 @@ export function initSiteLanguage({ paths, base, storageKey }, view = window) {
     const picker = view.document.querySelector('#language-select');
     if (!picker) return;
     picker.value = mode;
-    picker.hidden = false;
-    view.document.querySelector('#language-toggle').hidden = true;
-    view.document.documentElement.dataset.languagePicker = '';
+    picker.dispatchEvent(new view.document.defaultView.Event('language-preference-ready'));
   }
   if (view.document.readyState === 'loading') view.document.addEventListener('DOMContentLoaded', showPicker, { once: true });
   else showPicker();

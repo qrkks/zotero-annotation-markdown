@@ -102,11 +102,11 @@ test('saved system mode re-evaluates browser language on both pages', () => {
   result.dom.window.close();
 });
 
-test('the picker displays a migrated fixed preference', () => {
+test('a migrated preference is available to the menu without showing the native select', () => {
   const result = visit({ saved: 'en' });
   assert.equal(result.dom.window.document.querySelector('#language-select').value, 'en');
-  assert.equal(result.dom.window.document.querySelector('#language-select').hidden, false);
-  assert.equal(result.dom.window.document.querySelector('#language-toggle').hidden, true);
+  assert.equal(result.dom.window.document.querySelector('#language-select').hidden, true);
+  assert.equal(result.dom.window.document.querySelector('#language-toggle').hidden, false);
   result.dom.window.close();
 });
 

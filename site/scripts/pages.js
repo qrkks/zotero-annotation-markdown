@@ -36,6 +36,8 @@ function renderPage(html, language) {
   brand.href = site.paths[language];
   brand.setAttribute('aria-label', metadata.home);
   document.querySelector('nav').setAttribute('aria-label', metadata.navigation);
+  document.querySelector('#language-menu').setAttribute('aria-label', copy[language].languageLabel);
+  document.querySelector('#language-select option[value="auto"]').dataset.short = copy[language].languageAutoShort;
   document.querySelector('.demo-tabs')?.setAttribute('aria-label', metadata.examples);
   for (const link of document.querySelectorAll('.support-link')) link.href = site.supportPaths[language];
   for (const link of document.querySelectorAll('.home-link')) link.href = site.paths[language];

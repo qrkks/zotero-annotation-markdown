@@ -8,6 +8,9 @@ import mermaidExamples from '../../docs/examples/mermaid-samples.md?raw';
 import './style.css';
 import { copy, markdownSamples, pageMetadata } from './content.js';
 import { initPageMotion } from './page-motion.js';
+import { initLanguageMenu } from './language-menu.js';
+
+initLanguageMenu();
 
 const mermaidBlocks = [...mermaidExamples.matchAll(/````markdown\r?\n([\s\S]*?)\r?\n````/g)].map(match => match[1]);
 if (mermaidBlocks.length !== 2) throw new Error('Expected both documented Mermaid examples.');
