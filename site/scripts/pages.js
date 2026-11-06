@@ -29,6 +29,11 @@ function renderPage(html, language) {
     if (typeof text !== 'string') throw new Error(`Missing ${language} translation: ${element.dataset.i18n}`);
     element.textContent = text;
   }
+  for (const image of document.querySelectorAll('[data-i18n-alt]')) {
+    const alt = copy[language][image.dataset.i18nAlt];
+    if (typeof alt !== 'string') throw new Error(`Missing ${language} translation: ${image.dataset.i18nAlt}`);
+    image.alt = alt;
+  }
   for (const link of document.querySelectorAll('.docs-link')) {
     link.href = `https://github.com/qrkks/zotero-annotation-markdown/blob/main/docs/${language}/user-guide.md`;
   }
@@ -50,10 +55,12 @@ function renderPage(html, language) {
   document.querySelector('[data-i18n=licenses]').href = `${site.base}THIRD-PARTY-NOTICES.txt`;
   document.querySelector('#year').textContent = String(new Date().getFullYear());
   if (isSupport) {
-    const image = document.querySelector('.alipay-code');
-    image.alt = copy[language].alipayAlt;
-    image.src = `${site.base}alipay-support.jpg`;
-    document.querySelector('a[download]').href = image.src;
+    for (const payment of document.querySelectorAll('.support-payment')) {
+      const image = payment.querySelector('.support-code');
+      const filename = image.getAttribute('src').split('/').at(-1);
+      image.src = `${site.base}${filename}`;
+      payment.querySelector('a[download]').href = image.src;
+    }
   } else {
     const copyButton = document.querySelector('#copy-source');
     copyButton.textContent = copy[language].copy;

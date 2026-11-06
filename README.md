@@ -102,7 +102,7 @@ If you already have [Add-on Market for Zotero](https://github.com/syt2/zotero-ad
 
 ## Support the project
 
-If this plugin helps with your reading, you can [support its development and maintenance via Alipay](https://qrkks.github.io/zotero-annotation-markdown/support/). Contributions are entirely voluntary, with any amount you choose. The plugin is free and open source, with all features available to everyone.
+If this plugin helps with your reading, you can [support its development and maintenance via Alipay or WeChat Pay](https://qrkks.github.io/zotero-annotation-markdown/support/). Contributions are entirely voluntary, with any amount you choose. The plugin is free and open source, with all features available to everyone.
 
 Reporting issues, improving the documentation, and sharing the plugin are also welcome ways to help.
 

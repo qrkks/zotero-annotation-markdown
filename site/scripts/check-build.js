@@ -41,13 +41,23 @@ for (const variant of variants) {
   assert.equal(document.querySelectorAll('#language-menu [role=menuitemradio]').length, 3);
   assert.equal(document.querySelector('#language-toggle').getAttribute('href'), translations.find(target => target !== variant).path);
   if (variant.support) {
-    const image = document.querySelector('.alipay-code');
-    assert.equal(image.getAttribute('src'), `${base}alipay-support.jpg`);
-    assert.ok(image.alt && image.width > 0 && image.height > 0);
-    const download = document.querySelector('a[download]');
-    assert.equal(download.getAttribute('href'), image.getAttribute('src'));
+    const methods = [
+      { id: 'alipay', name: variant.language === 'en' ? 'Alipay' : '支付宝' },
+      { id: 'wechat', name: variant.language === 'en' ? 'WeChat Pay' : '微信' },
+    ];
+    assert.equal(document.querySelectorAll('.support-payment').length, methods.length);
+    for (const { id, name } of methods) {
+      const payment = document.querySelector(`.support-payment[aria-labelledby="${id}-title"]`);
+      const image = payment.querySelector('.support-code');
+      assert.equal(image.getAttribute('src'), `${base}${id}-support.jpg`);
+      assert.ok(image.alt.includes(name) && image.width > 0 && image.height > 0);
+      const download = payment.querySelector('a[download]');
+      assert.equal(download.getAttribute('href'), image.getAttribute('src'));
+      assert.equal(download.download, `annotation-markdown-${id}.jpg`);
+      assert.ok(download.textContent.includes(name));
+      assert.ok(payment.querySelector('.support-phone-note').textContent);
+    }
     assert.ok(document.querySelector('.support-voluntary').textContent);
-    assert.ok(document.querySelector('.support-phone-note').textContent);
     assert.equal(document.querySelector('.brand').getAttribute('href'), variant.language === 'en' ? base : `${base}zh-CN/`);
     assert.equal(document.querySelector('#preview-content'), null);
   } else {
@@ -63,7 +73,7 @@ for (const variant of variants) {
   for (const link of document.querySelectorAll('.docs-link')) assert.ok(link.href.includes(`/docs/${variant.language}/`));
   assert.equal(document.querySelector('[data-i18n=licenses]').getAttribute('href'), `${base}THIRD-PARTY-NOTICES.txt`);
   assert.ok(!document.querySelector('meta[name=robots]')?.content.includes('noindex'));
-  for (const resource of document.querySelectorAll('script[src], link[rel=stylesheet], link[rel=icon], .brand img, .alipay-code, a[download]')) {
+  for (const resource of document.querySelectorAll('script[src], link[rel=stylesheet], link[rel=icon], .brand img, .support-code, a[download]')) {
     const url = resource.getAttribute('src') || resource.getAttribute('href');
     assert.ok(url.startsWith(base), `Asset loses the Pages prefix: ${url}`);
     await access(new URL(url.slice(base.length), output));
@@ -86,4 +96,4 @@ const png = await readFile(new URL('social-preview.png', output));
 assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
 assert.equal(png.readUInt32BE(16), 1200);
 assert.equal(png.readUInt32BE(20), 630);
-console.log('Website checks passed: static English/Chinese home and support pages, payment image/download, canonical and language links, assets, sitemap, schema, and 1200×630 social image.');
+console.log('Website checks passed: static English/Chinese home and support pages, payment images/downloads, canonical and language links, assets, sitemap, schema, and 1200×630 social image.');
