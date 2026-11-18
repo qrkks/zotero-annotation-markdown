@@ -9,6 +9,7 @@
   <a href="https://github.com/qrkks/zotero-annotation-markdown/releases/latest"><img alt="Latest release downloads" src="https://img.shields.io/github/downloads/qrkks/zotero-annotation-markdown/latest/total?label=latest%20downloads"></a>
   <a href="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/qrkks/zotero-annotation-markdown/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="docs/en/user-guide.md#compatibility"><img alt="Zotero 9 and 10" src="https://img.shields.io/badge/Zotero-9%20%7C%2010-CC2936?logo=zotero&amp;logoColor=white"></a>
+  <a href="https://zoteroplugins.org/p/zotero-annotation-markdown"><img alt="Zotero Plugins Atlas grade" src="https://zoteroplugins.org/badge/zotero-annotation-markdown.svg"></a>
   <a href="LICENSE"><img alt="License: AGPL-3.0-or-later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue"></a>
 </p>
 
