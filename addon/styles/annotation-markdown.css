@@ -13,13 +13,22 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
     line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
-    font-size: var(--annotation-markdown-font-scale, 1em);
-    line-height: inherit;
-    max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em);
+    box-sizing: border-box;
+    font-size: calc(var(--annotation-markdown-native-font-size, 1em) * var(--annotation-markdown-font-multiplier, 1));
+    line-height: var(--annotation-markdown-native-line-height, inherit);
     overflow: hidden;
     overflow-wrap: break-word;
+    padding: var(--annotation-markdown-native-padding, 0);
     white-space: normal;
     word-wrap: break-word;
+}
+
+.annotation-markdown-rendered > :first-child {
+    margin-top: 0;
+}
+
+.annotation-markdown-rendered > :last-child {
+    margin-bottom: 0;
 }
 
 .annotation-markdown-outline {
@@ -191,7 +200,7 @@
     overscroll-behavior: contain;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 0.65em 0.8em 0.75em;
+    padding: var(--annotation-markdown-native-padding, 0.65em 0.8em 0.75em);
 }
 
 [data-annotation-markdown-popup-enabled="true"] .annotation-popup .annotation-markdown-editing > .editor .content {
@@ -219,7 +228,6 @@
     display: -webkit-box;
     -webkit-line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
     line-clamp: var(--annotation-markdown-preview-line-clamp, 3);
-    max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em);
     overflow: hidden;
 }
 

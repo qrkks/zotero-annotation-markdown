@@ -2600,7 +2600,7 @@ export function createReaderController({
 }
 
 function createFontScaleStyle(fontScale: number): string {
-  return `.annotation-markdown-rendered { --annotation-markdown-font-scale: ${fontScale}em; }`;
+  return `.annotation-markdown-rendered { --annotation-markdown-font-scale: ${fontScale}em; --annotation-markdown-font-multiplier: ${fontScale}; }`;
 }
 
 function handlePlainTextPaste(

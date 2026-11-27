@@ -25,8 +25,9 @@ describe("rendered annotation styles", () => {
     expect(addonCss).toContain("[data-annotation-markdown-placeholder=\"true\"]");
     expect(addonCss).toContain(".annotation-markdown-editing .annotation-markdown-rendered");
     expect(addonCss).toContain("display: none !important");
-    expect(addonCss).toContain("font-size: var(--annotation-markdown-font-scale, 1em)");
-    expect(addonCss).toContain("max-height: calc(var(--annotation-markdown-preview-line-clamp, 3) * 1.5em)");
+    expect(addonCss).toContain("var(--annotation-markdown-native-font-size, 1em) * var(--annotation-markdown-font-multiplier, 1)");
+    expect(addonCss).toContain("padding: var(--annotation-markdown-native-padding, 0)");
+    expect(addonCss).not.toContain("* 1.5em)");
     expect(addonCss).toContain("max-height: none");
     expect(addonCss).toMatch(/\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*max-height:\s*min\(50vh, 24em\);/);
     expect(addonCss).toMatch(/\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*overflow-y:\s*auto;/);
@@ -39,7 +40,7 @@ describe("rendered annotation styles", () => {
     );
     expect(addonCss).not.toContain("transition: opacity");
     expect(addonCss).toMatch(
-      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*padding:\s*0\.65em 0\.8em 0\.75em;/
+      /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-rendered\s*\{[^}]*padding:\s*var\(--annotation-markdown-native-padding, 0\.65em 0\.8em 0\.75em\);/
     );
     expect(addonCss).toMatch(
       /\[data-annotation-markdown-popup-enabled="true"\] \.annotation-popup \.annotation-markdown-editing > \.editor \.content\s*\{[^}]*height:\s*var\(--annotation-markdown-popup-editor-height\);[^}]*overflow-y:\s*auto;/

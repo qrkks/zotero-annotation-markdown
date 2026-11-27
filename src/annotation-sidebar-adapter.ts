@@ -251,6 +251,7 @@ export function createAnnotationSidebarAdapter({
 
       const preview = getPreviewNode(node) ?? createPreviewNode(node, this);
 
+      syncNativeCommentMetrics(node, preview);
       preview.removeAttribute(PREVIEW_PLACEHOLDER_ATTRIBUTE);
 
       // Browser serialization and focus/decorating attributes can change the
@@ -1558,6 +1559,32 @@ function createPreviewNode(
   }, { capture: true });
   getPreviewAnchor(sourceNode).after(preview);
   return preview;
+}
+
+const NATIVE_COMMENT_METRICS: ReadonlyArray<[cssProperty: string, variable: string]> = [
+  ["padding", "--annotation-markdown-native-padding"],
+  ["font-size", "--annotation-markdown-native-font-size"],
+  ["line-height", "--annotation-markdown-native-line-height"],
+];
+
+// The preview is a sibling of Zotero's hidden `.content`, so it cannot inherit
+// the padding, font size and line height Zotero applies there.
+function syncNativeCommentMetrics(node: HTMLElement, preview: HTMLElement): void {
+  const sourceNode = getSourceNode(node);
+  const nativeContent = sourceNode?.matches(".content")
+    ? sourceNode
+    : sourceNode?.querySelector<HTMLElement>(".content");
+  const view = node.ownerDocument.defaultView;
+  if (!nativeContent || !view) return;
+
+  const computed = view.getComputedStyle(nativeContent);
+  if (!computed) return;
+  for (const [cssProperty, variable] of NATIVE_COMMENT_METRICS) {
+    const value = computed.getPropertyValue(cssProperty);
+    if (value && preview.style.getPropertyValue(variable) !== value) {
+      preview.style.setProperty(variable, value);
+    }
+  }
 }
 
 function createPreviewPlaceholder(
